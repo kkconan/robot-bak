@@ -38,7 +38,7 @@ public class MarketMonitorBizTest {
      */
     @Test
     public void huoBiMonitorTest() throws Exception {
-        marketMonitorBiz.huoBiMonitor(DictEnum.MARKEY_HUOBI_SYMBOL_BTC_ELA.getCode());
+        marketMonitorBiz.huoBiMonitor(DictEnum.MARKET_HUOBI_SYMBOL_BTC_ELA.getCode());
 
     }
 

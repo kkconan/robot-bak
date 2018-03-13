@@ -62,14 +62,14 @@ public class HuobiApi {
             for (int i = 0; i < detailArray.size(); i++) {
                 SymBolsDetailVo detailVo = new SymBolsDetailVo();
                //去除无效的交易对
-                if (!"bt1".equals(detailVo.getBaseCurrency()) && !"bt2".equals(detailVo.getBaseCurrency())) {
+                if (!"bt1".equals(detailArray.getJSONObject(i).getString("base-currency")) && !"bt2".equals(detailArray.getJSONObject(i).getString("base-currency"))) {
                     detailVo.setSymbols(detailArray.getJSONObject(i).getString("base-currency") + detailArray.getJSONObject(i).getString("quote-currency"));
                     detailVoList.add(detailVo);
                 }
             }
             return detailVoList;
         } catch (Exception e) {
-            log.warn("get last symbols fail,use default info,e={},result={}", e.getMessage(), e, jsonStr);
+            log.warn("get all symbols fail,use default info,e={},result={}", e.getMessage(), e, jsonStr);
             List<DictEnum> dictEnumList = DictEnum.huobiSymbol;
             for (DictEnum dictEnum : dictEnumList) {
                 SymBolsDetailVo detailVo = new SymBolsDetailVo();
@@ -110,11 +110,10 @@ public class HuobiApi {
 //            log.info("marketInfoVo={}", marketInfoVo);
             return marketInfoVo;
         } catch (Exception e) {
-            log.error("获取行情失败,e={},result={},period={},size={},symbol={}", e, jsonStr, period, size, symbol);
+            log.error("get market fail,e={},result={},period={},size={},symbol={}", e, jsonStr, period, size, symbol);
             return null;
         }
     }
-
 }
 
 

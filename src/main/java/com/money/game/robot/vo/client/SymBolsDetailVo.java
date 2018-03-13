@@ -17,12 +17,12 @@ public class SymBolsDetailVo implements Serializable{
     private String symbols;
 
     /**
-     * 应用对代码
+     * 主对代码 btc/eth/usdt
      */
     private String baseCurrency;
 
     /**
-     * 主对 btc/eth/usdt
+     * 应用对
      */
     private String quoteCurrency;
 
