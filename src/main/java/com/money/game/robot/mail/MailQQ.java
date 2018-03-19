@@ -75,6 +75,7 @@ public class MailQQ {
 
             //3发送消息
             Transport.send(message);
+            System.err.println("send email success");
         } catch (MessagingException e) {
             System.err.println("send email fail.. mag=" + e.getMessage());
             ;

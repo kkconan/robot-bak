@@ -5,7 +5,7 @@ import com.money.game.robot.constant.DictEnum;
 import com.money.game.robot.mail.MailQQ;
 import com.money.game.robot.market.HuobiApi;
 import com.money.game.robot.schedule.MonitorSchedule;
-import com.money.game.robot.vo.client.SymBolsDetailVo;
+import com.money.game.robot.vo.huobi.SymBolsDetailVo;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -38,8 +39,11 @@ public class MarketMonitorBizTest {
      */
     @Test
     public void huoBiMonitorTest() throws Exception {
-        marketMonitorBiz.huoBiMonitor(DictEnum.MARKET_HUOBI_SYMBOL_BTC_ELA.getCode());
-
+        marketMonitorBiz.huoBiMonitor(DictEnum.MARKET_HUOBI_SYMBOL_BTC_USDT.getCode());
+//        CloseableHttpClient httpclient = HttpClientBuilder.create().build();
+//        HttpGet httpGet = new HttpGet("https://api.huobipro.com");
+//        CloseableHttpResponse response = httpclient.execute(httpGet);
+//        HttpEntity entity = response.getEntity();
     }
 
     /**
@@ -71,4 +75,11 @@ public class MarketMonitorBizTest {
 
     }
 
+
+    @Test
+    public void checkTransTest(){
+        //increase eosbtc
+        marketMonitorBiz.checkToTrans("eoseth",new BigDecimal("0.1"),new BigDecimal("0.05"));
+
+    }
 }

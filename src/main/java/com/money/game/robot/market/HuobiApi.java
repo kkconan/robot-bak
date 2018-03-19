@@ -8,8 +8,8 @@ import com.money.game.core.util.StringUtil;
 import com.money.game.robot.constant.DictEnum;
 import com.money.game.robot.constant.ErrorEnum;
 import com.money.game.robot.exception.BizException;
-import com.money.game.robot.vo.client.MarketInfoVo;
-import com.money.game.robot.vo.client.SymBolsDetailVo;
+import com.money.game.robot.vo.huobi.MarketInfoVo;
+import com.money.game.robot.vo.huobi.SymBolsDetailVo;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -35,13 +35,13 @@ public class HuobiApi {
     /**
      * 行情
      */
-    @Value("${huobi.pro.market.api.url:https://api.huobi.pro/market/history/kline}")
+    @Value("${huobi.pro.market.api.url:https://api.huobipro.com/market/history/kline}")
     private String proMarketApi;
 
     /**
      * 交易对
      */
-    @Value("${huobi.pro.api.symbol.url:https://api.huobi.pro/v1/common/symbols}")
+    @Value("${huobi.pro.api.symbol.url:https://api.huobipro.com/v1/common/symbols}")
     private String symbolsApi;
 
     /**
@@ -110,6 +110,7 @@ public class HuobiApi {
 //            log.info("marketInfoVo={}", marketInfoVo);
             return marketInfoVo;
         } catch (Exception e) {
+            e.printStackTrace();
             log.error("get market fail,e={},result={},period={},size={},symbol={}", e, jsonStr, period, size, symbol);
             return null;
         }

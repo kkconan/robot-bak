@@ -2,7 +2,7 @@ package com.money.game.robot.schedule;
 
 import com.money.game.robot.biz.MarketMonitorBiz;
 import com.money.game.robot.market.HuobiApi;
-import com.money.game.robot.vo.client.SymBolsDetailVo;
+import com.money.game.robot.vo.huobi.SymBolsDetailVo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;

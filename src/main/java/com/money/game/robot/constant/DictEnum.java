@@ -10,31 +10,6 @@ import java.util.List;
 public enum DictEnum {
 
 
-    USER_TYPE_01("01", "普通用户"),
-    USER_TYPE_02("02", "系统用户"),
-
-    USER_STATUS_NORMAL("01", "正常"),
-    USER_STATUS_FORBIDDER("02", "冻结"),
-
-    ACCOUNT_TYPE_01("01", "基本账户"),
-    ACCOUNT_TYPE_05("05", "平台账户"),
-
-    TRADE_TYPE_01("01", "注册赠送"),
-    TRADE_TYPE_02("02", "充值"),
-    TRADE_TYPE_03("03", "提现"),
-    TRADE_TYPE_04("04", "投注"),
-    TRADE_TYPE_05("05", "盈利"),
-
-    PAY_STATUS_01("01", "已创建"),
-    PAY_STATUS_02("02", "待审核"),
-    PAY_STATUS_03("03", "已完成"),
-
-    PAY_AUDIT_STATUS_01("01", "未审核"),
-    PAY_AUDIT_STATUS_02("02", "审核通过"),
-    PAY_AUDIT_STATUS_03("03", "审核拒绝"),
-
-    PAY_DIRECTION_01("01", "加"),
-    PAY_DIRECTION_02("02", "减"),
 
     MARKET_PERIOD_1MIN("1min", "一分钟"),
     MARKET_PERIOD_5MIN("5min", "五分钟"),
@@ -62,6 +37,8 @@ public enum DictEnum {
     MARKET_HUOBI_SYMBOL_BTC_DASH("dashbtc", "btc/dash市场"),
     MARKET_HUOBI_SYMBOL_BTC_XRP("xrpbtc", "btc/xrp市场"),
     MARKET_HUOBI_SYMBOL_BTC_ZEC("zecbtc", "btc/zec市场"),
+
+    MARKET_HUOBI_SYMBOL_ETH_USDT("ethusdt", "eth/usdt市场"),
     //创新
     MARKET_HUOBI_SYMBOL_BTC_BLZ("blzbtc", "btc/blz市场"),
     MARKET_HUOBI_SYMBOL_BTC_EDU("edubtc", "btc/edu市场"),
@@ -146,31 +123,17 @@ public enum DictEnum {
     MARKET_HUOBI_SYMBOL_BTC_BCD("bcdbtc", "btc/bcd市场"),
     MARKET_HUOBI_SYMBOL_BTC_BCX("bcxbtc", "btc/bcx市场"),
 
-    DIGITAL_CASH_NAME("大盘猜涨跌", "数字货币名称"),
 
-    GAME_TYPE_01("01", "球赛"),
-    GAME_TYPE_02("02", "猜涨跌"),
-    GAME_STATUS_01("01", "未开始"),
-    GAME_STATUS_02("02", "进行中"),
-    GAME_STATUS_03("03", "已结束"),
-    GAME_STATUS_04("04", "状态异常"),
-
-    GAME_PROPERTIES_WIN("win", "胜"),
-    GAME_PROPERTIES_LOSE("lose", "负"),
-    GAME_PROPERTIES_DRAW("draw", "平"),
-    GAME_PROPERTIES_EXEC("exec", "异常"),
+    ORDER_DETAIL_STATE_PRE_SUBMITTED("pre-submitted","准备提交"),
+    ORDER_DETAIL_STATE_SUBMITTING("submitting","已提交"),
+    ORDER_DETAIL_STATE_SUBMITTED("submitting","已提交"),
+    ORDER_DETAIL_STATE_PARTIAL_FILLED("partial-filled","部分成交"),
+    ORDER_DETAIL_STATE_PARTIAL_CANCELED("partial-canceled","部分成交撤销"),
+    ORDER_DETAIL_STATE_FILLED("filled","完全成交"),
+    ORDER_DETAIL_STATE_CANCELED("canceled","已撤销"),
 
 
-    ORDER_STATUS_01("01", "已投注"),
-    ORDER_STATUS_02("02", "已完成"),
-
-
-    SMS_SWITCH_ON("on", "短信开关开"),
-    SMS_SWITCH_OFF("off", "短信开关关"),
-
-    PAY_NO_PREFIX("1", "交易流水前缀"),
-    ORDER_NO_PREFIX("2", "订单流水前缀"),
-    ACCOUNT_NO_PREFIX("AC", "资金账号前缀");
+    ;
 
     public static List<DictEnum> huobiSymbol = new ArrayList<>();
 

@@ -1,4 +1,4 @@
-package com.money.game.robot.vo.client;
+package com.money.game.robot.vo.huobi;
 
 import lombok.Data;
 
