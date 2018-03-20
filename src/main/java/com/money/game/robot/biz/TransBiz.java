@@ -1,17 +1,19 @@
 package com.money.game.robot.biz;
 
+import com.money.game.core.util.DateUtils;
 import com.money.game.robot.constant.DictEnum;
 import com.money.game.robot.dto.huobi.CreateOrderDto;
 import com.money.game.robot.dto.huobi.DepthDto;
 import com.money.game.robot.dto.huobi.HuobiBaseDto;
+import com.money.game.robot.entity.OrderEntity;
+import com.money.game.robot.entity.RateChangeEntity;
 import com.money.game.robot.huobi.request.CreateOrderRequest;
 import com.money.game.robot.huobi.response.Accounts;
 import com.money.game.robot.huobi.response.BalanceBean;
 import com.money.game.robot.huobi.response.Depth;
 import com.money.game.robot.huobi.response.OrdersDetail;
 import com.money.game.robot.market.HuobiApi;
-import com.money.game.robot.vo.huobi.MarketDetailVo;
-import com.money.game.robot.vo.huobi.MarketInfoVo;
+import com.money.game.robot.service.RateChangeService;
 import com.money.game.robot.vo.huobi.RateChangeVo;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
@@ -19,9 +21,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
@@ -46,6 +45,15 @@ public class TransBiz {
     @Autowired
     private AccountBiz accountBiz;
 
+    @Autowired
+    private OrderBiz orderBiz;
+
+    @Autowired
+    private RateChangeService rateChangeService;
+
+    @Autowired
+    private RateChangeBiz rateChangeBiz;
+
     /**
      * 主对之间允许的误差,例如eosbtc increase 10%,ethbtc increase 3%,则实际增长幅度为10%-3%+baseCurrencyBlunder > 购买阈值
      */
@@ -61,7 +69,7 @@ public class TransBiz {
     /**
      * usdt 最多下单多少amount
      */
-    @Value("${max.buy.with.usdt:10}")
+    @Value("${max.buy.with.usdt:1}")
     private BigDecimal maxBuyWithUsdt;
 
     /**
@@ -73,7 +81,7 @@ public class TransBiz {
     /**
      * eth 最多下单多少amount
      */
-    @Value("${max.buy.with.btc:0.02}")
+    @Value("${max.buy.with.btc:0.002}")
     private BigDecimal maxBuyWithEth;
 
     /**
@@ -83,53 +91,89 @@ public class TransBiz {
     private BigDecimal increseBuyAndSalePrice;
 
     /**
-     * to trans
+     * 买单未成交最多等待多长时间,超时则撤销
      */
-    public void trans(RateChangeVo rateChangeVo) {
+    @Value("${buy.order.wait.time:10}")
+    private Integer buyOrderWaitTime;
+
+    /**
+     * to buy
+     */
+    public void buy(RateChangeVo rateChangeVo) {
         List<String> orderIds;
-        List<String> saleOrdes = new ArrayList<>();
         if (StringUtils.isNotEmpty(rateChangeVo.getBuyerSymbol())) {
+            boolean checkResult = checkNeedToBuy(rateChangeVo);
+            if (checkResult) {
+                log.info("存在未完成的订单,不再继续购买,rateChangeVo={}", rateChangeVo);
+                return;
+            }
             //下单操作
             orderIds = checkDeptAndCreateBuyOrder(rateChangeVo.getBuyerSymbol(), rateChangeVo.getBuyPrice(), rateChangeVo.getBaseCurrency());
-            //检查买入委托
+            RateChangeEntity rateChangeEntity = rateChangeBiz.save(rateChangeVo);
+            //保存下单结果
             for (String orderId : orderIds) {
-                saleOrdes.addAll(checkStateAndSale(orderId, rateChangeVo));
+                orderBiz.saveOrder(orderId, rateChangeEntity.getOid(), null);
             }
-            //检查卖出委托
-            for (String saleOrderId : saleOrdes) {
-                checkSaleStatus(saleOrderId);
-            }
-        }
-    }
-
-    private void checkSaleStatus(String orderId) {
-        HuobiBaseDto dto = new HuobiBaseDto();
-        dto.setOrderId(orderId);
-        OrdersDetail ordersDetail = tradeBiz.orderDetail(dto);
-        log.info("to sale order;ordersDetail={}", ordersDetail);
-        writeToFile2("to sale order result=" + ordersDetail.toString());
-        if (DictEnum.ORDER_DETAIL_STATE_FILLED.getCode().equals(ordersDetail.getState())) {
-            writeToFile2("sale order result=" + ordersDetail.toString());
         }
     }
 
     /**
-     * 下单委托成功则挂单售出
+     * 检查是否有需要卖出的订单
      */
-    private List<String> checkStateAndSale(String orderId, RateChangeVo rateChangeVo) {
-        List<String> saleOrdes = new ArrayList<>();
-        HuobiBaseDto dto = new HuobiBaseDto();
-        dto.setOrderId(orderId);
-        OrdersDetail ordersDetail = tradeBiz.orderDetail(dto);
-        //订单完成成交则售出
-        if (DictEnum.ORDER_DETAIL_STATE_FILLED.getCode().equals(ordersDetail.getState())) {
-            log.info("buy order success;ordersDetail={}", ordersDetail);
-            saleOrdes = checkDeptAndCreateSaleOrder(rateChangeVo, rateChangeVo.getNowMarketDetailVo().getClose(), new BigDecimal(ordersDetail.getAmount()));
+    public void sale() {
+        List<String> saleOrdes;
+        List<OrderEntity> list = orderBiz.findNoFilledBuyOrder();
+        for (OrderEntity buyOrderEntity : list) {
+            //完全成交或者部分成交撤销,售出成交部分
+            if (DictEnum.ORDER_DETAIL_STATE_FILLED.getCode().equals(buyOrderEntity.getState()) || DictEnum.ORDER_DETAIL_STATE_PARTIAL_CANCELED.getCode().equals(buyOrderEntity.getState())) {
+                log.info("order can to sale.orderEntity={}", buyOrderEntity);
+                RateChangeEntity rateChangeEntity = rateChangeService.findOne(buyOrderEntity.getRateChangeId());
+                saleOrdes = checkDeptAndCreateSaleOrder(rateChangeEntity, buyOrderEntity.getFieldAmount());
+                for (String orderId : saleOrdes) {
+                    //保存卖单
+                    orderBiz.saveOrder(orderId, rateChangeEntity.getOid(), buyOrderEntity.getOrderId());
+                }
+                //更新原买单状态
+                buyOrderEntity.setState(DictEnum.ORDER_DETAIL_STATE_SELL.getCode());
+                orderBiz.saveOrder(buyOrderEntity);
+            }
+            //部分成交
+            else if (DictEnum.ORDER_DETAIL_STATE_PARTIAL_FILLED.getCode().equals(buyOrderEntity.getState())) {
+                //买单超时则撤销
+                if (DateUtils.addMinute(buyOrderEntity.getCreateTime(), buyOrderWaitTime).before(DateUtils.getCurrDateMmss())) {
+                    HuobiBaseDto dto = new HuobiBaseDto();
+                    dto.setOrderId(buyOrderEntity.getOrderId());
+                    tradeBiz.submitCancel(dto);
+                }
+            }
         }
-        log.info("sale to orderIds={}", saleOrdes);
-        //TODO 入库,买单超过时间为成交或者部分成交则撤销订单,售出成交部分
-        writeToFile2("buy order result=" + ordersDetail.toString() + ";saleOrdes=" + saleOrdes);
-        return saleOrdes;
+    }
+
+
+    public void checkSaleFinish() {
+        List<OrderEntity> saleOrderList = orderBiz.findNoFilledSaleOrder();
+        for (OrderEntity saleOrder : saleOrderList) {
+            HuobiBaseDto dto = new HuobiBaseDto();
+            dto.setOrderId(saleOrder.getOrderId());
+            OrdersDetail ordersDetail = tradeBiz.orderDetail(dto);
+            //卖单已成交或撤销成交
+            if (DictEnum.ORDER_DETAIL_STATE_FILLED.getCode().equals(ordersDetail.getState()) || DictEnum.ORDER_DETAIL_STATE_PARTIAL_CANCELED.getCode().equals(ordersDetail.getState())) {
+                log.info("卖单已成交,交易完成.saleOrderId={}", saleOrder.getOrderId());
+                saleOrder.setState(ordersDetail.getState());
+
+            }
+
+        }
+    }
+
+
+    private boolean checkNeedToBuy(RateChangeVo rateChangeVo) {
+        boolean result = orderBiz.existNotFinishOrder(rateChangeVo.getBuyerSymbol(), DictEnum.ORDER_TYPE_BUY_LIMIT.getCode());
+        if (!result) {
+            result = orderBiz.existNotFinishOrder(rateChangeVo.getSaleSymbol(), DictEnum.ORDER_TYPE_SELL_LIMIT.getCode());
+        }
+        return result;
+
     }
 
     /**
@@ -165,14 +209,14 @@ public class TransBiz {
                     String orderId = createBuyOrder(symbol, buyPrice, remainAmount, baseQuote);
 //                    String orderId = "2502535508";
                     orderIds.add(orderId);
-                    log.info("卖单价购买,buyPrice={},salePrice={},remainAmount={},saleAmount={},orderId={}", buyPrice, salePrice, remainAmount, saleAmount, orderId);
+                    log.info("卖单价购买,buyPrice={},saleOnePrice={},remainAmount={},saleOneAmount={},orderId={}", buyPrice, salePrice, remainAmount, saleAmount, orderId);
                     remainAmount = remainAmount.subtract(saleAmount);
                 } else {
                     log.info("卖单数量已满足购买需求,订单完成委托");
                     break;
                 }
             } else {
-                log.info("卖单价格比例已超过阈值,不再已卖单价购买");
+                log.info("卖单价格比例已超过阈值,不再已卖单价购买,salePrice={},buyPrice={},asksBlunder={}", salePrice, buyPrice, asksBlunder);
                 break;
             }
         }
@@ -230,10 +274,10 @@ public class TransBiz {
     /**
      * 检查交易深度是否满足创建卖单条件
      */
-    private List<String> checkDeptAndCreateSaleOrder(RateChangeVo rateChangeVo, BigDecimal nowPrice, BigDecimal amount) {
-        log.info("checkDeptAndCreateSaleOrder,rateChangeVo={},nowPrice={},amount={}", rateChangeVo, nowPrice, amount);
+    private List<String> checkDeptAndCreateSaleOrder(RateChangeEntity rateChangeEntity, BigDecimal amount) {
+        log.info("checkDeptAndCreateSaleOrder,rateChangeVo={},amount={}", rateChangeEntity, amount);
         DepthDto dto = new DepthDto();
-        dto.setSymbol(rateChangeVo.getSaleSymbol());
+        dto.setSymbol(rateChangeEntity.getSaleSymbol());
         //获取交易深度
         Depth depth = marketBiz.depth(dto);
         //所有成交的订单id
@@ -241,7 +285,7 @@ public class TransBiz {
         //剩余需要售卖的数量
         BigDecimal remainAmount = amount;
         //卖的价格
-        BigDecimal salePrice = rateChangeVo.getSalePrice();
+        BigDecimal salePrice = rateChangeEntity.getSalePrice();
         //buy list
         List<List<BigDecimal>> bids = depth.getBids();
         //sale list
@@ -258,7 +302,7 @@ public class TransBiz {
                     //卖一+上浮=购买价
                     salePrice = salePrice.subtract(increseBuyAndSalePrice);
                     BigDecimal saleAmount = bid.get(1);
-                    String orderId = createSaleOrder(rateChangeVo.getSaleSymbol(), salePrice, saleAmount, rateChangeVo.getQuoteCurrency());
+                    String orderId = createSaleOrder(rateChangeEntity.getSaleSymbol(), salePrice, saleAmount, rateChangeEntity.getQuoteCurrency());
                     orderIds.add(orderId);
                     log.info("买单价售出,salePrice={},remainAmount={},saleAmount={},orderId={}", salePrice, remainAmount, saleAmount, orderId);
                     remainAmount = remainAmount.subtract(saleAmount);
@@ -266,8 +310,9 @@ public class TransBiz {
                     log.info("买单数量已满足出售需求,订单完成委托");
                     break;
                 }
+            } else {
+                break;
             }
-            break;
         }
         //未已买单价成交所有,参考卖一价售出
         if (remainAmount.compareTo(BigDecimal.ZERO) > 0) {
@@ -279,9 +324,9 @@ public class TransBiz {
             } else {
                 salePrice = saleOnePrice.subtract(increseBuyAndSalePrice);
             }
-            String orderId = createSaleOrder(rateChangeVo.getSaleSymbol(), salePrice, remainAmount, rateChangeVo.getQuoteCurrency());
+            String orderId = createSaleOrder(rateChangeEntity.getSaleSymbol(), salePrice, remainAmount, rateChangeEntity.getQuoteCurrency());
             orderIds.add(orderId);
-            log.info("买单价卖出,remainAmount={},salePrice={},nowPrice={},orderId={}", remainAmount, salePrice, nowPrice, orderId);
+            log.info("买单价卖出,remainAmount={},salePrice={},orderId={}", remainAmount, salePrice, orderId);
         }
         log.info("orderIds={}", orderIds);
         return orderIds;
@@ -315,92 +360,6 @@ public class TransBiz {
         return tradeBiz.createOrder(dto);
     }
 
-
-    /**
-     * eth to usdt rate validate
-     *
-     * @param quoteCurrency        业务对
-     * @param increase             增长率
-     * @param period               行情类型 1min ex.
-     * @param size                 行情条数
-     * @param baseCurrencyAbsolute 差异基准值
-     * @return 要操作的新交易对
-     */
-    private RateChangeVo ethusdtRateChange(String quoteCurrency, BigDecimal increase, String period, Integer size, BigDecimal baseCurrencyAbsolute) {
-        String baseQuote = DictEnum.MARKET_BASE_ETH.getCode();//主对
-        MarketInfoVo info = huobiApi.getMarketInfo(period, size, DictEnum.MARKET_HUOBI_SYMBOL_ETH_USDT.getCode());
-        return initRateChange(quoteCurrency, increase, period, size, baseCurrencyAbsolute, baseQuote, info);
-
-    }
-
-
-    /**
-     * * btc to usdt rate validate
-     * example ethusdtRateChange params
-     */
-    private RateChangeVo btcusdtRateChange(String quoteCurrency, BigDecimal increase, String period, Integer size, BigDecimal baseCurrencyAbsolute) {
-        String baseQuote = DictEnum.MARKET_BASE_BTC.getCode();//主对
-        MarketInfoVo info = huobiApi.getMarketInfo(period, size, DictEnum.MARKET_HUOBI_SYMBOL_BTC_USDT.getCode());
-        return initRateChange(quoteCurrency, increase, period, size, baseCurrencyAbsolute, baseQuote, info);
-
-    }
-
-    private RateChangeVo initRateChange(String quoteCurrency, BigDecimal increase, String period, Integer size, BigDecimal baseCurrencyAbsolute, String baseQuote, MarketInfoVo info) {
-        log.info("initRateChange start...quoteCurrency={},increase={},period={},size={},baseCurrencyAbsolute={},baseCurrency={}",
-                quoteCurrency, increase, period, size, baseCurrencyAbsolute, baseQuote);
-        RateChangeVo vo = new RateChangeVo();
-        String otherBaseQuote = DictEnum.MARKET_BASE_BTC.getCode();
-        if (DictEnum.MARKET_BASE_BTC.getCode().equals(baseQuote)) {
-            otherBaseQuote = DictEnum.MARKET_BASE_ETH.getCode();
-        }
-        String buySymbol = null;
-        String saleSymbol = null;
-        MarketDetailVo nowVo = info.getData().get(0);
-        BigDecimal nowPrice = nowVo.getClose();
-        BigDecimal otherMinPrice;
-        BigDecimal otherMinIncrease;
-        BigDecimal rateValue;//可操作的最大差异比率
-        if (DictEnum.MARKET_PERIOD_1MIN.getCode().equals(period)) {
-            MarketDetailVo oneMinVo = info.getData().get(1);
-            otherMinPrice = oneMinVo.getClose();
-            otherMinIncrease = (nowPrice.subtract(otherMinPrice)).divide(otherMinPrice, 9, BigDecimal.ROUND_HALF_UP);
-        } else {
-            MarketDetailVo oneMinVo = info.getData().get(5);
-            otherMinPrice = oneMinVo.getClose();
-            otherMinIncrease = (nowPrice.subtract(otherMinPrice)).divide(otherMinPrice, 9, BigDecimal.ROUND_HALF_UP);
-        }
-        // original symbol increase; example eoseth 10%
-        if (increase.compareTo(BigDecimal.ZERO) >= 0) {
-            //相对主对之间增幅超过阈值baseCurrencyAbsolute,example  10%-3%+baseCurrencyBlunder > 购买阈值，则购买另一主对交易对
-            rateValue = increase.subtract(otherMinIncrease);
-            if (rateValue.add(baseCurrencyBlunder).compareTo(baseCurrencyAbsolute) > 0) {
-                buySymbol = quoteCurrency + otherBaseQuote;
-                saleSymbol = quoteCurrency + baseQuote;
-            }
-        }
-        //original symbol decrease; example eosbtc -10%
-        else {
-            //相对主对之间增幅超过阈值baseCurrencyAbsolute,example  -3%-(-10%)+baseCurrencyBlunder > 购买阈值，则购买当前交易对
-            rateValue = otherMinIncrease.subtract(increase);
-            if (rateValue.add(baseCurrencyBlunder).compareTo(baseCurrencyAbsolute) > 0) {
-                buySymbol = quoteCurrency + baseQuote;
-                saleSymbol = quoteCurrency + otherBaseQuote;
-            }
-        }
-        //波动交易对的最新行情信息
-        MarketInfoVo marketInfoVo = huobiApi.getMarketInfo(period, size, quoteCurrency + baseQuote);
-        vo.setNowMarketDetailVo(marketInfoVo.getData().get(0));
-        vo.setBuyerSymbol(buySymbol);
-        vo.setRateValue(rateValue);
-        vo.setBaseCurrency(baseQuote);
-        vo.setQuoteCurrency(quoteCurrency);
-        vo.setSaleSymbol(saleSymbol);
-        log.info("ethbtcRateChange end...otherMinPrice={},otherMinIncrease={},increase={},baseCurrencyBlunder={},buySymbol={},vo={}",
-                otherMinPrice, otherMinIncrease, increase, baseCurrencyBlunder, buySymbol, vo);
-        return vo;
-
-    }
-
     /**
      * 购买数量
      * newPrice 最新价格
@@ -415,25 +374,5 @@ public class TransBiz {
             amount = maxBuyWithEth.divide(newPrice, 8, BigDecimal.ROUND_FLOOR);
         }
         return amount;
-    }
-
-    public static void writeToFile2(String content) {
-        try {
-            File file = new File("E:\\tmp\\trade.txt");
-            //文件不存在时候，主动穿件文件。
-            if (!file.exists()) {
-                file.createNewFile();
-            }
-            FileWriter fw = new FileWriter(file, true);
-            BufferedWriter bw = new BufferedWriter(fw);
-            bw.newLine();
-            bw.write(content);
-            bw.close();
-            fw.close();
-            log.info("content={} write done!", content);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
     }
 }

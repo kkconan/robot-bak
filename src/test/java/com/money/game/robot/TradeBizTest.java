@@ -2,6 +2,8 @@ package com.money.game.robot;
 
 import com.money.game.robot.biz.TradeBiz;
 import com.money.game.robot.dto.huobi.CreateOrderDto;
+import com.money.game.robot.dto.huobi.HuobiBaseDto;
+import com.money.game.robot.huobi.response.OrdersDetail;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -34,5 +36,13 @@ public class TradeBizTest {
         dto.setOrderType("buy-limit");
         String orderId = tradeBiz.createOrder(dto);
         log.info("orderId={}", orderId);
+    }
+
+    @Test
+    public void orderDetailTest() {
+        HuobiBaseDto dto = new HuobiBaseDto();
+        dto.setOrderId("2534284968");
+        OrdersDetail detail = tradeBiz.orderDetail(dto);
+        log.info("detail={}", detail);
     }
 }

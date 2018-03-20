@@ -10,7 +10,6 @@ import java.util.List;
 public enum DictEnum {
 
 
-
     MARKET_PERIOD_1MIN("1min", "一分钟"),
     MARKET_PERIOD_5MIN("5min", "五分钟"),
     MARKET_PERIOD_30MIN("30min", "三十分钟"),
@@ -22,9 +21,9 @@ public enum DictEnum {
 
 
     //基础对
-    MARKET_BASE_BTC("btc","btc"),
-    MARKET_BASE_ETH("eth","eth"),
-    MARKET_BASE_USDT("usdt","usdt"),
+    MARKET_BASE_BTC("btc", "btc"),
+    MARKET_BASE_ETH("eth", "eth"),
+    MARKET_BASE_USDT("usdt", "usdt"),
 
 
     //主流
@@ -124,16 +123,18 @@ public enum DictEnum {
     MARKET_HUOBI_SYMBOL_BTC_BCX("bcxbtc", "btc/bcx市场"),
 
 
-    ORDER_DETAIL_STATE_PRE_SUBMITTED("pre-submitted","准备提交"),
-    ORDER_DETAIL_STATE_SUBMITTING("submitting","已提交"),
-    ORDER_DETAIL_STATE_SUBMITTED("submitting","已提交"),
-    ORDER_DETAIL_STATE_PARTIAL_FILLED("partial-filled","部分成交"),
-    ORDER_DETAIL_STATE_PARTIAL_CANCELED("partial-canceled","部分成交撤销"),
-    ORDER_DETAIL_STATE_FILLED("filled","完全成交"),
-    ORDER_DETAIL_STATE_CANCELED("canceled","已撤销"),
+    ORDER_DETAIL_STATE_PRE_SUBMITTED("pre-submitted", "准备提交"),
+    ORDER_DETAIL_STATE_SUBMITTING("submitting", "已提交"),
+    ORDER_DETAIL_STATE_SUBMITTED("submitted", "已提交"),
+    ORDER_DETAIL_STATE_PARTIAL_FILLED("partial-filled", "部分成交"),
+    ORDER_DETAIL_STATE_PARTIAL_CANCELED("partial-canceled", "部分成交撤销"),
+    ORDER_DETAIL_STATE_FILLED("filled", "完全成交"),
+    ORDER_DETAIL_STATE_CANCELED("canceled", "已撤销"),
+    ORDER_DETAIL_STATE_SELL("sell", "已挂单售卖"),
 
 
-    ;
+    ORDER_TYPE_BUY_LIMIT("buy-limit", "限价买单"),
+    ORDER_TYPE_SELL_LIMIT("sell-limit", "限价卖单"),;
 
     public static List<DictEnum> huobiSymbol = new ArrayList<>();
 

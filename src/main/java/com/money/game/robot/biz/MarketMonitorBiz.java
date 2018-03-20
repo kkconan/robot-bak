@@ -127,9 +127,9 @@ public class MarketMonitorBiz {
             log.info("nowVo={},otherVo={},threshold={},content={}", nowVo, otherVo, threshold, content);
         }
         if (isToOperate) {
-            //check trans
+            //check buy
             checkToTrans(symbol, increase, threshold);
-            //send eamil
+            // send eamil
             sendNotifyEmail(content);
             //send sms
             sendSms(content, symbol);
@@ -266,10 +266,10 @@ public class MarketMonitorBiz {
             String baseCurrency = getBaseCurrency(rateChangeVo.getBuyerSymbol());
             rateChangeVo.setBaseCurrency(baseCurrency);
             //交易
-            transBiz.trans(rateChangeVo);
+            transBiz.buy(rateChangeVo);
             tranResult = true;
         } catch (ApiException e) {
-            log.warn("trans fail.e={}", e);
+            log.warn("buy fail.errCode={},errMsg={}",e.getErrCode(), e.getMessage());
         }
         return tranResult;
     }

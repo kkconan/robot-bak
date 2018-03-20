@@ -11,6 +11,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.annotation.Rollback;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.math.BigDecimal;
@@ -77,9 +78,10 @@ public class MarketMonitorBizTest {
 
 
     @Test
-    public void checkTransTest(){
+    @Rollback(false)
+    public void checkTransTest() {
         //increase eosbtc
-        marketMonitorBiz.checkToTrans("eoseth",new BigDecimal("0.1"),new BigDecimal("0.05"));
+        marketMonitorBiz.checkToTrans("eoseth", new BigDecimal("0.1"), new BigDecimal("0.05"));
 
     }
 }

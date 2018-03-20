@@ -61,7 +61,7 @@ public class HuobiApi {
             JSONArray detailArray = jsonObject.getJSONArray("data");
             for (int i = 0; i < detailArray.size(); i++) {
                 SymBolsDetailVo detailVo = new SymBolsDetailVo();
-               //去除无效的交易对
+                //去除无效的交易对
                 if (!"bt1".equals(detailArray.getJSONObject(i).getString("base-currency")) && !"bt2".equals(detailArray.getJSONObject(i).getString("base-currency"))) {
                     detailVo.setSymbols(detailArray.getJSONObject(i).getString("base-currency") + detailArray.getJSONObject(i).getString("quote-currency"));
                     detailVoList.add(detailVo);
@@ -103,6 +103,11 @@ public class HuobiApi {
             HttpEntity entity = response.getEntity();
             jsonStr = EntityUtils.toString(entity, "utf-8");
             httpGet.releaseConnection();
+            JSONObject json = JSON.parseObject(jsonStr);
+            if (!"ok".equals(json.getString("status"))) {
+                log.info("market info not found. result={}", json);
+                return null;
+            }
             MarketInfoVo marketInfoVo = new ObjectMapper().readValue(jsonStr, MarketInfoVo.class);
             if (marketInfoVo.getData() == null || marketInfoVo.getData().isEmpty()) {
                 throw new BizException(ErrorEnum.MARKEY_INFO_FAIL);

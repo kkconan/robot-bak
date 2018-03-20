@@ -38,12 +38,6 @@
             <groupId>com.money.game</groupId>
             <artifactId>core</artifactId>
             <version>1.0.0-SNAPSHOT</version>
-            <exclusions>
-                <exclusion>
-                    <artifactId>mysql-connector-java</artifactId>
-                    <groupId>mysql</groupId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -139,7 +133,7 @@
             <artifactId>xstream</artifactId>
             <version>1.4.2</version>
         </dependency>
-       <!-- <dependency>
+        <dependency>
             <groupId>com.money.game</groupId>
             <artifactId>basic</artifactId>
             <version>1.0.0-SNAPSHOT</version>
@@ -149,7 +143,7 @@
                     <groupId>org.springframework.session</groupId>
                 </exclusion>
             </exclusions>
-        </dependency>-->
+        </dependency>
 
         <dependency>
             <groupId>com.cloopen</groupId>

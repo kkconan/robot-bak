@@ -1,6 +1,7 @@
 package com.money.game.robot.schedule;
 
 import com.money.game.robot.biz.MarketMonitorBiz;
+import com.money.game.robot.biz.TransBiz;
 import com.money.game.robot.market.HuobiApi;
 import com.money.game.robot.vo.huobi.SymBolsDetailVo;
 import lombok.extern.slf4j.Slf4j;
@@ -25,17 +26,31 @@ public class MonitorSchedule {
     @Autowired
     private MarketMonitorBiz marketMonitorBiz;
 
-    /**
-     * 一次线程最多执行次数
-     */
-    private static Integer asyncDoCount = 1;
+    @Autowired
+    private TransBiz transBiz;
 
     @Scheduled(cron = "${cron.option[huoBi.symBols]:0/59 * * * * ?}")
-    public void huoBiSymBols() {
+    public void huoBiSymBolsSchedule() {
         log.info("huoBi all symBols monitor start...");
         this.huoBiAllSymBolsMonitor();
     }
 
+
+    /**
+     * 检查是否有成交的买单可以挂单售出
+     */
+    @Scheduled(cron = "${cron.option[check.order.to.sale]:0/5 * * * * ?}")
+    public void checkOrderToSale() {
+        transBiz.sale();
+    }
+
+    /**
+     * 检查卖单是否已完成
+     */
+    @Scheduled(cron = "${cron.option[check.order.sale.finish]:0/30 * * * * ?}")
+    public void checkOrderSaleFinish() {
+        transBiz.checkSaleFinish();
+    }
 
     /**
      * 异步方法调用不能再同一个类，否则异步注解不起作用

@@ -2,13 +2,16 @@ package com.money.game.robot.huobi.response;
 
 import lombok.Data;
 
+import java.io.Serializable;
+import java.math.BigDecimal;
+
 /**
  * @Author ISME
  * @Date 2018/1/14
  * @Time 18:22
  */
 @Data
-public class OrdersDetail {
+public class OrdersDetail implements Serializable{
 
     /**
      * id : 59378
@@ -30,21 +33,37 @@ public class OrdersDetail {
      * batch :
      */
 
-    private Long id;
+    private String id;
+
     private String symbol;
-    private int accountid;
-    private String amount;
-    private String price;
-    private long createdat;
+
+    @com.google.gson.annotations.SerializedName("account-id")
+    private String accountId;
+
+    private BigDecimal amount;
+
+    private BigDecimal price;
+
+    @com.google.gson.annotations.SerializedName("created-at")
+    private long createdAt;
+
     private String type;
-    private String fieldamount;
-    private String fieldcashamount;
-    private String fieldfees;
-    private long finishedat;
-    private int userid;
+
+    @com.google.gson.annotations.SerializedName("fieldamount")
+    private BigDecimal fieldAmount;
+
+    @com.google.gson.annotations.SerializedName("fieldcashamount")
+    private BigDecimal fieldCashAmount;
+
+    @com.google.gson.annotations.SerializedName("fieldfees")
+    private BigDecimal fieldFees;
+
+    @com.google.gson.annotations.SerializedName("finishedat")
+    private long finishedAt;
+
     private String source;
     private String state;
-    private int canceledat;
-    private String exchange;
-    private String batch;
+
+    @com.google.gson.annotations.SerializedName("canceled_at")
+    private int canceledAt;
 }
