@@ -1,12 +1,17 @@
 package com.money.game.robot;
 
 import com.money.game.robot.biz.MarketMonitorBiz;
-import com.money.game.robot.constant.DictEnum;
 import com.money.game.robot.mail.MailQQ;
 import com.money.game.robot.market.HuobiApi;
 import com.money.game.robot.schedule.MonitorSchedule;
 import com.money.game.robot.vo.huobi.SymBolsDetailVo;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.http.HttpEntity;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.util.EntityUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,11 +45,13 @@ public class MarketMonitorBizTest {
      */
     @Test
     public void huoBiMonitorTest() throws Exception {
-        marketMonitorBiz.huoBiMonitor(DictEnum.MARKET_HUOBI_SYMBOL_BTC_USDT.getCode());
-//        CloseableHttpClient httpclient = HttpClientBuilder.create().build();
-//        HttpGet httpGet = new HttpGet("https://api.huobipro.com");
-//        CloseableHttpResponse response = httpclient.execute(httpGet);
-//        HttpEntity entity = response.getEntity();
+//        marketMonitorBiz.huoBiMonitor(DictEnum.MARKET_HUOBI_SYMBOL_BTC_USDT.getCode());
+        CloseableHttpClient httpclient = HttpClientBuilder.create().build();
+        HttpGet httpGet = new HttpGet("https://api.huobipro.com/market/history/kline?period=1min&size=1&symbol=mtxbtc");
+        CloseableHttpResponse response = httpclient.execute(httpGet);
+        HttpEntity entity = response.getEntity();
+        String jsonStr = EntityUtils.toString(entity, "utf-8");
+        System.err.println(jsonStr);
     }
 
     /**

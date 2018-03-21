@@ -12,7 +12,6 @@ import com.money.game.robot.huobi.response.Accounts;
 import com.money.game.robot.huobi.response.BalanceBean;
 import com.money.game.robot.huobi.response.Depth;
 import com.money.game.robot.huobi.response.OrdersDetail;
-import com.money.game.robot.market.HuobiApi;
 import com.money.game.robot.service.RateChangeService;
 import com.money.game.robot.vo.huobi.RateChangeVo;
 import lombok.extern.slf4j.Slf4j;
@@ -32,9 +31,6 @@ import java.util.List;
 @Slf4j
 @Component
 public class TransBiz {
-
-    @Autowired
-    private HuobiApi huobiApi;
 
     @Autowired
     private MarketBiz marketBiz;
@@ -63,7 +59,7 @@ public class TransBiz {
     /**
      * 卖一最大允许差异比率,例如eosbtc 准备已当前最新价购买,卖一最多比最新价高的比例不超过此值(1%),则直接以卖一价市价购买
      */
-    @Value("${base.currency.blunder:0.01}")
+    @Value("${asks.blunder:0.01}")
     private BigDecimal asksBlunder;
 
     /**
@@ -81,7 +77,7 @@ public class TransBiz {
     /**
      * eth 最多下单多少amount
      */
-    @Value("${max.buy.with.btc:0.002}")
+    @Value("${max.buy.with.eth:0.002}")
     private BigDecimal maxBuyWithEth;
 
     /**
@@ -100,6 +96,7 @@ public class TransBiz {
      * to buy
      */
     public void buy(RateChangeVo rateChangeVo) {
+        log.info("buy,rateChangeVo={}", rateChangeVo);
         List<String> orderIds;
         if (StringUtils.isNotEmpty(rateChangeVo.getBuyerSymbol())) {
             boolean checkResult = checkNeedToBuy(rateChangeVo);

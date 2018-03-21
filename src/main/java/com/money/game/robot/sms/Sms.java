@@ -12,7 +12,6 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -62,7 +61,7 @@ public class Sms {
             HttpEntity entity = response.getEntity();
             jsonStr = EntityUtils.toString(entity, "GBK");
             httppost.releaseConnection();
-            log.info("send sms result={}", jsonStr);
+            log.info("send sms success.result={}", jsonStr);
         } catch (Exception e) {
             log.error("send sms fail ...e={}", e);
         }

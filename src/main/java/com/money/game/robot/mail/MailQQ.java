@@ -1,11 +1,14 @@
 package com.money.game.robot.mail;
 
+import lombok.extern.slf4j.Slf4j;
+
 import javax.mail.*;
 import javax.mail.Message.RecipientType;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import java.util.Properties;
 
+@Slf4j
 public class MailQQ {
 
     public static void sendEmail(String subject, String content,String toUser) {
@@ -75,9 +78,9 @@ public class MailQQ {
 
             //3发送消息
             Transport.send(message);
-            System.err.println("send email success");
+            log.info("send email success");
         } catch (MessagingException e) {
-            System.err.println("send email fail.. mag=" + e.getMessage());
+            log.error("send email fail.. mag=" + e.getMessage());
             ;
         }
     }

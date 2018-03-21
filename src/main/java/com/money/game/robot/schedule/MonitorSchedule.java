@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -29,15 +30,16 @@ public class MonitorSchedule {
     @Autowired
     private TransBiz transBiz;
 
-    @Scheduled(cron = "${cron.option[huoBi.symBols]:0/59 * * * * ?}")
+    @Scheduled(cron = "${cron.option[huoBi.symBols]:0 0/2 * * * ?}")
     public void huoBiSymBolsSchedule() {
         log.info("huoBi all symBols monitor start...");
         this.huoBiAllSymBolsMonitor();
+        log.info("huoBi all symBols monitor end...");
     }
 
 
     /**
-     * 检查是否有成交的买单可以挂单售出
+     * 检查是否有成交的买单可以挂单售出(切日志方法已check开头)
      */
     @Scheduled(cron = "${cron.option[check.order.to.sale]:0/5 * * * * ?}")
     public void checkOrderToSale() {
@@ -45,7 +47,7 @@ public class MonitorSchedule {
     }
 
     /**
-     * 检查卖单是否已完成
+     * 检查卖单是否已完成(切日志方法已check开头)
      */
     @Scheduled(cron = "${cron.option[check.order.sale.finish]:0/30 * * * * ?}")
     public void checkOrderSaleFinish() {
@@ -57,10 +59,37 @@ public class MonitorSchedule {
      */
     public void huoBiAllSymBolsMonitor() {
         List<SymBolsDetailVo> list = huobiApi.getSymbolsInfo();
-        for (SymBolsDetailVo detailVo : list) {
-            marketMonitorBiz.asyncOneDoMonitor(detailVo);
-
+        List<List<SymBolsDetailVo>> allList = averageAssign(list, 20);
+        for (List<SymBolsDetailVo> subList : allList) {
+            marketMonitorBiz.asyncDoMonitor(subList);
+            try {
+                Thread.sleep(2000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
+    }
+
+    /**
+     * 将一个list均分成n个list,主要通过偏移量来实现的
+     */
+    private static <T> List<List<T>> averageAssign(List<T> source, int n) {
+        List<List<T>> result = new ArrayList<List<T>>();
+        int remaider = source.size() % n;  //(先计算出余数)
+        int number = source.size() / n;  //然后是商
+        int offset = 0;//偏移量
+        for (int i = 0; i < n; i++) {
+            List<T> value = null;
+            if (remaider > 0) {
+                value = source.subList(i * number + offset, (i + 1) * number + offset + 1);
+                remaider--;
+                offset++;
+            } else {
+                value = source.subList(i * number + offset, (i + 1) * number + offset);
+            }
+            result.add(value);
+        }
+        return result;
     }
 
 }

@@ -257,6 +257,7 @@ public class MarketMonitorBiz {
     }
 
     private boolean checkTransResult(RateChangeVo rateChangeVo, String quoteCurrency, BigDecimal salePrice) {
+        log.info("checkTransResult,rateChangeVo={},quoteCurrency={},salePrice={}", rateChangeVo, quoteCurrency, salePrice);
         boolean tranResult = false;
         try {
             rateChangeVo.setQuoteCurrency(quoteCurrency);
@@ -269,7 +270,7 @@ public class MarketMonitorBiz {
             transBiz.buy(rateChangeVo);
             tranResult = true;
         } catch (ApiException e) {
-            log.warn("buy fail.errCode={},errMsg={}",e.getErrCode(), e.getMessage());
+            log.warn("buy fail.errCode={},errMsg={}", e.getErrCode(), e.getMessage());
         }
         return tranResult;
     }
@@ -344,21 +345,6 @@ public class MarketMonitorBiz {
         MailQQ.sendEmail(subject, content, mailToUser);
     }
 
-
-    private void setSalePrice(RateChangeVo rateChangeVo, String base1, String base2) {
-        BigDecimal salePrice;
-        if (StringUtils.isNotEmpty(rateChangeVo.getBuyerSymbol())) {
-            //原对增长
-            if (rateChangeVo.getRateValue().compareTo(BigDecimal.ZERO) > 0) {
-                salePrice = getMultiplySalePrice(rateChangeVo.getBuyPrice(), base1, base2);
-            }
-            //原对下降
-            else {
-                salePrice = getDivideSalePrice(rateChangeVo.getBuyPrice(), base1, base2);
-            }
-            rateChangeVo.setSalePrice(salePrice);
-        }
-    }
 
     /**
      * 相对主对相乘汇率

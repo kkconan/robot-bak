@@ -12,6 +12,7 @@ import com.money.game.robot.vo.huobi.MarketInfoVo;
 import com.money.game.robot.vo.huobi.SymBolsDetailVo;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpEntity;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -32,17 +33,19 @@ import java.util.List;
 public class HuobiApi {
 
 
+    @Value("${huobi.pro.api.host}")
+    private String apiHost;
     /**
      * 行情
      */
-    @Value("${huobi.pro.market.api.url:https://api.huobipro.com/market/history/kline}")
-    private String proMarketApi;
+    @Value("${huobi.pro.market.api.url:/market/history/kline}")
+    private String marketApiUrl;
 
     /**
      * 交易对
      */
-    @Value("${huobi.pro.api.symbol.url:https://api.huobipro.com/v1/common/symbols}")
-    private String symbolsApi;
+    @Value("${huobi.pro.api.symbol.url:/v1/common/symbols}")
+    private String symbolsApiUrl;
 
     /**
      * 获取所有的交易对
@@ -52,7 +55,9 @@ public class HuobiApi {
         List<SymBolsDetailVo> detailVoList = new ArrayList<>();
         try {
             CloseableHttpClient httpclient = HttpClientBuilder.create().build();
-            HttpGet httpGet = new HttpGet(symbolsApi);
+            HttpGet httpGet = new HttpGet(apiHost + symbolsApiUrl);
+            RequestConfig requestConfig = RequestConfig.custom().setSocketTimeout(60000).setConnectTimeout(60000).build();//设置请求和传输超时时间
+            httpGet.setConfig(requestConfig);
             CloseableHttpResponse response = httpclient.execute(httpGet);
             HttpEntity entity = response.getEntity();
             jsonStr = EntityUtils.toString(entity, "utf-8");
@@ -87,8 +92,10 @@ public class HuobiApi {
      */
     public MarketInfoVo getMarketInfo(String period, Integer size, String symbol) {
         String jsonStr = null;
+        String url = null;
         try {
             CloseableHttpClient httpclient = HttpClientBuilder.create().build();
+
             //超过2000分钟，默认查询100条
             if (size > 2000) {
                 size = 2000;
@@ -97,8 +104,10 @@ public class HuobiApi {
                 log.error("symbol is not null");
                 return null;
             }
-            String url = proMarketApi + "?period=" + period + "&size=" + size + "&symbol=" + symbol;
+            url = apiHost + marketApiUrl + "?period=" + period + "&size=" + size + "&symbol=" + symbol;
             HttpGet httpGet = new HttpGet(url);
+            RequestConfig requestConfig = RequestConfig.custom().setSocketTimeout(60000).setConnectTimeout(60000).build();//设置请求和传输超时时间
+            httpGet.setConfig(requestConfig);
             CloseableHttpResponse response = httpclient.execute(httpGet);
             HttpEntity entity = response.getEntity();
             jsonStr = EntityUtils.toString(entity, "utf-8");
@@ -112,11 +121,9 @@ public class HuobiApi {
             if (marketInfoVo.getData() == null || marketInfoVo.getData().isEmpty()) {
                 throw new BizException(ErrorEnum.MARKEY_INFO_FAIL);
             }
-//            log.info("marketInfoVo={}", marketInfoVo);
             return marketInfoVo;
         } catch (Exception e) {
-            e.printStackTrace();
-            log.error("get market fail,e={},result={},period={},size={},symbol={}", e, jsonStr, period, size, symbol);
+            log.error("get market fail,url={},result={},period={},size={},symbol={},e={},", url, jsonStr, period, size, symbol, e.getMessage());
             return null;
         }
     }
