@@ -1,10 +1,12 @@
 package com.money.game.robot.biz;
 
+import com.money.game.core.util.DateUtils;
 import com.money.game.robot.constant.DictEnum;
 import com.money.game.robot.dto.huobi.HuobiBaseDto;
 import com.money.game.robot.entity.OrderEntity;
 import com.money.game.robot.huobi.response.OrdersDetail;
 import com.money.game.robot.service.OrderService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -17,6 +19,7 @@ import java.util.List;
  *         2018/3/20 10:38
  **/
 @Component
+@Slf4j
 public class OrderBiz {
 
     @Autowired
@@ -30,6 +33,7 @@ public class OrderBiz {
      * 该交易对是否存在未完成的买单/卖单
      */
     public boolean existNotFinishOrder(String symbol, String type) {
+        boolean result = false;
         List<String> states = new ArrayList<>();
         states.add(DictEnum.ORDER_DETAIL_STATE_PRE_SUBMITTED.getCode());
         states.add(DictEnum.ORDER_DETAIL_STATE_SUBMITTING.getCode());
@@ -38,7 +42,14 @@ public class OrderBiz {
         states.add(DictEnum.ORDER_DETAIL_STATE_PARTIAL_CANCELED.getCode());
         states.add(DictEnum.ORDER_DETAIL_STATE_FILLED.getCode());
         List<OrderEntity> orderEntityList = orderService.findBySymbolAndType(symbol, type, states);
-        return orderEntityList != null && orderEntityList.size() > 0;
+        for (OrderEntity orderEntity : orderEntityList) {
+            if (DateUtils.addDay(orderEntity.getCreateTime(), 1).after(DateUtils.getCurrDateMmss())) {
+                log.info("一天之内已有未完成的订单,orderEntity={}", orderEntity);
+                result = true;
+                break;
+            }
+        }
+        return result;
     }
 
     public OrderEntity saveOrder(String orderId, String rateChangeId, String buyOrderId) {
@@ -65,6 +76,7 @@ public class OrderBiz {
      */
     public List<OrderEntity> findNoFilledBuyOrder() {
         List<String> states = new ArrayList<>();
+        states.add(DictEnum.ORDER_DETAIL_STATE_SUBMITTED.getCode());
         states.add(DictEnum.ORDER_DETAIL_STATE_PARTIAL_FILLED.getCode());
         states.add(DictEnum.ORDER_DETAIL_STATE_PARTIAL_CANCELED.getCode());
         states.add(DictEnum.ORDER_DETAIL_STATE_FILLED.getCode());

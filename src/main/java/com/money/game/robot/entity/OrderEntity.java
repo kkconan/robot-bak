@@ -29,8 +29,6 @@ public class OrderEntity extends UUID implements Serializable {
     private static final long serialVersionUID = 6743566467342671039L;
 
 
-
-
     /**
      * 账户ID
      */
@@ -94,6 +92,13 @@ public class OrderEntity extends UUID implements Serializable {
      * 买单订单id(卖单时保存对应买单id)
      * */
     private String buyOrderId;
+
+    /**
+     * 用户id
+     */
+    private String userId;
+
+    private String symbolTradeConfigId;
 
     private long createdAt;
 

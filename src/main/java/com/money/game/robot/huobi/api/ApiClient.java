@@ -49,9 +49,9 @@ public class ApiClient {
     static final MediaType JSON = MediaType.parse("application/json");
     static final OkHttpClient client = createOkHttpClient();
 
-    String accessKeyId = "5c7c7360-ecf8acf5-15ab40dd-08180";
+    String accessKeyId = "3d008259-3cc04933-0a10846b-07ac1";
 
-    String accessKeySecret = "d7089959-2026db4e-307d797b-6356a";
+    String accessKeySecret = "c46a6b5d-fb92da4b-8ae68067-45c21";
 
     String assetPassword;
 

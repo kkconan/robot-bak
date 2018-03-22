@@ -15,7 +15,7 @@ public class HuobiBaseDto extends BaseDto implements Serializable{
     private String apiKey;
 
     private String apiSecret;
-    ;
+
     private String orderId;
 
 }

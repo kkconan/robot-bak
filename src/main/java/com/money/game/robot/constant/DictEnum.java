@@ -134,7 +134,12 @@ public enum DictEnum {
 
 
     ORDER_TYPE_BUY_LIMIT("buy-limit", "限价买单"),
-    ORDER_TYPE_SELL_LIMIT("sell-limit", "限价卖单"),;
+    ORDER_TYPE_SELL_LIMIT("sell-limit", "限价卖单"),
+
+    TRADE_CONFIG_THRESHOLD_TYPE_ONE_MIN("oneMin","1分钟"),
+    TRADE_CONFIG_THRESHOLD_TYPE_FIVE_MIN("fiveMin","5分钟"),
+
+    ;
 
     public static List<DictEnum> huobiSymbol = new ArrayList<>();
 

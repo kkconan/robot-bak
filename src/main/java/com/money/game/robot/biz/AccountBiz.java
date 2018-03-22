@@ -20,7 +20,7 @@ public class AccountBiz {
         ApiClient client = new ApiClient(dto.getApiKey(), dto.getApiSecret());
         AccountsResponse<List<Accounts>> accounts = client.accounts();
         List<Accounts> list = accounts.getData();
-        if (list != null) {
+        if (list != null && !list.isEmpty()) {
             return list.get(0);
         }
         return null;
