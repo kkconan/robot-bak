@@ -5,12 +5,15 @@ import com.money.game.robot.constant.DictEnum;
 import com.money.game.robot.dto.huobi.HuobiBaseDto;
 import com.money.game.robot.entity.OrderEntity;
 import com.money.game.robot.huobi.response.OrdersDetail;
+import com.money.game.robot.market.HuobiApi;
 import com.money.game.robot.service.OrderService;
+import com.money.game.robot.vo.huobi.MarketInfoVo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,6 +30,9 @@ public class OrderBiz {
 
     @Autowired
     private OrderService orderService;
+
+    @Autowired
+    private HuobiApi huobiApi;
 
 
     /**
@@ -64,7 +70,24 @@ public class OrderBiz {
         orderEntity.setRateChangeId(rateChangeId);
         orderEntity.setOrderId(ordersDetail.getId());
         orderEntity.setBuyOrderId(buyOrderId);
+        BigDecimal totalToUsdt = getTotalToUsdt(orderEntity.getSymbol(),orderEntity.getPrice(),orderEntity.getAmount());
+        orderEntity.setTotalToUsdt(totalToUsdt);
         return this.saveOrder(orderEntity);
+    }
+
+    /**
+     * 同步订单最新状态
+     */
+    public OrderEntity updateOrderState(OrderEntity orderEntity) {
+        HuobiBaseDto dto = new HuobiBaseDto();
+        dto.setOrderId(orderEntity.getOrderId());
+        OrdersDetail ordersDetail = tradeBiz.orderDetail(dto);
+        //订单状态或者成交数量有变动
+        if (!ordersDetail.getState().equals(orderEntity.getState()) || !ordersDetail.getFieldAmount().equals(orderEntity.getFieldAmount())) {
+            BeanUtils.copyProperties(ordersDetail, orderEntity);
+            orderEntity = this.saveOrder(orderEntity);
+        }
+        return orderEntity;
     }
 
     public OrderEntity saveOrder(OrderEntity entity) {
@@ -94,5 +117,23 @@ public class OrderBiz {
         states.add(DictEnum.ORDER_DETAIL_STATE_PARTIAL_FILLED.getCode());
         return orderService.findByState(states, DictEnum.ORDER_TYPE_SELL_LIMIT.getCode());
 
+    }
+
+    /**
+     * 下单总额转换成usdt值
+     */
+    private BigDecimal getTotalToUsdt(String symbol, BigDecimal price, BigDecimal amount) {
+        BigDecimal totalToUsdt;
+        MarketInfoVo marketInfoVo;
+        if (symbol.endsWith(DictEnum.MARKET_BASE_USDT.getCode())) {
+            totalToUsdt = price.multiply(amount);
+        } else if (symbol.endsWith(DictEnum.MARKET_BASE_BTC.getCode())) {
+            marketInfoVo = huobiApi.getMarketInfo(DictEnum.MARKET_PERIOD_1MIN.getCode(), 1, DictEnum.MARKET_HUOBI_SYMBOL_BTC_USDT.getCode());
+            totalToUsdt = price.multiply(amount).multiply(marketInfoVo.getData().get(0).getClose());
+        } else {
+            marketInfoVo = huobiApi.getMarketInfo(DictEnum.MARKET_PERIOD_1MIN.getCode(), 1, DictEnum.MARKET_HUOBI_SYMBOL_ETH_USDT.getCode());
+            totalToUsdt = price.multiply(amount).multiply(marketInfoVo.getData().get(0).getClose());
+        }
+        return totalToUsdt;
     }
 }

@@ -13,6 +13,7 @@ import com.money.game.robot.huobi.response.Accounts;
 import com.money.game.robot.huobi.response.BalanceBean;
 import com.money.game.robot.huobi.response.Depth;
 import com.money.game.robot.huobi.response.OrdersDetail;
+import com.money.game.robot.market.HuobiApi;
 import com.money.game.robot.service.RateChangeService;
 import com.money.game.robot.vo.huobi.RateChangeVo;
 import lombok.extern.slf4j.Slf4j;
@@ -53,41 +54,9 @@ public class TransBiz {
     @Autowired
     private SymbolTradeConfigBiz symbolTradeConfigBiz;
 
-    /**
-     * 卖一最大允许差异比率,例如eosbtc 准备已当前最新价购买,卖一最多比最新价高的比例不超过此值(1%),则直接以卖一价市价购买
-     */
-//    @Value("${asks.blunder:0.01}")
-//    private BigDecimal asksBlunder;
 
-    /**
-     * usdt 最多下单多少amount
-     */
-//    @Value("${max.buy.with.usdt:1}")
-//    private BigDecimal maxBuyWithUsdt;
-
-    /**
-     * btc 最多下单多少amount
-     */
-//    @Value("${max.buy.with.btc:0.00125}")
-//    private BigDecimal maxBuyWithBtc;
-
-    /**
-     * eth 最多下单多少amount
-     */
-//    @Value("${max.buy.with.eth:0.002}")
-//    private BigDecimal maxBuyWithEth;
-
-    /**
-     * 下单可浮价格
-     */
-//    @Value("${increase.buy.price:0.00000001}")
-//    private BigDecimal increseBuyAndSalePrice;
-
-    /**
-     * 买单未成交最多等待多长时间,超时则撤销
-     */
-//    @Value("${buy.order.wait.time:10}")
-//    private Integer buyOrderWaitTime;
+    @Autowired
+    private HuobiApi huobiApi;
 
     /**
      * to buy
@@ -118,12 +87,14 @@ public class TransBiz {
         List<String> saleOrdes;
         List<OrderEntity> list = orderBiz.findNoFilledBuyOrder();
         for (OrderEntity buyOrderEntity : list) {
+            buyOrderEntity = orderBiz.updateOrderState(buyOrderEntity);
+
             SymbolTradeConfigEntity symbolTradeConfig = symbolTradeConfigBiz.findById(buyOrderEntity.getSymbolTradeConfigId());
             //完全成交或者部分成交撤销,售出成交部分
             if (DictEnum.ORDER_DETAIL_STATE_FILLED.getCode().equals(buyOrderEntity.getState()) || DictEnum.ORDER_DETAIL_STATE_PARTIAL_CANCELED.getCode().equals(buyOrderEntity.getState())) {
-                log.info("order can to sale.orderEntity={}", buyOrderEntity);
+                log.info("买单已成交,可以挂单售出.orderEntity={}", buyOrderEntity);
                 RateChangeEntity rateChangeEntity = rateChangeService.findOne(buyOrderEntity.getRateChangeId());
-                saleOrdes = checkDeptAndCreateSaleOrder(rateChangeEntity, buyOrderEntity.getFieldAmount(),symbolTradeConfig);
+                saleOrdes = checkDeptAndCreateSaleOrder(rateChangeEntity, buyOrderEntity.getFieldAmount(), symbolTradeConfig);
                 for (String orderId : saleOrdes) {
                     //保存卖单
                     orderBiz.saveOrder(orderId, rateChangeEntity.getOid(), buyOrderEntity.getOrderId());
@@ -203,7 +174,7 @@ public class TransBiz {
                     buyPrice = salePrice.add(symbolTradeConfig.getBuyIncreasePrice());
                     BigDecimal saleAmount = ask.get(1);
                     remainAmount = remainAmount.compareTo(saleAmount) > 0 ? saleAmount : remainAmount;
-                    String orderId = createBuyOrder(symbol, buyPrice, remainAmount, baseQuote,symbolTradeConfig);
+                    String orderId = createBuyOrder(symbol, buyPrice, remainAmount, baseQuote, symbolTradeConfig);
 //                    String orderId = "2502535508";
                     orderIds.add(orderId);
                     log.info("卖单价购买,buyPrice={},saleOnePrice={},remainAmount={},saleOneAmount={},orderId={}", buyPrice, salePrice, remainAmount, saleAmount, orderId);
@@ -227,7 +198,7 @@ public class TransBiz {
             } else {
                 buyPrice = buyPrice.add(symbolTradeConfig.getBuyIncreasePrice());
             }
-            String orderId = createBuyOrder(symbol, buyPrice, remainAmount, baseQuote,symbolTradeConfig);
+            String orderId = createBuyOrder(symbol, buyPrice, remainAmount, baseQuote, symbolTradeConfig);
 //            String orderId = "2502535508";
             orderIds.add(orderId);
             log.info("买单价购买,remainAmount={},buyPrice={},nowPrice={},orderId={}", remainAmount, buyPrice, buyPrice, orderId);
@@ -239,9 +210,9 @@ public class TransBiz {
     /**
      * 限价买
      */
-    private String createBuyOrder(String symbol, BigDecimal price, BigDecimal amount, String baseQuote,SymbolTradeConfigEntity symbolTradeConfig) {
+    private String createBuyOrder(String symbol, BigDecimal price, BigDecimal amount, String baseQuote, SymbolTradeConfigEntity symbolTradeConfig) {
         log.info("create createBuyOrder,symbol={},price={},amount={},baseCurrency={}", symbol, price, amount, baseQuote);
-        BigDecimal maxAmount = getBuyAmount(symbol, price,symbolTradeConfig);
+        BigDecimal maxAmount = getBuyAmount(symbol, price, symbolTradeConfig);
         CreateOrderDto dto = new CreateOrderDto();
         dto.setSymbol(symbol);
         dto.setOrderType(CreateOrderRequest.OrderType.BUY_LIMIT);
@@ -270,7 +241,7 @@ public class TransBiz {
     /**
      * 检查交易深度是否满足创建卖单条件
      */
-    private List<String> checkDeptAndCreateSaleOrder(RateChangeEntity rateChangeEntity, BigDecimal amount,SymbolTradeConfigEntity symbolTradeConfig) {
+    private List<String> checkDeptAndCreateSaleOrder(RateChangeEntity rateChangeEntity, BigDecimal amount, SymbolTradeConfigEntity symbolTradeConfig) {
         log.info("checkDeptAndCreateSaleOrder,rateChangeVo={},amount={}", rateChangeEntity, amount);
         DepthDto dto = new DepthDto();
         dto.setSymbol(rateChangeEntity.getSaleSymbol());

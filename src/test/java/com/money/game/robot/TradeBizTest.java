@@ -41,8 +41,16 @@ public class TradeBizTest {
     @Test
     public void orderDetailTest() {
         HuobiBaseDto dto = new HuobiBaseDto();
-        dto.setOrderId("2534284968");
+        dto.setOrderId("2593949128");
         OrdersDetail detail = tradeBiz.orderDetail(dto);
         log.info("detail={}", detail);
+    }
+
+    @Test
+    public void submitCancelTest() {
+        HuobiBaseDto dto = new HuobiBaseDto();
+        dto.setOrderId("2593949128");
+        tradeBiz.submitCancel(dto);
+
     }
 }

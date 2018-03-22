@@ -100,6 +100,11 @@ public class OrderEntity extends UUID implements Serializable {
 
     private String symbolTradeConfigId;
 
+    /**
+     * 转换成usdt实时的总额
+     */
+    private BigDecimal totalToUsdt;
+
     private long createdAt;
 
     private long canceledAt;

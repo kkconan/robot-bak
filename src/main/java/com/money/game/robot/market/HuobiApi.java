@@ -114,7 +114,7 @@ public class HuobiApi {
             httpGet.releaseConnection();
             JSONObject json = JSON.parseObject(jsonStr);
             if (!"ok".equals(json.getString("status"))) {
-                log.info("market info not found. result={}", json);
+                log.info(symbol + " market info not found. result={}", json);
                 return null;
             }
             MarketInfoVo marketInfoVo = new ObjectMapper().readValue(jsonStr, MarketInfoVo.class);

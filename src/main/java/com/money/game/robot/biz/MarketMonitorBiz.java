@@ -29,25 +29,6 @@ import java.util.List;
 @Slf4j
 public class MarketMonitorBiz {
 
-    /**
-     * 一分钟变动阈值
-     */
-//    @Value("${one.min.threshold:0.05}")
-//    private BigDecimal oneMinThreshold;
-
-    /**
-     * 五分钟变动阈值
-     */
-//    @Value("${five.min.threshold:0.1}")
-//    private BigDecimal fiveMinThreshold;
-
-    /**
-     * 不同基础交易对之间绝对值差异
-     */
-//    @Value("${base.currency.absolute:0.05}")
-//    private BigDecimal baseCurrencyAbsolute;
-
-
     @Value("${mail.users:824968443@qq.com}")
     private String mailToUser;
 

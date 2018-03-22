@@ -65,5 +65,5 @@ public class OrdersDetail implements Serializable{
     private String state;
 
     @com.google.gson.annotations.SerializedName("canceled_at")
-    private int canceledAt;
+    private long canceledAt;
 }

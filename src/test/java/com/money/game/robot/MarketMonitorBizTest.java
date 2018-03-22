@@ -1,6 +1,8 @@
 package com.money.game.robot;
 
 import com.money.game.robot.biz.MarketMonitorBiz;
+import com.money.game.robot.biz.SymbolTradeConfigBiz;
+import com.money.game.robot.entity.SymbolTradeConfigEntity;
 import com.money.game.robot.mail.MailQQ;
 import com.money.game.robot.market.HuobiApi;
 import com.money.game.robot.schedule.MonitorSchedule;
@@ -39,6 +41,9 @@ public class MarketMonitorBizTest {
 
     @Autowired
     private MonitorSchedule monitorSchedule;
+
+    @Autowired
+    private SymbolTradeConfigBiz symbolTradeConfigBiz;
 
     /**
      * 火币单种行情监控
@@ -87,8 +92,9 @@ public class MarketMonitorBizTest {
     @Test
     @Rollback(false)
     public void checkTransTest() {
+        SymbolTradeConfigEntity symbolTradeConfigEntity = symbolTradeConfigBiz.findById("1");
         //increase eosbtc
-        marketMonitorBiz.checkToTrans("eoseth", new BigDecimal("0.1"), new BigDecimal("0.05"));
+        marketMonitorBiz.checkToTrans("eoseth", new BigDecimal("0.1"), symbolTradeConfigEntity);
 
     }
 }

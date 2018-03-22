@@ -30,10 +30,10 @@ public class TradeBiz {
         ApiClient client = new ApiClient(dto.getApiKey(), dto.getApiSecret());
         CreateOrderRequest createOrderReq = new CreateOrderRequest();
         createOrderReq.setAccountId(dto.getAccountId());
-        createOrderReq.setAmount(dto.getAmount().setScale(2, BigDecimal.ROUND_HALF_UP).toString());
-        createOrderReq.setPrice(dto.getPrice().setScale(4, BigDecimal.ROUND_HALF_UP).toString());
-        if(dto.getSymbol().endsWith(DictEnum.MARKET_BASE_BTC.getCode())){
-            createOrderReq.setPrice(dto.getPrice().setScale(8, BigDecimal.ROUND_HALF_UP).toString());
+        createOrderReq.setAmount(dto.getAmount().setScale(2, BigDecimal.ROUND_DOWN).toString());
+        createOrderReq.setPrice(dto.getPrice().setScale(4, BigDecimal.ROUND_DOWN).toString());
+        if (dto.getSymbol().endsWith(DictEnum.MARKET_BASE_BTC.getCode())) {
+            createOrderReq.setPrice(dto.getPrice().setScale(8, BigDecimal.ROUND_DOWN).toString());
         }
         createOrderReq.setSymbol(dto.getSymbol());
         createOrderReq.setType(dto.getOrderType());
@@ -48,8 +48,8 @@ public class TradeBiz {
     public void submitCancel(HuobiBaseDto dto) {
         ApiClient client = new ApiClient(dto.getApiKey(), dto.getApiSecret());
         SubmitcancelResponse response = client.submitcancel(dto.getOrderId());
-        if ("ok".equals(response.getStatus())) {
-            log.error("cancel order fail.");
+        if (!"ok".equals(response.getStatus())) {
+            log.error("cancel order fail,orderId={}", dto.getOrderId());
         }
     }
 
