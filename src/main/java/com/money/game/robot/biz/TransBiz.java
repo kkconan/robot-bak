@@ -8,6 +8,7 @@ import com.money.game.robot.dto.huobi.HuobiBaseDto;
 import com.money.game.robot.entity.OrderEntity;
 import com.money.game.robot.entity.RateChangeEntity;
 import com.money.game.robot.entity.SymbolTradeConfigEntity;
+import com.money.game.robot.entity.UserEntity;
 import com.money.game.robot.huobi.request.CreateOrderRequest;
 import com.money.game.robot.huobi.response.Accounts;
 import com.money.game.robot.huobi.response.BalanceBean;
@@ -15,14 +16,18 @@ import com.money.game.robot.huobi.response.Depth;
 import com.money.game.robot.huobi.response.OrdersDetail;
 import com.money.game.robot.market.HuobiApi;
 import com.money.game.robot.service.RateChangeService;
+import com.money.game.robot.vo.huobi.MarketDetailVo;
 import com.money.game.robot.vo.huobi.RateChangeVo;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -54,9 +59,22 @@ public class TransBiz {
     @Autowired
     private SymbolTradeConfigBiz symbolTradeConfigBiz;
 
-
     @Autowired
     private HuobiApi huobiApi;
+
+    @Autowired
+    private UserBiz userBiz;
+
+
+    @Value("${eos.symbol:eosusdt}")
+    private String symbol;
+
+    @Value("${eos.absolute:0.05}")
+    private BigDecimal absolute;
+
+    @Value("${eos.totalAmount:1}")
+    private BigDecimal totalAmount;
+
 
     /**
      * to buy
@@ -75,7 +93,7 @@ public class TransBiz {
             RateChangeEntity rateChangeEntity = rateChangeBiz.save(rateChangeVo);
             //保存下单结果
             for (String orderId : orderIds) {
-                orderBiz.saveOrder(orderId, rateChangeEntity.getOid(), null, symbolTradeConfig.getOid(), symbolTradeConfig.getUserId());
+                orderBiz.saveOrder(orderId, rateChangeEntity.getOid(), null, symbolTradeConfig.getOid(), symbolTradeConfig.getUserId(), DictEnum.ORDER_MODEL_REAL.getCode());
             }
         }
     }
@@ -97,7 +115,7 @@ public class TransBiz {
                 saleOrdes = checkDeptAndCreateSaleOrder(rateChangeEntity, buyOrderEntity.getFieldAmount(), symbolTradeConfig);
                 for (String orderId : saleOrdes) {
                     //保存卖单
-                    orderBiz.saveOrder(orderId, rateChangeEntity.getOid(), buyOrderEntity.getOrderId(), symbolTradeConfig.getOid(), symbolTradeConfig.getUserId());
+                    orderBiz.saveOrder(orderId, rateChangeEntity.getOid(), buyOrderEntity.getOrderId(), symbolTradeConfig.getOid(), symbolTradeConfig.getUserId(), DictEnum.ORDER_MODEL_REAL.getCode());
                 }
                 //更新原买单状态
                 buyOrderEntity.setState(DictEnum.ORDER_DETAIL_STATE_SELL.getCode());
@@ -131,6 +149,69 @@ public class TransBiz {
 
             }
 
+        }
+    }
+
+    public void transModelLimitOrder() {
+        createModelLimitOrder(symbol);
+
+    }
+
+    private void createModelLimitOrder(String symbol) {
+        log.info("createModelLimitOrder,symbol={}", symbol);
+        List<UserEntity> userList = userBiz.findAll();
+        for (UserEntity userEntity : userList) {
+            //买单状态更新
+            List<OrderEntity> buyList = orderBiz.findByUserIdAndModel(userEntity.getOid(), DictEnum.ORDER_MODEL_LIMIT.getCode(), DictEnum.ORDER_TYPE_BUY_LIMIT.getCode());
+            Iterator<OrderEntity> buyIt = buyList.iterator();
+            while (buyIt.hasNext()) {
+                OrderEntity buyOrder = buyIt.next();
+                //，买单已完成
+                if (DictEnum.filledOrderStates.contains(buyOrder.getState())) {
+                    log.info("买单已完成,buyOrder={}", buyOrder);
+                    buyList.remove(buyOrder);
+                }
+            }
+            //卖单状态更新
+            List<OrderEntity> saleList = orderBiz.findByUserIdAndModel(userEntity.getOid(), DictEnum.ORDER_MODEL_LIMIT.getCode(), DictEnum.ORDER_TYPE_SELL_LIMIT.getCode());
+            Iterator<OrderEntity> saleIt = saleList.iterator();
+            while (saleIt.hasNext()) {
+                OrderEntity saleOrder = saleIt.next();
+                //，卖单已完成
+                if (DictEnum.filledOrderStates.contains(saleOrder.getState())) {
+                    log.info("卖单已完成,buyOrder={}", saleOrder);
+                    saleList.remove(saleOrder);
+                }
+            }
+            //买单大于1 || 买单等于1,卖单不为空
+            if (buyList.size() > 1 || (buyList.size() == 1 && !saleList.isEmpty())) {
+                log.info("存在未完成订单");
+                return;
+            }
+            MarketDetailVo marketDetailVo = huobiApi.getOneMarketDetail(symbol);
+            if (marketDetailVo == null) {
+                log.info("获取行情失败");
+                return;
+            }
+            BigDecimal buyPrice = (new BigDecimal(1).subtract(absolute)).multiply(marketDetailVo.getClose());
+            BigDecimal amount = totalAmount.divide(buyPrice, 4, BigDecimal.ROUND_DOWN);
+            BigDecimal salePrice = (new BigDecimal(1).add(absolute)).multiply(marketDetailVo.getClose());
+            CreateOrderDto buyOrderDto = new CreateOrderDto();
+            buyOrderDto.setSymbol(symbol);
+            buyOrderDto.setPrice(buyPrice);
+            buyOrderDto.setAmount(amount);
+            buyOrderDto.setOrderType(DictEnum.ORDER_TYPE_BUY_LIMIT.getCode());
+            buyOrderDto.setAccountId(userEntity.getAccountId());
+            //创建限价买单
+            String buyOrderId = tradeBiz.createOrder(buyOrderDto);
+            orderBiz.saveOrder(buyOrderId, null, null, null, userEntity.getOid(), DictEnum.ORDER_MODEL_LIMIT.getCode());
+            CreateOrderDto saleOrderDto = new CreateOrderDto();
+            BeanUtils.copyProperties(buyOrderDto, saleOrderDto);
+            saleOrderDto.setOrderType(DictEnum.ORDER_TYPE_SELL_LIMIT.getCode());
+            saleOrderDto.setPrice(salePrice);
+            //创建限价卖单
+            String saleOrderId = tradeBiz.createOrder(saleOrderDto);
+            orderBiz.saveOrder(saleOrderId, null, buyOrderId, null, userEntity.getOid(), DictEnum.ORDER_MODEL_LIMIT.getCode());
         }
     }
 

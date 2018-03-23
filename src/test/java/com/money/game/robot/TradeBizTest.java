@@ -30,10 +30,10 @@ public class TradeBizTest {
     public void createOrderTest() {
         CreateOrderDto dto = new CreateOrderDto();
         dto.setAccountId("1229748");
-        dto.setAmount(new BigDecimal(0.009720000000000000));
-        dto.setPrice(new BigDecimal(0.00079286));
-        dto.setSymbol("hsrbtc");
-        dto.setOrderType("sell-limit");
+        dto.setAmount(new BigDecimal(34.17605796));
+        dto.setPrice(new BigDecimal(0.00117328));
+        dto.setSymbol("elfeth");
+        dto.setOrderType("buy-limit");
         String orderId = tradeBiz.createOrder(dto);
         log.info("orderId={}", orderId);
     }

@@ -39,4 +39,9 @@ public class OrderServiceImpl implements OrderService {
     public List<OrderEntity> findBySymbolAndType(String symbol, String orderType, List<String> states) {
         return orderDao.findBySymbolAndType(symbol, orderType, states);
     }
+
+    @Override
+    public List<OrderEntity> findByUserIdAndModel(String userId, String model,String orderType,List<String> states) {
+        return orderDao.findByUserIdAndModel(userId,model,orderType,states);
+    }
 }

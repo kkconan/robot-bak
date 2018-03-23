@@ -38,19 +38,27 @@ public class MonitorSchedule {
     }
 
 
+    @Scheduled(cron = "${cron.option[huoBi.symBols]:0 0/4 * * * ?}")
+    public void checkTransModelLimitOrder() {
+        log.info("check to trans model limit order start...");
+        transBiz.transModelLimitOrder();
+        log.info("check to trans model limit order end...");
+    }
+
+
     /**
-     * 检查是否有成交的买单可以挂单售出(切日志方法已check开头)
+     * 检查是否有成交的实时买单可以挂单售出(切日志方法已check开头)
      */
     @Scheduled(cron = "${cron.option[check.order.to.sale]:0/5 * * * * ?}")
-    public void checkOrderToSale() {
+    public void checkRealOrderToSale() {
         transBiz.sale();
     }
 
     /**
-     * 检查卖单是否已完成(切日志方法已check开头)
+     * 检查实时卖单是否已完成(切日志方法已check开头)
      */
     @Scheduled(cron = "${cron.option[check.order.sale.finish]:0/30 * * * * ?}")
-    public void checkOrderSaleFinish() {
+    public void checkRealOrderSaleFinish() {
         transBiz.checkSaleFinish();
     }
 
@@ -59,12 +67,11 @@ public class MonitorSchedule {
      */
     public void huoBiAllSymBolsMonitor() {
         List<SymBolsDetailVo> list = huobiApi.getSymbolsInfo();
-        do {
-            List<List<SymBolsDetailVo>> allList = averageAssign(list, 50);
-            for (List<SymBolsDetailVo> subList : allList) {
-                marketMonitorBiz.asyncDoMonitor(subList);
-            }
-        } while (true);
+        List<List<SymBolsDetailVo>> allList = averageAssign(list, 50);
+        for (List<SymBolsDetailVo> subList : allList) {
+            marketMonitorBiz.asyncDoMonitor(subList);
+        }
+
     }
 
     /**

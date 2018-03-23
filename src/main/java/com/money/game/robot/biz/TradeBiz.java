@@ -26,7 +26,6 @@ public class TradeBiz {
      */
 
     public String createOrder(CreateOrderDto dto) {
-        log.info("createOrder,dto={}", dto);
         ApiClient client = new ApiClient(dto.getApiKey(), dto.getApiSecret());
         CreateOrderRequest createOrderReq = new CreateOrderRequest();
         createOrderReq.setAccountId(dto.getAccountId());
@@ -40,6 +39,7 @@ public class TradeBiz {
         createOrderReq.setType(dto.getOrderType());
         createOrderReq.setSource("api");
         Long orderId = client.createOrder(createOrderReq);
+        log.info("createOrder,dto={},createOrderReq={},orderId={}", dto, createOrderReq, orderId);
         return client.placeOrder(orderId);
     }
 

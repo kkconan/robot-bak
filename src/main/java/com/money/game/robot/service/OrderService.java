@@ -18,4 +18,6 @@ public interface OrderService {
     List<OrderEntity> findByState(List<String> states, String type);
 
     List<OrderEntity> findBySymbolAndType(String symbol, String orderType, List<String> states);
+
+    List<OrderEntity> findByUserIdAndModel(String userId,String model,String orderType,List<String> states);
 }

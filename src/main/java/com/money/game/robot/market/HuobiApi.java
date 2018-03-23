@@ -8,6 +8,7 @@ import com.money.game.core.util.StringUtil;
 import com.money.game.robot.constant.DictEnum;
 import com.money.game.robot.constant.ErrorEnum;
 import com.money.game.robot.exception.BizException;
+import com.money.game.robot.vo.huobi.MarketDetailVo;
 import com.money.game.robot.vo.huobi.MarketInfoVo;
 import com.money.game.robot.vo.huobi.SymBolsDetailVo;
 import lombok.extern.slf4j.Slf4j;
@@ -83,6 +84,15 @@ public class HuobiApi {
             }
         }
         return detailVoList;
+    }
+
+
+    public MarketDetailVo getOneMarketDetail(String symbol) {
+        MarketInfoVo infoVo = this.getMarketInfo(DictEnum.MARKET_PERIOD_1MIN.getCode(), 1, symbol);
+        if (infoVo == null) {
+            return null;
+        }
+        return infoVo.getData().get(0);
     }
 
     /**

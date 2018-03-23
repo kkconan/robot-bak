@@ -23,4 +23,9 @@ public class TransBizTest {
     public void transTest(){
 //        transBiz.trans("eoseth","eos",new BigDecimal(0.1),"1min",2,new BigDecimal(0.05));
     }
+
+    @Test
+    public void limitBuyOrderTest(){
+        transBiz.transModelLimitOrder();
+    }
 }

@@ -136,10 +136,22 @@ public enum DictEnum {
     ORDER_TYPE_BUY_LIMIT("buy-limit", "限价买单"),
     ORDER_TYPE_SELL_LIMIT("sell-limit", "限价卖单"),
 
+    ORDER_MODEL_REAL("real","实时"),
+    ORDER_MODEL_LIMIT("limit","限价"),
+
     TRADE_CONFIG_THRESHOLD_TYPE_ONE_MIN("oneMin","1分钟"),
     TRADE_CONFIG_THRESHOLD_TYPE_FIVE_MIN("fiveMin","5分钟"),
 
     ;
+
+    public static List<String> filledOrderStates = new ArrayList<>();
+
+    static {
+        filledOrderStates.add(ORDER_DETAIL_STATE_PARTIAL_CANCELED.getCode());
+        filledOrderStates.add(ORDER_DETAIL_STATE_FILLED.getCode());
+        filledOrderStates.add(ORDER_DETAIL_STATE_CANCELED.getCode());
+
+    }
 
     public static List<DictEnum> huobiSymbol = new ArrayList<>();
 

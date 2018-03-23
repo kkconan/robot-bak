@@ -58,7 +58,7 @@ public class OrderBiz {
         return result;
     }
 
-    public OrderEntity saveOrder(String orderId, String rateChangeId, String buyOrderId, String symbolTradeConfigId,String userId) {
+    public OrderEntity saveOrder(String orderId, String rateChangeId, String buyOrderId, String symbolTradeConfigId,String userId,String orderType) {
         HuobiBaseDto dto = new HuobiBaseDto();
         dto.setOrderId(orderId);
         OrdersDetail ordersDetail = tradeBiz.orderDetail(dto);
@@ -74,6 +74,7 @@ public class OrderBiz {
         orderEntity.setSymbolTradeConfigId(symbolTradeConfigId);
         orderEntity.setTotalToUsdt(totalToUsdt);
         orderEntity.setUserId(userId);
+        orderEntity.setModel(orderType);
         return this.saveOrder(orderEntity);
     }
 
@@ -118,6 +119,17 @@ public class OrderBiz {
         states.add(DictEnum.ORDER_DETAIL_STATE_SUBMITTED.getCode());
         states.add(DictEnum.ORDER_DETAIL_STATE_PARTIAL_FILLED.getCode());
         return orderService.findByState(states, DictEnum.ORDER_TYPE_SELL_LIMIT.getCode());
+
+    }
+
+
+    public List<OrderEntity> findByUserIdAndModel(String userId, String model,String orderType) {
+        List<String> states = new ArrayList<>();
+        states.add(DictEnum.ORDER_DETAIL_STATE_PRE_SUBMITTED.getCode());
+        states.add(DictEnum.ORDER_DETAIL_STATE_SUBMITTING.getCode());
+        states.add(DictEnum.ORDER_DETAIL_STATE_SUBMITTED.getCode());
+        states.add(DictEnum.ORDER_DETAIL_STATE_PARTIAL_FILLED.getCode());
+        return orderService.findByUserIdAndModel(userId,model,orderType,states);
 
     }
 

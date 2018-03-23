@@ -105,6 +105,12 @@ public class OrderEntity extends UUID implements Serializable {
      */
     private BigDecimal totalToUsdt;
 
+
+    /**
+     * 实时单 real /限价单 limit
+     */
+    private String model;
+
     private long createdAt;
 
     private long canceledAt;
