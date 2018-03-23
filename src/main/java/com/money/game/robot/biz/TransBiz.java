@@ -75,7 +75,7 @@ public class TransBiz {
             RateChangeEntity rateChangeEntity = rateChangeBiz.save(rateChangeVo);
             //保存下单结果
             for (String orderId : orderIds) {
-                orderBiz.saveOrder(orderId, rateChangeEntity.getOid(), null);
+                orderBiz.saveOrder(orderId, rateChangeEntity.getOid(), null, symbolTradeConfig.getOid(), symbolTradeConfig.getUserId());
             }
         }
     }
@@ -97,7 +97,7 @@ public class TransBiz {
                 saleOrdes = checkDeptAndCreateSaleOrder(rateChangeEntity, buyOrderEntity.getFieldAmount(), symbolTradeConfig);
                 for (String orderId : saleOrdes) {
                     //保存卖单
-                    orderBiz.saveOrder(orderId, rateChangeEntity.getOid(), buyOrderEntity.getOrderId());
+                    orderBiz.saveOrder(orderId, rateChangeEntity.getOid(), buyOrderEntity.getOrderId(), symbolTradeConfig.getOid(), symbolTradeConfig.getUserId());
                 }
                 //更新原买单状态
                 buyOrderEntity.setState(DictEnum.ORDER_DETAIL_STATE_SELL.getCode());
@@ -226,6 +226,7 @@ public class TransBiz {
                 BigDecimal maxBalance = new BigDecimal(balanceBean.getBalance());
                 //判断是否超过可使用上限
                 maxAmount = maxBalance.compareTo(maxAmount) < 0 ? maxBalance : maxAmount;
+                log.info("maxAmount={}", maxAmount);
                 break;
             }
         }
@@ -340,6 +341,7 @@ public class TransBiz {
         } else {
             amount = symbolTradeConfig.getEthMxzUse().divide(newPrice, 8, BigDecimal.ROUND_FLOOR);
         }
+        log.info("getBuyAmount,symbol={},newPrice={},amount={},symbolTradeConfig={}", symbol, newPrice, amount, symbolTradeConfig);
         return amount;
     }
 }

@@ -30,11 +30,11 @@ public class MonitorSchedule {
     @Autowired
     private TransBiz transBiz;
 
-    @Scheduled(cron = "${cron.option[huoBi.symBols]:0 0/2 * * * ?}")
+    @Scheduled(cron = "${cron.option[huoBi.symBols]:0 0/5 * * * ?}")
     public void huoBiSymBolsSchedule() {
-        log.info("huoBi all symBols monitor start...");
+        log.info("huobi all symbol monitor start...");
         this.huoBiAllSymBolsMonitor();
-        log.info("huoBi all symBols monitor end...");
+        log.info("huobi all symbol monitor end...");
     }
 
 
@@ -59,15 +59,12 @@ public class MonitorSchedule {
      */
     public void huoBiAllSymBolsMonitor() {
         List<SymBolsDetailVo> list = huobiApi.getSymbolsInfo();
-        List<List<SymBolsDetailVo>> allList = averageAssign(list, 20);
-        for (List<SymBolsDetailVo> subList : allList) {
-            marketMonitorBiz.asyncDoMonitor(subList);
-            try {
-                Thread.sleep(2000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+        do {
+            List<List<SymBolsDetailVo>> allList = averageAssign(list, 50);
+            for (List<SymBolsDetailVo> subList : allList) {
+                marketMonitorBiz.asyncDoMonitor(subList);
             }
-        }
+        } while (true);
     }
 
     /**

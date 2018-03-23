@@ -58,7 +58,7 @@ public class OrderBiz {
         return result;
     }
 
-    public OrderEntity saveOrder(String orderId, String rateChangeId, String buyOrderId) {
+    public OrderEntity saveOrder(String orderId, String rateChangeId, String buyOrderId, String symbolTradeConfigId,String userId) {
         HuobiBaseDto dto = new HuobiBaseDto();
         dto.setOrderId(orderId);
         OrdersDetail ordersDetail = tradeBiz.orderDetail(dto);
@@ -70,8 +70,10 @@ public class OrderBiz {
         orderEntity.setRateChangeId(rateChangeId);
         orderEntity.setOrderId(ordersDetail.getId());
         orderEntity.setBuyOrderId(buyOrderId);
-        BigDecimal totalToUsdt = getTotalToUsdt(orderEntity.getSymbol(),orderEntity.getPrice(),orderEntity.getAmount());
+        BigDecimal totalToUsdt = getTotalToUsdt(orderEntity.getSymbol(), orderEntity.getPrice(), orderEntity.getAmount());
+        orderEntity.setSymbolTradeConfigId(symbolTradeConfigId);
         orderEntity.setTotalToUsdt(totalToUsdt);
+        orderEntity.setUserId(userId);
         return this.saveOrder(orderEntity);
     }
 
@@ -83,7 +85,7 @@ public class OrderBiz {
         dto.setOrderId(orderEntity.getOrderId());
         OrdersDetail ordersDetail = tradeBiz.orderDetail(dto);
         //订单状态或者成交数量有变动
-        if (!ordersDetail.getState().equals(orderEntity.getState()) || !ordersDetail.getFieldAmount().equals(orderEntity.getFieldAmount())) {
+        if (ordersDetail != null && (!ordersDetail.getState().equals(orderEntity.getState()) || !ordersDetail.getFieldAmount().equals(orderEntity.getFieldAmount()))) {
             BeanUtils.copyProperties(ordersDetail, orderEntity);
             orderEntity = this.saveOrder(orderEntity);
         }
@@ -134,6 +136,7 @@ public class OrderBiz {
             marketInfoVo = huobiApi.getMarketInfo(DictEnum.MARKET_PERIOD_1MIN.getCode(), 1, DictEnum.MARKET_HUOBI_SYMBOL_ETH_USDT.getCode());
             totalToUsdt = price.multiply(amount).multiply(marketInfoVo.getData().get(0).getClose());
         }
+        log.info("getTotalToUsdt,symbol={},price={},amount={},totalToUsdt={}", symbol, price, amount, totalToUsdt);
         return totalToUsdt;
     }
 }

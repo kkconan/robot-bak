@@ -32,7 +32,8 @@ public class TradeBiz {
         createOrderReq.setAccountId(dto.getAccountId());
         createOrderReq.setAmount(dto.getAmount().setScale(2, BigDecimal.ROUND_DOWN).toString());
         createOrderReq.setPrice(dto.getPrice().setScale(4, BigDecimal.ROUND_DOWN).toString());
-        if (dto.getSymbol().endsWith(DictEnum.MARKET_BASE_BTC.getCode())) {
+        if (dto.getSymbol().endsWith(DictEnum.MARKET_BASE_BTC.getCode()) || dto.getSymbol().endsWith(DictEnum.MARKET_BASE_ETH.getCode())) {
+            createOrderReq.setPrice(dto.getPrice().setScale(8, BigDecimal.ROUND_DOWN).toString());
             createOrderReq.setPrice(dto.getPrice().setScale(8, BigDecimal.ROUND_DOWN).toString());
         }
         createOrderReq.setSymbol(dto.getSymbol());

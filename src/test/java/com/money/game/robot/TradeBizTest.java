@@ -30,10 +30,10 @@ public class TradeBizTest {
     public void createOrderTest() {
         CreateOrderDto dto = new CreateOrderDto();
         dto.setAccountId("1229748");
-        dto.setAmount(new BigDecimal(0.02));
-        dto.setPrice(new BigDecimal(0.01));
-        dto.setSymbol("eosusdt");
-        dto.setOrderType("buy-limit");
+        dto.setAmount(new BigDecimal(0.009720000000000000));
+        dto.setPrice(new BigDecimal(0.00079286));
+        dto.setSymbol("hsrbtc");
+        dto.setOrderType("sell-limit");
         String orderId = tradeBiz.createOrder(dto);
         log.info("orderId={}", orderId);
     }
@@ -41,7 +41,7 @@ public class TradeBizTest {
     @Test
     public void orderDetailTest() {
         HuobiBaseDto dto = new HuobiBaseDto();
-        dto.setOrderId("2593949128");
+        dto.setOrderId("1229748");
         OrdersDetail detail = tradeBiz.orderDetail(dto);
         log.info("detail={}", detail);
     }
