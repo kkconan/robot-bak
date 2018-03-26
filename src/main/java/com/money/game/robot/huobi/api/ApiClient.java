@@ -6,9 +6,11 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.money.game.robot.constant.ErrorEnum;
 import com.money.game.robot.huobi.request.CreateOrderRequest;
 import com.money.game.robot.huobi.request.DepthRequest;
 import com.money.game.robot.huobi.response.*;
+import lombok.extern.log4j.Log4j;
 import okhttp3.*;
 import okhttp3.OkHttpClient.Builder;
 import org.apache.commons.lang.StringUtils;
@@ -37,6 +39,7 @@ import java.util.stream.Collectors;
  * conan
  */
 @Component
+@Log4j
 public class ApiClient {
 
     static final int CONN_TIMEOUT = 5;
@@ -49,9 +52,9 @@ public class ApiClient {
     static final MediaType JSON = MediaType.parse("application/json");
     static final OkHttpClient client = createOkHttpClient();
 
-    String accessKeyId = "3d008259-3cc04933-0a10846b-07ac1";
+    String accessKeyId = "";
 
-    String accessKeySecret = "c46a6b5d-fb92da4b-8ae68067-45c21";
+    String accessKeySecret = "";
 
     String assetPassword;
 
@@ -66,12 +69,11 @@ public class ApiClient {
      * @param accessKeySecret AccessKeySecret
      */
     public ApiClient(String accessKeyId, String accessKeySecret) {
-        if (StringUtils.isNotEmpty(accessKeyId)) {
-            this.accessKeyId = accessKeyId;
+        if (StringUtils.isEmpty(accessKeyId) || StringUtils.isEmpty(accessKeySecret)) {
+            throw new ApiException(ErrorEnum.API_KEY_NOT_EMPTY.getCode(), ErrorEnum.API_KEY_NOT_EMPTY.getValue());
         }
-        if (StringUtils.isNotEmpty(accessKeySecret)) {
-            this.accessKeySecret = accessKeySecret;
-        }
+        this.accessKeyId = accessKeyId;
+        this.accessKeySecret = accessKeySecret;
         this.assetPassword = null;
     }
 

@@ -19,6 +19,8 @@ public enum ErrorEnum {
 
     MARKEY_INFO_FAIL("1008", "获取市场行情失败"),
 
+    API_KEY_NOT_EMPTY("1009","API秘钥不能为空"),
+
     ACCOUNT_BALANCE_TOO_LITTLE("1009", "余额不足"),
 
     RECOLD_NOT_FOUND("1010","记录不存在"),

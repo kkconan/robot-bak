@@ -58,9 +58,11 @@ public class OrderBiz {
         return result;
     }
 
-    public OrderEntity saveOrder(String orderId, String rateChangeId, String buyOrderId, String symbolTradeConfigId,String userId,String orderType) {
+    public OrderEntity saveOrder(String orderId, String rateChangeId, String buyOrderId, String symbolTradeConfigId, String userId, String orderType) {
+
         HuobiBaseDto dto = new HuobiBaseDto();
         dto.setOrderId(orderId);
+        dto.setUserId(userId);
         OrdersDetail ordersDetail = tradeBiz.orderDetail(dto);
         OrderEntity orderEntity = orderService.findByOrderId(orderId);
         if (orderEntity == null) {
@@ -84,6 +86,7 @@ public class OrderBiz {
     public OrderEntity updateOrderState(OrderEntity orderEntity) {
         HuobiBaseDto dto = new HuobiBaseDto();
         dto.setOrderId(orderEntity.getOrderId());
+        dto.setUserId(orderEntity.getUserId());
         OrdersDetail ordersDetail = tradeBiz.orderDetail(dto);
         //订单状态或者成交数量有变动
         if (ordersDetail != null && (!ordersDetail.getState().equals(orderEntity.getState()) || !ordersDetail.getFieldAmount().equals(orderEntity.getFieldAmount()))) {
@@ -123,13 +126,13 @@ public class OrderBiz {
     }
 
 
-    public List<OrderEntity> findByUserIdAndModel(String userId, String model,String orderType) {
+    public List<OrderEntity> findByUserIdAndModel(String userId, String model, String orderType, String symbol) {
         List<String> states = new ArrayList<>();
         states.add(DictEnum.ORDER_DETAIL_STATE_PRE_SUBMITTED.getCode());
         states.add(DictEnum.ORDER_DETAIL_STATE_SUBMITTING.getCode());
         states.add(DictEnum.ORDER_DETAIL_STATE_SUBMITTED.getCode());
         states.add(DictEnum.ORDER_DETAIL_STATE_PARTIAL_FILLED.getCode());
-        return orderService.findByUserIdAndModel(userId,model,orderType,states);
+        return orderService.findByUserIdAndModel(userId, model, orderType, symbol, states);
 
     }
 

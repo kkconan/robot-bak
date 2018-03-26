@@ -12,6 +12,8 @@ import java.io.Serializable;
 @Data
 public class HuobiBaseDto extends BaseDto implements Serializable{
 
+    private String userId;
+
     private String apiKey;
 
     private String apiSecret;

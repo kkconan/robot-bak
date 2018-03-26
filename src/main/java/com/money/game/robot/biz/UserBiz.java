@@ -39,4 +39,8 @@ public class UserBiz {
         }
         return list;
     }
+
+    public UserEntity findById(String userId) {
+        return userService.findOne(userId);
+    }
 }

@@ -38,7 +38,7 @@ public class MonitorSchedule {
     }
 
 
-    @Scheduled(cron = "${cron.option[huoBi.symBols]:0 0/4 * * * ?}")
+    @Scheduled(cron = "${cron.option[trans.model.limit.order]:0 0/4 * * * ?}")
     public void checkTransModelLimitOrder() {
         log.info("check to trans model limit order start...");
         transBiz.transModelLimitOrder();

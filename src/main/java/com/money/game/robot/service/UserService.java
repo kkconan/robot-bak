@@ -14,4 +14,6 @@ public interface UserService {
 
     UserEntity save(UserEntity userEntity);
 
+    UserEntity findOne(String id);
+
 }

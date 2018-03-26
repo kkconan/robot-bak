@@ -28,4 +28,9 @@ public class UserServiceImpl implements UserService {
     public UserEntity save(UserEntity userEntity) {
         return userDao.save(userEntity);
     }
+
+    @Override
+    public UserEntity findOne(String id) {
+        return userDao.findOne(id);
+    }
 }

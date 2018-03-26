@@ -11,7 +11,6 @@ import com.money.game.robot.entity.SymbolTradeConfigEntity;
 import com.money.game.robot.entity.UserEntity;
 import com.money.game.robot.huobi.request.CreateOrderRequest;
 import com.money.game.robot.huobi.response.Accounts;
-import com.money.game.robot.huobi.response.BalanceBean;
 import com.money.game.robot.huobi.response.Depth;
 import com.money.game.robot.huobi.response.OrdersDetail;
 import com.money.game.robot.market.HuobiApi;
@@ -66,8 +65,8 @@ public class TransBiz {
     private UserBiz userBiz;
 
 
-    @Value("${eos.symbol:eosusdt}")
-    private String symbol;
+    @Value("${eos.symbols:eosusdt,ethusdt}")
+    private String symbols;
 
     @Value("${eos.absolute:0.05}")
     private BigDecimal absolute;
@@ -129,7 +128,9 @@ public class TransBiz {
                     log.info("买单超时撤销,buyOrderEntity={}", buyOrderEntity);
                     HuobiBaseDto dto = new HuobiBaseDto();
                     dto.setOrderId(buyOrderEntity.getOrderId());
+                    dto.setUserId(buyOrderEntity.getUserId());
                     tradeBiz.submitCancel(dto);
+                    orderBiz.updateOrderState(buyOrderEntity);
                 }
             }
         }
@@ -141,11 +142,13 @@ public class TransBiz {
         for (OrderEntity saleOrder : saleOrderList) {
             HuobiBaseDto dto = new HuobiBaseDto();
             dto.setOrderId(saleOrder.getOrderId());
+            dto.setUserId(saleOrder.getUserId());
             OrdersDetail ordersDetail = tradeBiz.orderDetail(dto);
             //卖单已成交或撤销成交
             if (DictEnum.ORDER_DETAIL_STATE_FILLED.getCode().equals(ordersDetail.getState()) || DictEnum.ORDER_DETAIL_STATE_PARTIAL_CANCELED.getCode().equals(ordersDetail.getState())) {
                 log.info("卖单已成交,交易完成.saleOrderId={}", saleOrder.getOrderId());
                 saleOrder.setState(ordersDetail.getState());
+                orderBiz.saveOrder(saleOrder);
 
             }
 
@@ -153,39 +156,47 @@ public class TransBiz {
     }
 
     public void transModelLimitOrder() {
-        createModelLimitOrder(symbol);
+        String[] symbolList = symbols.split(",");
+        for (String symbol : symbolList) {
+            createModelLimitOrder(symbol);
+        }
 
     }
 
     private void createModelLimitOrder(String symbol) {
-        log.info("createModelLimitOrder,symbol={}", symbol);
+        log.info("createModelLimitOrder,symbols={}", symbol);
         List<UserEntity> userList = userBiz.findAll();
         for (UserEntity userEntity : userList) {
             //买单状态更新
-            List<OrderEntity> buyList = orderBiz.findByUserIdAndModel(userEntity.getOid(), DictEnum.ORDER_MODEL_LIMIT.getCode(), DictEnum.ORDER_TYPE_BUY_LIMIT.getCode());
+            List<OrderEntity> buyList = orderBiz.findByUserIdAndModel(userEntity.getOid(), DictEnum.ORDER_MODEL_LIMIT.getCode(), DictEnum.ORDER_TYPE_BUY_LIMIT.getCode(), symbol);
             Iterator<OrderEntity> buyIt = buyList.iterator();
             while (buyIt.hasNext()) {
                 OrderEntity buyOrder = buyIt.next();
-                //，买单已完成
+                buyOrder = orderBiz.updateOrderState(buyOrder);
+                //买单已完成
                 if (DictEnum.filledOrderStates.contains(buyOrder.getState())) {
-                    log.info("买单已完成,buyOrder={}", buyOrder);
-                    buyList.remove(buyOrder);
+                    log.info("买单已完结,buyOrder={}", buyOrder);
+                    buyIt.remove();
                 }
             }
             //卖单状态更新
-            List<OrderEntity> saleList = orderBiz.findByUserIdAndModel(userEntity.getOid(), DictEnum.ORDER_MODEL_LIMIT.getCode(), DictEnum.ORDER_TYPE_SELL_LIMIT.getCode());
+            List<OrderEntity> saleList = orderBiz.findByUserIdAndModel(userEntity.getOid(), DictEnum.ORDER_MODEL_LIMIT.getCode(), DictEnum.ORDER_TYPE_SELL_LIMIT.getCode(), symbol);
             Iterator<OrderEntity> saleIt = saleList.iterator();
             while (saleIt.hasNext()) {
                 OrderEntity saleOrder = saleIt.next();
-                //，卖单已完成
+                saleOrder = orderBiz.updateOrderState(saleOrder);
+                //卖单已完成
                 if (DictEnum.filledOrderStates.contains(saleOrder.getState())) {
-                    log.info("卖单已完成,buyOrder={}", saleOrder);
-                    saleList.remove(saleOrder);
+                    log.info("卖单已完结,buyOrder={}", saleOrder);
+                    saleIt.remove();
                 }
             }
             //买单大于1 || 买单等于1,卖单不为空
             if (buyList.size() > 1 || (buyList.size() == 1 && !saleList.isEmpty())) {
                 log.info("存在未完成订单");
+                return;
+            } else if (buyList.isEmpty() && saleList.size() >= 2) {
+                log.info("超过两笔未成交卖单");
                 return;
             }
             MarketDetailVo marketDetailVo = huobiApi.getOneMarketDetail(symbol);
@@ -199,9 +210,15 @@ public class TransBiz {
             CreateOrderDto buyOrderDto = new CreateOrderDto();
             buyOrderDto.setSymbol(symbol);
             buyOrderDto.setPrice(buyPrice);
-            buyOrderDto.setAmount(amount);
             buyOrderDto.setOrderType(DictEnum.ORDER_TYPE_BUY_LIMIT.getCode());
             buyOrderDto.setAccountId(userEntity.getAccountId());
+            buyOrderDto.setUserId(userEntity.getOid());
+
+            String quoteCurrency = getQuoteCurrency(symbol);
+            BigDecimal balanceMax = accountBiz.getQuoteBalance(userEntity.getOid(), quoteCurrency);
+            //验证余额
+            amount = amount.compareTo(balanceMax) <= 0 ? amount : balanceMax;
+            buyOrderDto.setAmount(amount);
             //创建限价买单
             String buyOrderId = tradeBiz.createOrder(buyOrderDto);
             orderBiz.saveOrder(buyOrderId, null, null, null, userEntity.getOid(), DictEnum.ORDER_MODEL_LIMIT.getCode());
@@ -229,7 +246,7 @@ public class TransBiz {
      * 检查交易深度是否满足创建买单条件
      */
     private List<String> checkDeptAndCreateBuyOrder(String symbol, BigDecimal buyPrice, String baseQuote, SymbolTradeConfigEntity symbolTradeConfig) {
-        log.info("checkDeptAndCreateBuyOrder,symbol={},buyPrice={},baseCurrency={}", symbol, buyPrice, baseQuote);
+        log.info("checkDeptAndCreateBuyOrder,symbols={},buyPrice={},baseCurrency={}", symbol, buyPrice, baseQuote);
         DepthDto dto = new DepthDto();
         dto.setSymbol(symbol);
         //获取交易深度
@@ -292,25 +309,20 @@ public class TransBiz {
      * 限价买
      */
     private String createBuyOrder(String symbol, BigDecimal price, BigDecimal amount, String baseQuote, SymbolTradeConfigEntity symbolTradeConfig) {
-        log.info("create createBuyOrder,symbol={},price={},amount={},baseCurrency={}", symbol, price, amount, baseQuote);
+        log.info("create createBuyOrder,symbols={},price={},amount={},baseCurrency={}", symbol, price, amount, baseQuote);
+        //配置的最多购买
         BigDecimal maxAmount = getBuyAmount(symbol, price, symbolTradeConfig);
         CreateOrderDto dto = new CreateOrderDto();
         dto.setSymbol(symbol);
         dto.setOrderType(CreateOrderRequest.OrderType.BUY_LIMIT);
 
         HuobiBaseDto baseDto = new HuobiBaseDto();
+        baseDto.setUserId(symbolTradeConfig.getUserId());
         Accounts accounts = accountBiz.getSpotAccounts(baseDto);
-        List<BalanceBean> balanceBeanList = accountBiz.getAccountBalance(dto, accounts);
-        for (BalanceBean balanceBean : balanceBeanList) {
-            //获取当前币种可交易余额
-            if (baseQuote.equals(balanceBean.getCurrency()) && "trade".equals(balanceBean.getType())) {
-                BigDecimal maxBalance = new BigDecimal(balanceBean.getBalance());
-                //判断是否超过可使用上限
-                maxAmount = maxBalance.compareTo(maxAmount) < 0 ? maxBalance : maxAmount;
-                log.info("maxAmount={}", maxAmount);
-                break;
-            }
-        }
+        //最多余额
+        BigDecimal balanceMax = accountBiz.getQuoteBalance(symbolTradeConfig.getUserId(), baseQuote);
+        //配置值和余额值取小值
+        maxAmount = maxAmount.compareTo(balanceMax) <= 0 ? maxAmount : balanceMax;
         //判断是否超过上限
         amount = maxAmount.compareTo(amount) < 0 ? maxAmount : amount;
 
@@ -351,7 +363,7 @@ public class TransBiz {
                     //卖一+上浮=购买价
                     salePrice = salePrice.subtract(symbolTradeConfig.getBuyIncreasePrice());
                     BigDecimal saleAmount = bid.get(1);
-                    String orderId = createSaleOrder(rateChangeEntity.getSaleSymbol(), salePrice, saleAmount, rateChangeEntity.getQuoteCurrency());
+                    String orderId = createSaleOrder(rateChangeEntity.getSaleSymbol(), salePrice, saleAmount, rateChangeEntity.getQuoteCurrency(), symbolTradeConfig.getUserId());
                     orderIds.add(orderId);
                     log.info("买单价售出,salePrice={},remainAmount={},saleAmount={},orderId={}", salePrice, remainAmount, saleAmount, orderId);
                     remainAmount = remainAmount.subtract(saleAmount);
@@ -373,7 +385,7 @@ public class TransBiz {
             } else {
                 salePrice = saleOnePrice.subtract(symbolTradeConfig.getBuyIncreasePrice());
             }
-            String orderId = createSaleOrder(rateChangeEntity.getSaleSymbol(), salePrice, remainAmount, rateChangeEntity.getQuoteCurrency());
+            String orderId = createSaleOrder(rateChangeEntity.getSaleSymbol(), salePrice, remainAmount, rateChangeEntity.getQuoteCurrency(), symbolTradeConfig.getUserId());
             orderIds.add(orderId);
             log.info("买单价卖出,remainAmount={},salePrice={},orderId={}", remainAmount, salePrice, orderId);
         }
@@ -384,26 +396,19 @@ public class TransBiz {
     /**
      * 限价卖
      */
-    private String createSaleOrder(String symbol, BigDecimal price, BigDecimal amount, String quoteCurrency) {
-        log.info("create order,symbol={},price={},amount={},quoteCurrency={}", symbol, price, amount, quoteCurrency);
+    private String createSaleOrder(String symbol, BigDecimal price, BigDecimal amount, String quoteCurrency, String userId) {
+        log.info("create order,symbols={},price={},amount={},quoteCurrency={},userId={}", symbol, price, amount, quoteCurrency, userId);
         //判断是否超过可使用的上限
-        BigDecimal maxAmount = BigDecimal.ZERO;
         CreateOrderDto dto = new CreateOrderDto();
         dto.setSymbol(symbol);
         dto.setOrderType(CreateOrderRequest.OrderType.SELL_LIMIT);
         dto.setPrice(price);
 
         HuobiBaseDto baseDto = new HuobiBaseDto();
+        baseDto.setUserId(userId);
         Accounts accounts = accountBiz.getSpotAccounts(baseDto);
-        List<BalanceBean> balanceBeanList = accountBiz.getAccountBalance(dto, accounts);
-        for (BalanceBean balanceBean : balanceBeanList) {
-            //获取当前币种可交易余额
-            if (quoteCurrency.equals(balanceBean.getCurrency()) && "trade".equals(balanceBean.getType())) {
-                maxAmount = new BigDecimal(balanceBean.getBalance());
-                break;
-            }
-        }
-        amount = maxAmount.compareTo(amount) < 0 ? maxAmount : amount;
+        BigDecimal balanceMax = accountBiz.getQuoteBalance(userId, quoteCurrency);
+        amount = balanceMax.compareTo(amount) < 0 ? balanceMax : amount;
         dto.setAccountId(String.valueOf(accounts.getId()));
         dto.setAmount(amount);
         return tradeBiz.createOrder(dto);
@@ -422,7 +427,18 @@ public class TransBiz {
         } else {
             amount = symbolTradeConfig.getEthMxzUse().divide(newPrice, 8, BigDecimal.ROUND_FLOOR);
         }
-        log.info("getBuyAmount,symbol={},newPrice={},amount={},symbolTradeConfig={}", symbol, newPrice, amount, symbolTradeConfig);
+        log.info("getBuyAmount,symbols={},newPrice={},amount={},symbolTradeConfig={}", symbol, newPrice, amount, symbolTradeConfig);
         return amount;
+    }
+
+
+    private String getQuoteCurrency(String symbol) {
+        String quoteCurrency;
+        if (symbol.endsWith(DictEnum.MARKET_BASE_BTC.getCode()) || symbol.endsWith(DictEnum.MARKET_BASE_ETH.getCode())) {
+            quoteCurrency = symbol.substring(0, symbol.length() - 3);
+        } else {
+            quoteCurrency = symbol.substring(0, symbol.length() - 4);
+        }
+        return quoteCurrency;
     }
 }
