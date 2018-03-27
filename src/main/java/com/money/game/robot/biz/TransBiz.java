@@ -5,10 +5,7 @@ import com.money.game.robot.constant.DictEnum;
 import com.money.game.robot.dto.huobi.CreateOrderDto;
 import com.money.game.robot.dto.huobi.DepthDto;
 import com.money.game.robot.dto.huobi.HuobiBaseDto;
-import com.money.game.robot.entity.OrderEntity;
-import com.money.game.robot.entity.RateChangeEntity;
-import com.money.game.robot.entity.SymbolTradeConfigEntity;
-import com.money.game.robot.entity.UserEntity;
+import com.money.game.robot.entity.*;
 import com.money.game.robot.huobi.request.CreateOrderRequest;
 import com.money.game.robot.huobi.response.Accounts;
 import com.money.game.robot.huobi.response.Depth;
@@ -21,7 +18,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -64,15 +60,18 @@ public class TransBiz {
     @Autowired
     private UserBiz userBiz;
 
+    @Autowired
+    private LimitTradeConfgBiz limitTradeConfgBiz;
 
-    @Value("${eos.symbols:eosusdt,ethusdt}")
-    private String symbols;
 
-    @Value("${eos.absolute:0.05}")
-    private BigDecimal absolute;
-
-    @Value("${eos.totalAmount:1}")
-    private BigDecimal totalAmount;
+//    @Value("${eos.symbols:eosusdt,ethusdt}")
+//    private String symbols;
+//
+//    @Value("${eos.absolute:0.05}")
+//    private BigDecimal absolute;
+//
+//    @Value("${eos.totalAmount:1}")
+//    private BigDecimal totalAmount;
 
 
     /**
@@ -156,80 +155,92 @@ public class TransBiz {
     }
 
     public void transModelLimitOrder() {
-        String[] symbolList = symbols.split(",");
-        for (String symbol : symbolList) {
-            createModelLimitOrder(symbol);
+
+        List<UserEntity> userList = userBiz.findAll();
+        for (UserEntity userEntity : userList) {
+            List<LimitTradeConfigEntity> configList = limitTradeConfgBiz.findAllByUserId(userEntity.getOid());
+            for (LimitTradeConfigEntity config : configList) {
+                createModelLimitOrder(config, userEntity);
+            }
         }
 
     }
 
-    private void createModelLimitOrder(String symbol) {
-        log.info("createModelLimitOrder,symbols={}", symbol);
-        List<UserEntity> userList = userBiz.findAll();
-        for (UserEntity userEntity : userList) {
-            //买单状态更新
-            List<OrderEntity> buyList = orderBiz.findByUserIdAndModel(userEntity.getOid(), DictEnum.ORDER_MODEL_LIMIT.getCode(), DictEnum.ORDER_TYPE_BUY_LIMIT.getCode(), symbol);
-            Iterator<OrderEntity> buyIt = buyList.iterator();
-            while (buyIt.hasNext()) {
-                OrderEntity buyOrder = buyIt.next();
-                buyOrder = orderBiz.updateOrderState(buyOrder);
-                //买单已完成
-                if (DictEnum.filledOrderStates.contains(buyOrder.getState())) {
-                    log.info("买单已完结,buyOrder={}", buyOrder);
-                    buyIt.remove();
-                }
+    private void createModelLimitOrder(LimitTradeConfigEntity config, UserEntity userEntity) {
+        //买单状态更新
+        List<OrderEntity> buyList = orderBiz.findByUserIdAndModel(userEntity.getOid(), DictEnum.ORDER_MODEL_LIMIT.getCode(), DictEnum.ORDER_TYPE_BUY_LIMIT.getCode(), config.getSymbol());
+        Iterator<OrderEntity> buyIt = buyList.iterator();
+        while (buyIt.hasNext()) {
+            OrderEntity buyOrder = buyIt.next();
+            buyOrder = orderBiz.updateOrderState(buyOrder);
+            //买单已完成
+            if (DictEnum.filledOrderStates.contains(buyOrder.getState())) {
+                log.info("买单已完结,buyOrder={}", buyOrder);
+                buyIt.remove();
             }
-            //卖单状态更新
-            List<OrderEntity> saleList = orderBiz.findByUserIdAndModel(userEntity.getOid(), DictEnum.ORDER_MODEL_LIMIT.getCode(), DictEnum.ORDER_TYPE_SELL_LIMIT.getCode(), symbol);
-            Iterator<OrderEntity> saleIt = saleList.iterator();
-            while (saleIt.hasNext()) {
-                OrderEntity saleOrder = saleIt.next();
-                saleOrder = orderBiz.updateOrderState(saleOrder);
-                //卖单已完成
-                if (DictEnum.filledOrderStates.contains(saleOrder.getState())) {
-                    log.info("卖单已完结,buyOrder={}", saleOrder);
-                    saleIt.remove();
-                }
-            }
-            //买单大于1 || 买单等于1,卖单不为空
-            if (buyList.size() > 1 || (buyList.size() == 1 && !saleList.isEmpty())) {
-                log.info("存在未完成订单");
-                return;
-            } else if (buyList.isEmpty() && saleList.size() >= 2) {
-                log.info("超过两笔未成交卖单");
-                return;
-            }
-            MarketDetailVo marketDetailVo = huobiApi.getOneMarketDetail(symbol);
-            if (marketDetailVo == null) {
-                log.info("获取行情失败");
-                return;
-            }
-            BigDecimal buyPrice = (new BigDecimal(1).subtract(absolute)).multiply(marketDetailVo.getClose());
-            BigDecimal amount = totalAmount.divide(buyPrice, 4, BigDecimal.ROUND_DOWN);
-            BigDecimal salePrice = (new BigDecimal(1).add(absolute)).multiply(marketDetailVo.getClose());
-            CreateOrderDto buyOrderDto = new CreateOrderDto();
-            buyOrderDto.setSymbol(symbol);
-            buyOrderDto.setPrice(buyPrice);
-            buyOrderDto.setOrderType(DictEnum.ORDER_TYPE_BUY_LIMIT.getCode());
-            buyOrderDto.setAccountId(userEntity.getAccountId());
-            buyOrderDto.setUserId(userEntity.getOid());
-
-            String quoteCurrency = getQuoteCurrency(symbol);
-            BigDecimal balanceMax = accountBiz.getQuoteBalance(userEntity.getOid(), quoteCurrency);
-            //验证余额
-            amount = amount.compareTo(balanceMax) <= 0 ? amount : balanceMax;
-            buyOrderDto.setAmount(amount);
-            //创建限价买单
-            String buyOrderId = tradeBiz.createOrder(buyOrderDto);
-            orderBiz.saveOrder(buyOrderId, null, null, null, userEntity.getOid(), DictEnum.ORDER_MODEL_LIMIT.getCode());
-            CreateOrderDto saleOrderDto = new CreateOrderDto();
-            BeanUtils.copyProperties(buyOrderDto, saleOrderDto);
-            saleOrderDto.setOrderType(DictEnum.ORDER_TYPE_SELL_LIMIT.getCode());
-            saleOrderDto.setPrice(salePrice);
-            //创建限价卖单
-            String saleOrderId = tradeBiz.createOrder(saleOrderDto);
-            orderBiz.saveOrder(saleOrderId, null, buyOrderId, null, userEntity.getOid(), DictEnum.ORDER_MODEL_LIMIT.getCode());
         }
+        //卖单状态更新
+        List<OrderEntity> saleList = orderBiz.findByUserIdAndModel(userEntity.getOid(), DictEnum.ORDER_MODEL_LIMIT.getCode(), DictEnum.ORDER_TYPE_SELL_LIMIT.getCode(), config.getSymbol());
+        Iterator<OrderEntity> saleIt = saleList.iterator();
+        while (saleIt.hasNext()) {
+            OrderEntity saleOrder = saleIt.next();
+            saleOrder = orderBiz.updateOrderState(saleOrder);
+            //卖单已完成
+            if (DictEnum.filledOrderStates.contains(saleOrder.getState())) {
+                log.info("卖单已完结,buyOrder={}", saleOrder);
+                saleIt.remove();
+            }
+        }
+        //买单大于最大数量 || 买单不为空且买单等于卖单 ||买单有成交,卖单未成交
+        if (buyList.size() >= config.getMaxTradeCount() || (!buyList.isEmpty() && buyList.size() == buyList.size()) || (buyList.size() == (config.getMaxTradeCount() - 1) && saleList.size() > buyList.size())) {
+            log.info("挂单已满,symbol={},userId={}", config.getSymbol(), userEntity.getOid());
+            return;
+        } else if (buyList.isEmpty() && saleList.size() >= config.getMaxTradeCount()) {
+            log.info("买单成交,卖单未成交,symbol={},userId={}", config.getSymbol(), userEntity.getOid());
+            return;
+        }
+        MarketDetailVo marketDetailVo = huobiApi.getOneMarketDetail(config.getSymbol());
+        if (marketDetailVo == null) {
+            log.info("获取行情失败");
+            return;
+        }
+        log.info("创建限价单开始,symbols={},userId={}", config.getSymbol(), userEntity.getOid());
+
+        BigDecimal buyPrice = (new BigDecimal(1).subtract(config.getDecrease())).multiply(marketDetailVo.getClose());
+
+        String baseCurrency = getBaseCurrency(config.getSymbol());
+        //基对余额
+        BigDecimal balanceMax = accountBiz.getQuoteBalance(userEntity.getOid(), baseCurrency);
+        //总成交额
+        BigDecimal totalAmount = config.getTotalAmount().compareTo(balanceMax) <= 0 ? config.getTotalAmount() : balanceMax;
+        //购买数量
+        BigDecimal amount = totalAmount.divide(buyPrice, 4, BigDecimal.ROUND_DOWN);
+        BigDecimal salePrice = (new BigDecimal(1).add(config.getIncrease())).multiply(marketDetailVo.getClose());
+        CreateOrderDto buyOrderDto = new CreateOrderDto();
+        buyOrderDto.setSymbol(config.getSymbol());
+        buyOrderDto.setPrice(buyPrice);
+        buyOrderDto.setOrderType(DictEnum.ORDER_TYPE_BUY_LIMIT.getCode());
+        buyOrderDto.setAccountId(userEntity.getAccountId());
+        buyOrderDto.setUserId(userEntity.getOid());
+
+        buyOrderDto.setAmount(amount);
+        //创建限价买单
+        String buyOrderId = tradeBiz.createOrder(buyOrderDto);
+        orderBiz.saveOrder(buyOrderId, null, null, null, userEntity.getOid(), DictEnum.ORDER_MODEL_LIMIT.getCode());
+        CreateOrderDto saleOrderDto = new CreateOrderDto();
+        BeanUtils.copyProperties(buyOrderDto, saleOrderDto);
+        saleOrderDto.setOrderType(DictEnum.ORDER_TYPE_SELL_LIMIT.getCode());
+        saleOrderDto.setPrice(salePrice);
+        String quoteCurrency = getQuoteCurrency(config.getSymbol());
+        //业务对余额
+        balanceMax = accountBiz.getQuoteBalance(userEntity.getOid(), quoteCurrency);
+        //验证余额
+        amount = amount.compareTo(balanceMax) <= 0 ? amount : balanceMax;
+        saleOrderDto.setAmount(amount);
+        //创建限价卖单
+        String saleOrderId = tradeBiz.createOrder(saleOrderDto);
+        orderBiz.saveOrder(saleOrderId, null, buyOrderId, null, userEntity.getOid(), DictEnum.ORDER_MODEL_LIMIT.getCode());
+        log.info("创建限价单结束,symbols={},userId={},buyOrderId={},saleOrderId={}", config.getSymbol(), userEntity.getOid(), buyOrderId, saleOrderId);
     }
 
 
@@ -432,6 +443,22 @@ public class TransBiz {
     }
 
 
+    /**
+     * 获取主对
+     */
+    private String getBaseCurrency(String symbol) {
+        String baseCurrency;
+        if (symbol.endsWith(DictEnum.MARKET_BASE_BTC.getCode()) || symbol.endsWith(DictEnum.MARKET_BASE_ETH.getCode())) {
+            baseCurrency = symbol.substring(symbol.length() - 3, symbol.length());
+        } else {
+            baseCurrency = symbol.substring(symbol.length() - 4, symbol.length());
+        }
+        return baseCurrency;
+    }
+
+    /**
+     * 获取业务对
+     */
     private String getQuoteCurrency(String symbol) {
         String quoteCurrency;
         if (symbol.endsWith(DictEnum.MARKET_BASE_BTC.getCode()) || symbol.endsWith(DictEnum.MARKET_BASE_ETH.getCode())) {
