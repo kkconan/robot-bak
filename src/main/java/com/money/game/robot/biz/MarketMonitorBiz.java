@@ -29,16 +29,9 @@ import java.util.List;
 @Slf4j
 public class MarketMonitorBiz {
 
-    @Value("${mail.users:824968443@qq.com}")
-    private String mailToUser;
-
 
     @Value("${need.sms:false}")
     private boolean needSms;
-
-    @Value("${sms.mobiles:13564452580}")
-    private String mobiles;
-
 
     @Autowired
     private HuobiApi huobiApi;
@@ -85,7 +78,7 @@ public class MarketMonitorBiz {
             //查询用户一分钟交易配置
             SymbolTradeConfigEntity symbolTradeConfig = symbolTradeConfigBiz.findByUserIdAndThresholdType(user.getOid(), DictEnum.TRADE_CONFIG_THRESHOLD_TYPE_ONE_MIN.getCode());
             if (symbolTradeConfig != null) {
-                initMonitor(symbol, nowVo, lastMinVo, symbolTradeConfig);
+                initMonitor(symbol, nowVo, lastMinVo, symbolTradeConfig, user);
             }
         }
     }
@@ -96,12 +89,12 @@ public class MarketMonitorBiz {
             //查询用户五分钟交易配置
             SymbolTradeConfigEntity symbolTradeConfig = symbolTradeConfigBiz.findByUserIdAndThresholdType(user.getOid(), DictEnum.TRADE_CONFIG_THRESHOLD_TYPE_FIVE_MIN.getCode());
             if (symbolTradeConfig != null) {
-                initMonitor(symbol, nowVo, lastMinVo, symbolTradeConfig);
+                initMonitor(symbol, nowVo, lastMinVo, symbolTradeConfig, user);
             }
         }
     }
 
-    private void initMonitor(String symbol, MarketDetailVo nowVo, MarketDetailVo otherVo, SymbolTradeConfigEntity symbolTradeConfig) {
+    private void initMonitor(String symbol, MarketDetailVo nowVo, MarketDetailVo otherVo, SymbolTradeConfigEntity symbolTradeConfig, UserEntity user) {
         BigDecimal nowPrice = nowVo.getClose();
         BigDecimal otherMinPrice = otherVo.getClose();
         BigDecimal increase = (nowPrice.subtract(otherMinPrice)).divide(otherMinPrice, 9, BigDecimal.ROUND_HALF_UP);
@@ -130,12 +123,12 @@ public class MarketMonitorBiz {
         }
         if (isToOperate) {
             // send eamil
-            sendNotifyEmail(content);
+            sendNotifyEmail(content, user.getNotifyEmail());
             //check buy
             boolean transResult = checkToTrans(symbol, increase, symbolTradeConfig);
             //trans success to send sms
             if (transResult) {
-                sendSms(content, symbol);
+                sendSms(content, symbol, user.getNotifyPhone());
             }
         }
     }
@@ -335,19 +328,19 @@ public class MarketMonitorBiz {
         return rateChangeVo;
     }
 
-    private void sendSms(String content, String symbol) {
+    private void sendSms(String content, String symbol, String phones) {
         if (!needSms) {
             log.info("do not need sms...");
             return;
         }
         if (StringUtils.isNotEmpty(symbol)) {
-            Sms.smsSend(content, mobiles);
+            Sms.smsSend(content, phones);
         }
     }
 
-    private void sendNotifyEmail(String content) {
+    private void sendNotifyEmail(String content, String email) {
         String subject = "market info notify";
-        MailQQ.sendEmail(subject, content, mailToUser);
+        MailQQ.sendEmail(subject, content, email);
     }
 
 
