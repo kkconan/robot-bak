@@ -42,6 +42,8 @@ public class UserEntity extends UUID implements Serializable {
 
     private String password;
 
+    private String salt;
+
     /**
      * 通知手机号,可多个,通过逗号分隔
      */

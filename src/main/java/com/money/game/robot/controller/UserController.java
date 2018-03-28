@@ -1,0 +1,75 @@
+package com.money.game.robot.controller;
+
+import com.money.game.basic.component.ext.web.BaseController;
+import com.money.game.core.constant.ResponseData;
+import com.money.game.robot.biz.UserBiz;
+import com.money.game.robot.dto.client.ModifyUserInfoDto;
+import com.money.game.robot.dto.client.UserLoginDto;
+import com.money.game.robot.dto.client.UserRegisterDto;
+import com.money.game.robot.vo.LoginVo;
+import com.money.game.robot.vo.UserVo;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiImplicitParam;
+import io.swagger.annotations.ApiImplicitParams;
+import io.swagger.annotations.ApiOperation;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+import javax.validation.Valid;
+
+/**
+ * @author conan
+ *         2018/3/28 10:40
+ **/
+@RestController
+@Api(value = "user", description = "用户API")
+@RequestMapping(value = "/api/user", produces = "application/json;charset=UTF-8")
+public class UserController extends BaseController {
+
+    @Autowired
+    private UserBiz userBiz;
+
+    @RequestMapping(value = "/test/register", method = RequestMethod.POST)
+//    @ApiOperation(value = "注册", notes = "", httpMethod = "POST")
+    @ApiImplicitParams({@ApiImplicitParam(name = "dto", value = "注册参数", required = true, paramType = "body", dataType = "UserRegisterDto")})
+    @ResponseBody
+    public ResponseData register(@RequestBody UserRegisterDto dto) {
+        userBiz.register(dto);
+        return ResponseData.success();
+    }
+
+
+    @RequestMapping(value = "/login", method = RequestMethod.POST)
+    @ApiOperation(value = "登录", notes = "", httpMethod = "POST")
+    @ApiImplicitParams({@ApiImplicitParam(name = "dto", value = "登录参数", required = true, paramType = "body", dataType = "UserLoginDto")})
+    @ResponseBody
+    public ResponseData login(@RequestBody @Valid UserLoginDto dto) {
+        ResponseData response;
+        LoginVo vo = userBiz.login(dto.getPhone(), dto.getUserPwd());
+        this.setLoginUser(vo.getUserId());
+        response = ResponseData.success(vo);
+        return response;
+    }
+
+    @RequestMapping(value = "/info", method = RequestMethod.GET)
+    @ApiOperation(value = "用户基础账号信息", notes = "", httpMethod = "GET")
+    @ResponseBody
+    public ResponseData info() {
+        ResponseData response;
+        String userId = this.getLoginUser();
+        UserVo vo = userBiz.getUserInfo(userId);
+        response = ResponseData.success(vo);
+        return response;
+    }
+
+    @RequestMapping(value = "/modify", method = RequestMethod.POST)
+    @ApiOperation(value = "修改基础账户信息", notes = "", httpMethod = "POST")
+    @ApiImplicitParams({@ApiImplicitParam(name = "dto", value = "修改参数", required = true, paramType = "body", dataType = "ModifyUserInfoDto")})
+    @ResponseBody
+    public ResponseData modify(@RequestBody @Valid ModifyUserInfoDto dto) {
+        String userId = this.getLoginUser();
+        userBiz.modify(dto, userId);
+        return ResponseData.success();
+    }
+
+}

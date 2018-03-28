@@ -15,4 +15,6 @@ public interface SymbolTradeConfigService {
     SymbolTradeConfigEntity findByUserIdAndThresholdType(String userId, String thresholdType);
 
     SymbolTradeConfigEntity findById(String id);
+
+    SymbolTradeConfigEntity save(SymbolTradeConfigEntity entity);
 }

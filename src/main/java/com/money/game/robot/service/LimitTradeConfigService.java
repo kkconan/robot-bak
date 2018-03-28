@@ -11,4 +11,8 @@ import java.util.List;
 public interface LimitTradeConfigService {
 
     List<LimitTradeConfigEntity> findAllByUserId(String userId);
+
+    LimitTradeConfigEntity findById(String oid);
+
+    LimitTradeConfigEntity save(LimitTradeConfigEntity entity);
 }

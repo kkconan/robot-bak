@@ -1,6 +1,7 @@
 package com.money.game.robot.biz;
 
 import com.money.game.core.util.DateUtils;
+import com.money.game.core.util.StringUtil;
 import com.money.game.robot.constant.DictEnum;
 import com.money.game.robot.dto.huobi.CreateOrderDto;
 import com.money.game.robot.dto.huobi.DepthDto;
@@ -10,6 +11,7 @@ import com.money.game.robot.huobi.request.CreateOrderRequest;
 import com.money.game.robot.huobi.response.Accounts;
 import com.money.game.robot.huobi.response.Depth;
 import com.money.game.robot.huobi.response.OrdersDetail;
+import com.money.game.robot.mail.MailQQ;
 import com.money.game.robot.market.HuobiApi;
 import com.money.game.robot.service.RateChangeService;
 import com.money.game.robot.vo.huobi.MarketDetailVo;
@@ -63,17 +65,6 @@ public class TransBiz {
     @Autowired
     private LimitTradeConfgBiz limitTradeConfgBiz;
 
-
-//    @Value("${eos.symbols:eosusdt,ethusdt}")
-//    private String symbols;
-//
-//    @Value("${eos.absolute:0.05}")
-//    private BigDecimal absolute;
-//
-//    @Value("${eos.totalAmount:1}")
-//    private BigDecimal totalAmount;
-
-
     /**
      * to buy
      */
@@ -118,6 +109,8 @@ public class TransBiz {
                 //更新原买单状态
                 buyOrderEntity.setState(DictEnum.ORDER_DETAIL_STATE_SELL.getCode());
                 orderBiz.saveOrder(buyOrderEntity);
+                //发送成交邮件通知
+                transToEmailNotify(buyOrderEntity);
             }
             //部分成交
             else if (DictEnum.ORDER_DETAIL_STATE_PARTIAL_FILLED.getCode().equals(buyOrderEntity.getState()) || DictEnum.ORDER_DETAIL_STATE_SUBMITTED.getCode().equals(buyOrderEntity.getState())) {
@@ -148,6 +141,8 @@ public class TransBiz {
                 log.info("卖单已成交,交易完成.saleOrderId={}", saleOrder.getOrderId());
                 saleOrder.setState(ordersDetail.getState());
                 orderBiz.saveOrder(saleOrder);
+                //发送成交邮件通知
+                transToEmailNotify(saleOrder);
 
             }
 
@@ -156,7 +151,7 @@ public class TransBiz {
 
     public void transModelLimitOrder() {
 
-        List<UserEntity> userList = userBiz.findAll();
+        List<UserEntity> userList = userBiz.findAllByNormal();
         for (UserEntity userEntity : userList) {
             List<LimitTradeConfigEntity> configList = limitTradeConfgBiz.findAllByUserId(userEntity.getOid());
             for (LimitTradeConfigEntity config : configList) {
@@ -176,6 +171,7 @@ public class TransBiz {
             //买单已完成
             if (DictEnum.filledOrderStates.contains(buyOrder.getState())) {
                 log.info("买单已完结,buyOrder={}", buyOrder);
+                transToEmailNotify(buyOrder);
                 buyIt.remove();
             }
         }
@@ -187,7 +183,8 @@ public class TransBiz {
             saleOrder = orderBiz.updateOrderState(saleOrder);
             //卖单已完成
             if (DictEnum.filledOrderStates.contains(saleOrder.getState())) {
-                log.info("卖单已完结,buyOrder={}", saleOrder);
+                log.info("卖单已完结,saleOrder={}", saleOrder);
+                transToEmailNotify(saleOrder);
                 saleIt.remove();
             }
         }
@@ -231,6 +228,7 @@ public class TransBiz {
         BeanUtils.copyProperties(buyOrderDto, saleOrderDto);
         saleOrderDto.setOrderType(DictEnum.ORDER_TYPE_SELL_LIMIT.getCode());
         saleOrderDto.setPrice(salePrice);
+        saleOrderDto.setUserId(userEntity.getOid());
         String quoteCurrency = getQuoteCurrency(config.getSymbol());
         //业务对余额
         balanceMax = accountBiz.getQuoteBalance(userEntity.getOid(), quoteCurrency);
@@ -241,6 +239,22 @@ public class TransBiz {
         String saleOrderId = tradeBiz.createOrder(saleOrderDto);
         orderBiz.saveOrder(saleOrderId, null, buyOrderId, null, userEntity.getOid(), DictEnum.ORDER_MODEL_LIMIT.getCode());
         log.info("创建限价单结束,symbols={},userId={},buyOrderId={},saleOrderId={}", config.getSymbol(), userEntity.getOid(), buyOrderId, saleOrderId);
+    }
+
+
+    /**
+     * 限价单交易成功邮件通知
+     */
+    private void transToEmailNotify(OrderEntity orderEntity) {
+        UserEntity userEntity = userBiz.findById(orderEntity.getUserId());
+        if (StringUtil.isEmpty(userEntity.getNotifyEmail())) {
+            log.info("email address is empty...");
+            return;
+        }
+        String subject = orderEntity.getSymbol() + " " + orderEntity.getType() + " success notify";
+        String content = orderEntity.getSymbol() + " " + orderEntity.getType() + " success. price is " + orderEntity.getPrice().setScale(8, BigDecimal.ROUND_DOWN)
+                + ",amount is " + orderEntity.getAmount().setScale(8, BigDecimal.ROUND_DOWN) + " and totalToUsdt is " + orderEntity.getTotalToUsdt()+".";
+        MailQQ.sendEmail(subject, content, userEntity.getNotifyEmail());
     }
 
 
@@ -260,6 +274,7 @@ public class TransBiz {
         log.info("checkDeptAndCreateBuyOrder,symbols={},buyPrice={},baseCurrency={}", symbol, buyPrice, baseQuote);
         DepthDto dto = new DepthDto();
         dto.setSymbol(symbol);
+        dto.setUserId(symbolTradeConfig.getUserId());
         //获取交易深度
         Depth depth = marketBiz.depth(dto);
         //最新价格
@@ -340,6 +355,7 @@ public class TransBiz {
         dto.setAmount(amount);
         dto.setAccountId(String.valueOf(accounts.getId()));
         dto.setPrice(price);
+        dto.setUserId(symbolTradeConfig.getUserId());
         return tradeBiz.createOrder(dto);
     }
 
@@ -350,6 +366,7 @@ public class TransBiz {
         log.info("checkDeptAndCreateSaleOrder,rateChangeVo={},amount={}", rateChangeEntity, amount);
         DepthDto dto = new DepthDto();
         dto.setSymbol(rateChangeEntity.getSaleSymbol());
+        dto.setUserId(symbolTradeConfig.getUserId());
         //获取交易深度
         Depth depth = marketBiz.depth(dto);
         //所有成交的订单id
@@ -422,6 +439,7 @@ public class TransBiz {
         amount = balanceMax.compareTo(amount) < 0 ? balanceMax : amount;
         dto.setAccountId(String.valueOf(accounts.getId()));
         dto.setAmount(amount);
+        dto.setUserId(userId);
         return tradeBiz.createOrder(dto);
     }
 

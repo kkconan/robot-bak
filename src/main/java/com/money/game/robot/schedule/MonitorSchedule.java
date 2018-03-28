@@ -6,6 +6,7 @@ import com.money.game.robot.market.HuobiApi;
 import com.money.game.robot.vo.huobi.SymBolsDetailVo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -30,19 +31,26 @@ public class MonitorSchedule {
     @Autowired
     private TransBiz transBiz;
 
+    @Value("${is.schedule:true}")
+    private boolean isSchedule;
+
     @Scheduled(cron = "${cron.option[huoBi.symBols]:0 0/5 * * * ?}")
     public void huoBiSymBolsSchedule() {
-        log.info("huobi all symbol monitor start...");
-        this.huoBiAllSymBolsMonitor();
-        log.info("huobi all symbol monitor end...");
+        if (isSchedule) {
+            log.info("huobi all symbol monitor start...");
+            this.huoBiAllSymBolsMonitor();
+            log.info("huobi all symbol monitor end...");
+        }
     }
 
 
     @Scheduled(cron = "${cron.option[trans.model.limit.order]:0 0/4 * * * ?}")
     public void checkTransModelLimitOrder() {
-        log.info("check to trans model limit order start...");
-        transBiz.transModelLimitOrder();
-        log.info("check to trans model limit order end...");
+        if (isSchedule) {
+            log.info("check to trans model limit order start...");
+            transBiz.transModelLimitOrder();
+            log.info("check to trans model limit order end...");
+        }
     }
 
 
@@ -51,7 +59,9 @@ public class MonitorSchedule {
      */
     @Scheduled(cron = "${cron.option[check.order.to.sale]:0/5 * * * * ?}")
     public void checkRealOrderToSale() {
-        transBiz.sale();
+        if (isSchedule) {
+            transBiz.sale();
+        }
     }
 
     /**
@@ -59,7 +69,9 @@ public class MonitorSchedule {
      */
     @Scheduled(cron = "${cron.option[check.order.sale.finish]:0/30 * * * * ?}")
     public void checkRealOrderSaleFinish() {
-        transBiz.checkSaleFinish();
+        if (isSchedule) {
+            transBiz.checkSaleFinish();
+        }
     }
 
     /**
@@ -79,9 +91,12 @@ public class MonitorSchedule {
      */
     private static <T> List<List<T>> averageAssign(List<T> source, int n) {
         List<List<T>> result = new ArrayList<List<T>>();
-        int remaider = source.size() % n;  //(先计算出余数)
-        int number = source.size() / n;  //然后是商
-        int offset = 0;//偏移量
+        //(先计算出余数)
+        int remaider = source.size() % n;
+        //然后是商
+        int number = source.size() / n;
+        //偏移量
+        int offset = 0;
         for (int i = 0; i < n; i++) {
             List<T> value = null;
             if (remaider > 0) {

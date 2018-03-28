@@ -1,11 +1,16 @@
 package com.money.game.robot.biz;
 
+import com.money.game.robot.dto.client.LimitTradeConfigDto;
 import com.money.game.robot.entity.LimitTradeConfigEntity;
 import com.money.game.robot.service.LimitTradeConfigService;
+import com.money.game.robot.vo.LimitTradeConfigVo;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -21,5 +26,35 @@ public class LimitTradeConfgBiz {
 
     public List<LimitTradeConfigEntity> findAllByUserId(String userId) {
         return limitTradeConfigService.findAllByUserId(userId);
+    }
+
+    public List<LimitTradeConfigVo> findAllList(String userId) {
+        List<LimitTradeConfigVo> voList = new ArrayList<>();
+        LimitTradeConfigVo vo = new LimitTradeConfigVo();
+        List<LimitTradeConfigEntity> list = limitTradeConfigService.findAllByUserId(userId);
+        for (LimitTradeConfigEntity entity : list) {
+            BeanUtils.copyProperties(entity, vo);
+            voList.add(vo);
+        }
+        return voList;
+    }
+
+    public LimitTradeConfigVo info(String oid) {
+        LimitTradeConfigEntity entity = limitTradeConfigService.findById(oid);
+        LimitTradeConfigVo vo = new LimitTradeConfigVo();
+        if (entity != null) {
+            BeanUtils.copyProperties(entity, vo);
+        }
+        return vo;
+    }
+
+    public void save(LimitTradeConfigDto dto,String userId) {
+        LimitTradeConfigEntity entity = new LimitTradeConfigEntity();
+        entity.setUserId(userId);
+        if (StringUtils.isNotEmpty(dto.getOid())) {
+            entity = limitTradeConfigService.findById(dto.getOid());
+        }
+        BeanUtils.copyProperties(dto, entity);
+        limitTradeConfigService.save(entity);
     }
 }

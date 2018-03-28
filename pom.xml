@@ -137,12 +137,6 @@
             <groupId>com.money.game</groupId>
             <artifactId>basic</artifactId>
             <version>1.0.0-SNAPSHOT</version>
-            <exclusions>
-                <exclusion>
-                    <artifactId>spring-session-data-redis</artifactId>
-                    <groupId>org.springframework.session</groupId>
-                </exclusion>
-            </exclusions>
         </dependency>
 
         <dependency>

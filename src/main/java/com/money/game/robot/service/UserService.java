@@ -10,10 +10,12 @@ import java.util.List;
  **/
 public interface UserService {
 
-    List<UserEntity> findAll();
+    List<UserEntity> findAllByStatus(String status);
 
     UserEntity save(UserEntity userEntity);
 
     UserEntity findOne(String id);
+
+    UserEntity findByPhone(String phone);
 
 }

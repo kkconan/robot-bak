@@ -142,6 +142,9 @@ public enum DictEnum {
     TRADE_CONFIG_THRESHOLD_TYPE_ONE_MIN("oneMin","1分钟"),
     TRADE_CONFIG_THRESHOLD_TYPE_FIVE_MIN("fiveMin","5分钟"),
 
+    USER_STATUS_NORMAL("normal","正常"),
+    USER_STATUS_FREEZE("freeze","冻结"),
+
     ;
 
     public static List<String> filledOrderStates = new ArrayList<>();

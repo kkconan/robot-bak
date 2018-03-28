@@ -20,8 +20,8 @@ public class UserServiceImpl implements UserService {
     private UserDao userDao;
 
     @Override
-    public List<UserEntity> findAll() {
-        return userDao.findAll();
+    public List<UserEntity> findAllByStatus(String status) {
+        return userDao.findAllByStatus(status);
     }
 
     @Override
@@ -32,5 +32,10 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserEntity findOne(String id) {
         return userDao.findOne(id);
+    }
+
+    @Override
+    public UserEntity findByPhone(String phone) {
+        return userDao.findByPhone(phone);
     }
 }

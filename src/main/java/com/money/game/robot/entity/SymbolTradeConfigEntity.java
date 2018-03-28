@@ -47,7 +47,7 @@ public class SymbolTradeConfigEntity extends UUID {
     /**
      * 下单可浮动价格(在计算好的价格基础上加减此值,更容易成交)
      */
-    private BigDecimal buyIncreasePrice = new BigDecimal(0.00000001);
+    private BigDecimal buyIncreasePrice = new BigDecimal(0.00000002);
 
     /**
      * 下单等待时间,超时未成功则撤单

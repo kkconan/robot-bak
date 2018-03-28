@@ -13,7 +13,7 @@ import org.springframework.context.annotation.Configuration;
 @EnableAutoConfiguration
 @EnableConfigurationProperties
 @EnableDiscoveryClient
-@ComponentScan(basePackages = {"com.money.game.robot"})
+@ComponentScan(basePackages = {"com.money.game.robot","com.money.game.basic"})
 @SpringBootApplication
 public class ApplicationBoot {
 

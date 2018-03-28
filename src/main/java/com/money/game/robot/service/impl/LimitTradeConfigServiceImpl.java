@@ -17,8 +17,19 @@ public class LimitTradeConfigServiceImpl implements LimitTradeConfigService {
 
     @Autowired
     private LimitTrdeConfigDao limitTrdeConfigDao;
+
     @Override
     public List<LimitTradeConfigEntity> findAllByUserId(String userId) {
         return limitTrdeConfigDao.findAllByUserId(userId);
+    }
+
+    @Override
+    public LimitTradeConfigEntity findById(String oid) {
+        return limitTrdeConfigDao.findOne(oid);
+    }
+
+    @Override
+    public LimitTradeConfigEntity save(LimitTradeConfigEntity entity) {
+        return limitTrdeConfigDao.save(entity);
     }
 }

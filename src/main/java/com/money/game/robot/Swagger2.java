@@ -45,7 +45,7 @@ public class Swagger2 extends WebMvcConfigurerAdapter {
         return new Docket(DocumentationType.SWAGGER_2)
                 .apiInfo(apiInfo()).host(swaggerUrl)
                 .select()
-                .apis(RequestHandlerSelectors.basePackage("com.money.game.business.controller"))
+                .apis(RequestHandlerSelectors.basePackage("com.money.game.robot.controller"))
                 .apis(RequestHandlerSelectors.withMethodAnnotation(ApiOperation.class))
                 .paths(PathSelectors.any())
                 .build();
