@@ -1,18 +1,27 @@
 package com.money.game.robot.biz;
 
+import com.money.game.core.constant.ResponseData;
 import com.money.game.core.util.DateUtils;
 import com.money.game.robot.constant.DictEnum;
+import com.money.game.robot.dto.client.OrderDto;
 import com.money.game.robot.dto.huobi.HuobiBaseDto;
 import com.money.game.robot.entity.OrderEntity;
 import com.money.game.robot.huobi.response.OrdersDetail;
 import com.money.game.robot.market.HuobiApi;
 import com.money.game.robot.service.OrderService;
+import com.money.game.robot.vo.OrderVo;
 import com.money.game.robot.vo.huobi.MarketInfoVo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Component;
 
+import javax.persistence.criteria.Predicate;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
@@ -126,14 +135,55 @@ public class OrderBiz {
     }
 
 
-    public List<OrderEntity> findByUserIdAndModel(String userId, String model, String orderType, String symbol) {
+    public List<OrderEntity> findByUserIdAndModel(String userId, String model, String orderType, String symbol, String symbolTradeConfigId) {
         List<String> states = new ArrayList<>();
         states.add(DictEnum.ORDER_DETAIL_STATE_PRE_SUBMITTED.getCode());
         states.add(DictEnum.ORDER_DETAIL_STATE_SUBMITTING.getCode());
         states.add(DictEnum.ORDER_DETAIL_STATE_SUBMITTED.getCode());
         states.add(DictEnum.ORDER_DETAIL_STATE_PARTIAL_FILLED.getCode());
-        return orderService.findByUserIdAndModel(userId, model, orderType, symbol, states);
+        return orderService.findByParam(userId, model, orderType, symbol, symbolTradeConfigId, states);
 
+    }
+
+
+    /**
+     * 实时单列表
+     */
+    public ResponseData findRealOrderList(OrderDto dto, String userId) {
+        return findByModel(dto, userId, DictEnum.ORDER_MODEL_REAL.getCode());
+    }
+
+    /**
+     * 限价单列表
+     */
+    public ResponseData findLimitOrderList(OrderDto dto, String userId) {
+        return findByModel(dto, userId, DictEnum.ORDER_MODEL_LIMIT.getCode());
+    }
+
+
+    private ResponseData findByModel(OrderDto dto, String userId, String model) {
+        ResponseData responseData = ResponseData.success();
+        Pageable pageable = new PageRequest(dto.getCurrentPage() - 1, dto.getPageSize(), new Sort(new Sort.Order(Sort.Direction.DESC, "createTime")));
+        Specification<OrderEntity> spec = (root, query, cb) -> {
+            List<Predicate> bigList = new ArrayList<>();
+            bigList.add(cb.equal(root.get("userId").as(String.class), userId));
+            bigList.add(cb.equal(root.get("model").as(String.class), model));
+            query.where(cb.and(bigList.toArray(new Predicate[bigList.size()])));
+            query.orderBy(cb.desc(root.get("createTime")));
+            // 条件查询
+            return query.getRestriction();
+        };
+        List<OrderVo> voList = new ArrayList<>();
+        Page<OrderEntity> pageList = orderService.findAll(spec, pageable);
+        if (pageList != null && pageList.getContent() != null && pageList.getTotalElements() > 0) {
+            for (OrderEntity entity : pageList) {
+                OrderVo vo = new OrderVo();
+                BeanUtils.copyProperties(entity, vo);
+                voList.add(vo);
+            }
+            responseData = ResponseData.success(voList, dto.getCurrentPage(), dto.getPageSize(), pageList.getTotalElements());
+        }
+        return responseData;
     }
 
     /**

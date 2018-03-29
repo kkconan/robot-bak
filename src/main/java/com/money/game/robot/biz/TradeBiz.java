@@ -87,7 +87,7 @@ public class TradeBiz {
         ApiClient client = new ApiClient(dto.getApiKey(), dto.getApiSecret());
         SubmitcancelResponse response = client.submitcancel(dto.getOrderId());
         if (!"ok".equals(response.getStatus())) {
-            log.info("删除订单失败,orderId={},response={}", dto.getOrderId(), response);
+            log.info("撤销订单失败,orderId={},errCode={},errmsg={},status={}", dto.getOrderId(), response.getErrCode(), response.getErrMsg(), response.getStatus());
         }
     }
 

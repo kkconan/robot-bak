@@ -163,7 +163,7 @@ public class TransBiz {
 
     private void createModelLimitOrder(LimitTradeConfigEntity config, UserEntity userEntity) {
         //买单状态更新
-        List<OrderEntity> buyList = orderBiz.findByUserIdAndModel(userEntity.getOid(), DictEnum.ORDER_MODEL_LIMIT.getCode(), DictEnum.ORDER_TYPE_BUY_LIMIT.getCode(), config.getSymbol());
+        List<OrderEntity> buyList = orderBiz.findByUserIdAndModel(userEntity.getOid(), DictEnum.ORDER_MODEL_LIMIT.getCode(), DictEnum.ORDER_TYPE_BUY_LIMIT.getCode(), config.getSymbol(), config.getOid());
         Iterator<OrderEntity> buyIt = buyList.iterator();
         while (buyIt.hasNext()) {
             OrderEntity buyOrder = buyIt.next();
@@ -171,12 +171,14 @@ public class TransBiz {
             //买单已完成
             if (DictEnum.filledOrderStates.contains(buyOrder.getState())) {
                 log.info("买单已完结,buyOrder={}", buyOrder);
-                transToEmailNotify(buyOrder);
                 buyIt.remove();
+                if (DictEnum.ORDER_DETAIL_STATE_FILLED.getCode().equals(buyOrder.getState())) {
+                    transToEmailNotify(buyOrder);
+                }
             }
         }
         //卖单状态更新
-        List<OrderEntity> saleList = orderBiz.findByUserIdAndModel(userEntity.getOid(), DictEnum.ORDER_MODEL_LIMIT.getCode(), DictEnum.ORDER_TYPE_SELL_LIMIT.getCode(), config.getSymbol());
+        List<OrderEntity> saleList = orderBiz.findByUserIdAndModel(userEntity.getOid(), DictEnum.ORDER_MODEL_LIMIT.getCode(), DictEnum.ORDER_TYPE_SELL_LIMIT.getCode(), config.getSymbol(), config.getOid());
         Iterator<OrderEntity> saleIt = saleList.iterator();
         while (saleIt.hasNext()) {
             OrderEntity saleOrder = saleIt.next();
@@ -184,13 +186,15 @@ public class TransBiz {
             //卖单已完成
             if (DictEnum.filledOrderStates.contains(saleOrder.getState())) {
                 log.info("卖单已完结,saleOrder={}", saleOrder);
-                transToEmailNotify(saleOrder);
                 saleIt.remove();
+                if (DictEnum.ORDER_DETAIL_STATE_FILLED.getCode().equals(saleOrder.getState())) {
+                    transToEmailNotify(saleOrder);
+                }
             }
         }
         //买单大于最大数量 || 买单不为空且买单等于卖单 ||买单有成交,卖单未成交
         if (buyList.size() >= config.getMaxTradeCount() || (!buyList.isEmpty() && buyList.size() == buyList.size()) || (buyList.size() == (config.getMaxTradeCount() - 1) && saleList.size() > buyList.size())) {
-            log.info("挂单已满,symbol={},userId={}", config.getSymbol(), userEntity.getOid());
+            log.info("挂单已满,symbol={},userId={},configId={}", config.getSymbol(), userEntity.getOid(), config.getOid());
             return;
         } else if (buyList.isEmpty() && saleList.size() >= config.getMaxTradeCount()) {
             log.info("买单成交,卖单未成交,symbol={},userId={}", config.getSymbol(), userEntity.getOid());
@@ -223,7 +227,7 @@ public class TransBiz {
         buyOrderDto.setAmount(amount);
         //创建限价买单
         String buyOrderId = tradeBiz.createOrder(buyOrderDto);
-        orderBiz.saveOrder(buyOrderId, null, null, null, userEntity.getOid(), DictEnum.ORDER_MODEL_LIMIT.getCode());
+        orderBiz.saveOrder(buyOrderId, null, null, config.getOid(), userEntity.getOid(), DictEnum.ORDER_MODEL_LIMIT.getCode());
         CreateOrderDto saleOrderDto = new CreateOrderDto();
         BeanUtils.copyProperties(buyOrderDto, saleOrderDto);
         saleOrderDto.setOrderType(DictEnum.ORDER_TYPE_SELL_LIMIT.getCode());
@@ -237,7 +241,7 @@ public class TransBiz {
         saleOrderDto.setAmount(amount);
         //创建限价卖单
         String saleOrderId = tradeBiz.createOrder(saleOrderDto);
-        orderBiz.saveOrder(saleOrderId, null, buyOrderId, null, userEntity.getOid(), DictEnum.ORDER_MODEL_LIMIT.getCode());
+        orderBiz.saveOrder(saleOrderId, null, buyOrderId, config.getOid(), userEntity.getOid(), DictEnum.ORDER_MODEL_LIMIT.getCode());
         log.info("创建限价单结束,symbols={},userId={},buyOrderId={},saleOrderId={}", config.getSymbol(), userEntity.getOid(), buyOrderId, saleOrderId);
     }
 
@@ -253,7 +257,7 @@ public class TransBiz {
         }
         String subject = orderEntity.getSymbol() + " " + orderEntity.getType() + " success notify";
         String content = orderEntity.getSymbol() + " " + orderEntity.getType() + " success. price is " + orderEntity.getPrice().setScale(8, BigDecimal.ROUND_DOWN)
-                + ",amount is " + orderEntity.getAmount().setScale(8, BigDecimal.ROUND_DOWN) + " and totalToUsdt is " + orderEntity.getTotalToUsdt()+".";
+                + ",amount is " + orderEntity.getAmount().setScale(8, BigDecimal.ROUND_DOWN) + " and totalToUsdt is " + orderEntity.getTotalToUsdt() + ".";
         MailQQ.sendEmail(subject, content, userEntity.getNotifyEmail());
     }
 
@@ -281,7 +285,7 @@ public class TransBiz {
         //所有成交的订单id
         List<String> orderIds = new ArrayList<>();
         //剩余需要购买的数量
-        BigDecimal remainAmount = getBuyAmount(symbol, buyPrice, symbolTradeConfig);
+        BigDecimal remainAmount = getBuyAmount(symbol, buyPrice, symbolTradeConfig, baseQuote);
         //buy list
         List<List<BigDecimal>> bids = depth.getBids();
         //sale list
@@ -299,7 +303,6 @@ public class TransBiz {
                     BigDecimal saleAmount = ask.get(1);
                     remainAmount = remainAmount.compareTo(saleAmount) > 0 ? saleAmount : remainAmount;
                     String orderId = createBuyOrder(symbol, buyPrice, remainAmount, baseQuote, symbolTradeConfig);
-//                    String orderId = "2502535508";
                     orderIds.add(orderId);
                     log.info("卖单价购买,buyPrice={},saleOnePrice={},remainAmount={},saleOneAmount={},orderId={}", buyPrice, salePrice, remainAmount, saleAmount, orderId);
                     remainAmount = remainAmount.subtract(saleAmount);
@@ -323,7 +326,6 @@ public class TransBiz {
                 buyPrice = buyPrice.add(symbolTradeConfig.getBuyIncreasePrice());
             }
             String orderId = createBuyOrder(symbol, buyPrice, remainAmount, baseQuote, symbolTradeConfig);
-//            String orderId = "2502535508";
             orderIds.add(orderId);
             log.info("买单价购买,remainAmount={},buyPrice={},nowPrice={},orderId={}", remainAmount, buyPrice, buyPrice, orderId);
         }
@@ -336,8 +338,6 @@ public class TransBiz {
      */
     private String createBuyOrder(String symbol, BigDecimal price, BigDecimal amount, String baseQuote, SymbolTradeConfigEntity symbolTradeConfig) {
         log.info("create createBuyOrder,symbols={},price={},amount={},baseCurrency={}", symbol, price, amount, baseQuote);
-        //配置的最多购买
-        BigDecimal maxAmount = getBuyAmount(symbol, price, symbolTradeConfig);
         CreateOrderDto dto = new CreateOrderDto();
         dto.setSymbol(symbol);
         dto.setOrderType(CreateOrderRequest.OrderType.BUY_LIMIT);
@@ -345,13 +345,6 @@ public class TransBiz {
         HuobiBaseDto baseDto = new HuobiBaseDto();
         baseDto.setUserId(symbolTradeConfig.getUserId());
         Accounts accounts = accountBiz.getSpotAccounts(baseDto);
-        //最多余额
-        BigDecimal balanceMax = accountBiz.getQuoteBalance(symbolTradeConfig.getUserId(), baseQuote);
-        //配置值和余额值取小值
-        maxAmount = maxAmount.compareTo(balanceMax) <= 0 ? maxAmount : balanceMax;
-        //判断是否超过上限
-        amount = maxAmount.compareTo(amount) < 0 ? maxAmount : amount;
-
         dto.setAmount(amount);
         dto.setAccountId(String.valueOf(accounts.getId()));
         dto.setPrice(price);
@@ -447,14 +440,18 @@ public class TransBiz {
      * 购买数量
      * newPrice 最新价格
      */
-    private BigDecimal getBuyAmount(String symbol, BigDecimal newPrice, SymbolTradeConfigEntity symbolTradeConfig) {
+    private BigDecimal getBuyAmount(String symbol, BigDecimal newPrice, SymbolTradeConfigEntity symbolTradeConfig, String baseQuote) {
         BigDecimal amount;
+        BigDecimal maxBalance = accountBiz.getQuoteBalance(symbolTradeConfig.getUserId(), baseQuote);
         if (symbol.endsWith(DictEnum.MARKET_BASE_USDT.getCode())) {
-            amount = symbolTradeConfig.getUsdtMaxUse().divide(newPrice, 4, BigDecimal.ROUND_FLOOR);
+            maxBalance = maxBalance.compareTo(symbolTradeConfig.getUsdtMaxUse()) < 0 ? maxBalance : symbolTradeConfig.getUsdtMaxUse();
+            amount = maxBalance.divide(newPrice, 4, BigDecimal.ROUND_FLOOR);
         } else if (symbol.endsWith(DictEnum.MARKET_BASE_BTC.getCode())) {
-            amount = symbolTradeConfig.getBtcMaxUse().divide(newPrice, 8, BigDecimal.ROUND_FLOOR);
+            maxBalance = maxBalance.compareTo(symbolTradeConfig.getBtcMaxUse()) < 0 ? maxBalance : symbolTradeConfig.getUsdtMaxUse();
+            amount = maxBalance.divide(newPrice, 8, BigDecimal.ROUND_FLOOR);
         } else {
-            amount = symbolTradeConfig.getEthMxzUse().divide(newPrice, 8, BigDecimal.ROUND_FLOOR);
+            maxBalance = maxBalance.compareTo(symbolTradeConfig.getEthMxzUse()) < 0 ? maxBalance : symbolTradeConfig.getUsdtMaxUse();
+            amount = maxBalance.divide(newPrice, 8, BigDecimal.ROUND_FLOOR);
         }
         log.info("getBuyAmount,symbols={},newPrice={},amount={},symbolTradeConfig={}", symbol, newPrice, amount, symbolTradeConfig);
         return amount;

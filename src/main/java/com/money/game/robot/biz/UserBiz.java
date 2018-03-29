@@ -1,5 +1,6 @@
 package com.money.game.robot.biz;
 
+import com.money.game.core.constant.ResponseData;
 import com.money.game.core.util.Digests;
 import com.money.game.core.util.PwdUtil;
 import com.money.game.core.util.StringUtil;
@@ -51,14 +52,14 @@ public class UserBiz {
         return list;
     }
 
-    public UserVo getUserInfo(String userId) {
+    public ResponseData getUserInfo(String userId) {
         UserEntity user = userService.findOne(userId);
         UserVo userVo = new UserVo();
         BeanUtils.copyProperties(user, userVo);
-        return userVo;
+        return ResponseData.success(userVo);
     }
 
-    public void modify(ModifyUserInfoDto dto, String userId) {
+    public ResponseData modify(ModifyUserInfoDto dto, String userId) {
         UserEntity user = userService.findOne(userId);
         BeanUtils.copyProperties(dto, user);
         if (!StringUtil.isEmpty(dto.getPassword())) {
@@ -69,6 +70,7 @@ public class UserBiz {
             user.setStatus(DictEnum.USER_STATUS_NORMAL.getCode());
         }
         userService.save(user);
+        return ResponseData.success();
     }
 
     public UserEntity findById(String userId) {

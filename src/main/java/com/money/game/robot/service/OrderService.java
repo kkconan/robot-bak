@@ -1,6 +1,9 @@
 package com.money.game.robot.service;
 
 import com.money.game.robot.entity.OrderEntity;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 
 import java.util.List;
 
@@ -19,5 +22,9 @@ public interface OrderService {
 
     List<OrderEntity> findBySymbolAndType(String symbol, String orderType, List<String> states);
 
-    List<OrderEntity> findByUserIdAndModel(String userId,String model,String orderType,String symbol,List<String> states);
+    List<OrderEntity> findByParam(String userId, String model, String orderType, String symbol,String symbolTradeConfigId, List<String> states);
+
+    List<OrderEntity> findByUserIdAndModel(String userId, String model);
+
+    Page<OrderEntity> findAll(Specification<OrderEntity> spec, Pageable pageable);
 }

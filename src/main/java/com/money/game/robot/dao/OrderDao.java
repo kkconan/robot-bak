@@ -15,14 +15,16 @@ public interface OrderDao extends JpaRepository<OrderEntity, String>, JpaSpecifi
 
     OrderEntity findByOrderId(String orderId);
 
-    @Query(value="select * from T_ORDER  where state in (?1) and type = ?2 and model = 'real'",nativeQuery = true)
+    @Query(value = "select * from T_ORDER  where state in (?1) and type = ?2 and model = 'real'", nativeQuery = true)
     List<OrderEntity> findByState(List<String> states, String orderType);
 
     @Query(value = "select * from T_ORDER  where symbol =?1  and type = ?2 and state in (?3) and model = 'real'", nativeQuery = true)
     List<OrderEntity> findBySymbolAndType(String symbol, String orderType, List<String> states);
 
-    @Query(value = "select * from T_ORDER  where userId =?1  and model = ?2 and type = ?3 and symbol = ?4 and state in (?5)", nativeQuery = true)
-    List<OrderEntity> findByUserIdAndModel(String userId,String model,String orderType,String symbol,List<String> states);
+    @Query(value = "select * from T_ORDER  where userId =?1  and model = ?2 and type = ?3 and symbol = ?4 and symbolTradeConfigId=?5 and state in (?6)", nativeQuery = true)
+    List<OrderEntity> findByParam(String userId, String model, String orderType, String symbol, String symbolTradeConfigId, List<String> states);
+
+    List<OrderEntity> findByUserIdAndModel(String userId, String model);
 
 
 }

@@ -7,7 +7,6 @@ import com.money.game.robot.dto.client.ModifyUserInfoDto;
 import com.money.game.robot.dto.client.UserLoginDto;
 import com.money.game.robot.dto.client.UserRegisterDto;
 import com.money.game.robot.vo.LoginVo;
-import com.money.game.robot.vo.UserVo;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiImplicitParam;
 import io.swagger.annotations.ApiImplicitParams;
@@ -44,22 +43,17 @@ public class UserController extends BaseController {
     @ApiImplicitParams({@ApiImplicitParam(name = "dto", value = "登录参数", required = true, paramType = "body", dataType = "UserLoginDto")})
     @ResponseBody
     public ResponseData login(@RequestBody @Valid UserLoginDto dto) {
-        ResponseData response;
         LoginVo vo = userBiz.login(dto.getPhone(), dto.getUserPwd());
         this.setLoginUser(vo.getUserId());
-        response = ResponseData.success(vo);
-        return response;
+        return ResponseData.success(vo);
     }
 
     @RequestMapping(value = "/info", method = RequestMethod.GET)
     @ApiOperation(value = "用户基础账号信息", notes = "", httpMethod = "GET")
     @ResponseBody
     public ResponseData info() {
-        ResponseData response;
         String userId = this.getLoginUser();
-        UserVo vo = userBiz.getUserInfo(userId);
-        response = ResponseData.success(vo);
-        return response;
+        return userBiz.getUserInfo(userId);
     }
 
     @RequestMapping(value = "/modify", method = RequestMethod.POST)
@@ -68,8 +62,7 @@ public class UserController extends BaseController {
     @ResponseBody
     public ResponseData modify(@RequestBody @Valid ModifyUserInfoDto dto) {
         String userId = this.getLoginUser();
-        userBiz.modify(dto, userId);
-        return ResponseData.success();
+        return userBiz.modify(dto, userId);
     }
 
 }
