@@ -16,6 +16,8 @@ public interface OrderService {
 
     OrderEntity findByOrderId(String orderId);
 
+    OrderEntity findOne(String oid);
+
     OrderEntity save(OrderEntity entity);
 
     List<OrderEntity> findByState(List<String> states, String type);

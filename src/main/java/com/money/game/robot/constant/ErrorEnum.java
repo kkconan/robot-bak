@@ -29,7 +29,7 @@ public enum ErrorEnum {
     SMS_CODE_ERROR("1012","生成验证码失败"),
     SMS_CODE_CHECK_FAIL("1013","无效的验证码"),
 
-    GAME_START("1014", "游戏已开始或者已结束"),
+    CANCEL_ORDER_FAIL("1014", "撤销订单失败"),
 
     SYSTEM_ERROR("-1", "系统异常");
 

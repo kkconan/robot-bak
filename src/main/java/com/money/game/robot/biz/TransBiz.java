@@ -68,14 +68,15 @@ public class TransBiz {
     /**
      * to buy
      */
-    public void buy(RateChangeVo rateChangeVo, SymbolTradeConfigEntity symbolTradeConfig) {
+    public boolean buy(RateChangeVo rateChangeVo, SymbolTradeConfigEntity symbolTradeConfig) {
         log.info("buy,rateChangeVo={}", rateChangeVo);
+        boolean result = false;
         List<String> orderIds;
         if (StringUtils.isNotEmpty(rateChangeVo.getBuyerSymbol())) {
             boolean checkResult = checkNeedToBuy(rateChangeVo);
             if (checkResult) {
                 log.info("存在未完成的订单,不再继续购买,rateChangeVo={}", rateChangeVo);
-                return;
+                return false;
             }
             //下单操作
             orderIds = checkDeptAndCreateBuyOrder(rateChangeVo.getBuyerSymbol(), rateChangeVo.getBuyPrice(), rateChangeVo.getBaseCurrency(), symbolTradeConfig);
@@ -84,7 +85,9 @@ public class TransBiz {
             for (String orderId : orderIds) {
                 orderBiz.saveOrder(orderId, rateChangeEntity.getOid(), null, symbolTradeConfig.getOid(), symbolTradeConfig.getUserId(), DictEnum.ORDER_MODEL_REAL.getCode());
             }
+            result = true;
         }
+        return result;
     }
 
     /**
@@ -161,7 +164,7 @@ public class TransBiz {
 
     }
 
-    private void createModelLimitOrder(LimitTradeConfigEntity config, UserEntity userEntity) {
+    public void createModelLimitOrder(LimitTradeConfigEntity config, UserEntity userEntity) {
         //买单状态更新
         List<OrderEntity> buyList = orderBiz.findByUserIdAndModel(userEntity.getOid(), DictEnum.ORDER_MODEL_LIMIT.getCode(), DictEnum.ORDER_TYPE_BUY_LIMIT.getCode(), config.getSymbol(), config.getOid());
         Iterator<OrderEntity> buyIt = buyList.iterator();

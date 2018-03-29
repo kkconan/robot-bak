@@ -29,6 +29,11 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    public OrderEntity findOne(String oid) {
+        return orderDao.findOne(oid);
+    }
+
+    @Override
     public OrderEntity save(OrderEntity entity) {
         return orderDao.save(entity);
     }
@@ -44,8 +49,8 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public List<OrderEntity> findByParam(String userId, String model, String orderType, String symbol,String symbolTradeConfigId, List<String> states) {
-        return orderDao.findByParam(userId, model, orderType,symbol,symbolTradeConfigId, states);
+    public List<OrderEntity> findByParam(String userId, String model, String orderType, String symbol, String symbolTradeConfigId, List<String> states) {
+        return orderDao.findByParam(userId, model, orderType, symbol, symbolTradeConfigId, states);
     }
 
     @Override
@@ -55,6 +60,6 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public Page<OrderEntity> findAll(Specification<OrderEntity> spec, Pageable pageable) {
-        return orderDao.findAll(spec,pageable);
+        return orderDao.findAll(spec, pageable);
     }
 }

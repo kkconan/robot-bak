@@ -7,6 +7,7 @@ import com.money.game.robot.dto.huobi.CreateOrderDto;
 import com.money.game.robot.dto.huobi.HuobiBaseDto;
 import com.money.game.robot.dto.huobi.IntrustOrderDto;
 import com.money.game.robot.entity.UserEntity;
+import com.money.game.robot.exception.BizException;
 import com.money.game.robot.huobi.api.ApiClient;
 import com.money.game.robot.huobi.api.ApiException;
 import com.money.game.robot.huobi.request.CreateOrderRequest;
@@ -88,6 +89,7 @@ public class TradeBiz {
         SubmitcancelResponse response = client.submitcancel(dto.getOrderId());
         if (!"ok".equals(response.getStatus())) {
             log.info("撤销订单失败,orderId={},errCode={},errmsg={},status={}", dto.getOrderId(), response.getErrCode(), response.getErrMsg(), response.getStatus());
+            throw new BizException(response.getErrCode(), response.getErrMsg());
         }
     }
 
@@ -109,6 +111,7 @@ public class TradeBiz {
         OrdersDetailResponse<OrdersDetail> response = client.ordersDetail(dto.getOrderId());
         if (!"ok".equals(response.getStatus())) {
             log.info("获取订单详情失败,orderId={},response={}", dto.getOrderId(), response);
+            return null;
         }
         return response.getData();
     }

@@ -12,6 +12,7 @@ import java.sql.Timestamp;
 @Data
 public class OrderVo {
 
+    private String oid;
     /**
      * 订单id
      */
@@ -56,9 +57,9 @@ public class OrderVo {
      */
     private BigDecimal fieldFees;
 
-      /**
+    /**
      * 买单订单id(卖单对应的买单id)
-     * */
+     */
     private String buyOrderId;
     /**
      * 转换成usdt实时的总额

@@ -3,9 +3,11 @@ package com.money.game.robot.biz;
 import com.money.game.core.constant.ResponseData;
 import com.money.game.core.util.DateUtils;
 import com.money.game.robot.constant.DictEnum;
+import com.money.game.robot.constant.ErrorEnum;
 import com.money.game.robot.dto.client.OrderDto;
 import com.money.game.robot.dto.huobi.HuobiBaseDto;
 import com.money.game.robot.entity.OrderEntity;
+import com.money.game.robot.exception.BizException;
 import com.money.game.robot.huobi.response.OrdersDetail;
 import com.money.game.robot.market.HuobiApi;
 import com.money.game.robot.service.OrderService;
@@ -158,6 +160,27 @@ public class OrderBiz {
      */
     public ResponseData findLimitOrderList(OrderDto dto, String userId) {
         return findByModel(dto, userId, DictEnum.ORDER_MODEL_LIMIT.getCode());
+    }
+
+    /**
+     * 根据订单表id撤销订单
+     */
+    public ResponseData cancelOrder(String oid) {
+        ResponseData response = ResponseData.failure(ErrorEnum.CANCEL_ORDER_FAIL.getCode(), ErrorEnum.CANCEL_ORDER_FAIL.getValue());
+        OrderEntity entity = orderService.findOne(oid);
+        if (entity == null) {
+            throw new BizException(ErrorEnum.RECOLD_NOT_FOUND);
+        }
+        HuobiBaseDto dto = new HuobiBaseDto();
+        dto.setOrderId(entity.getOrderId());
+        dto.setUserId(entity.getUserId());
+        tradeBiz.submitCancel(dto);
+        entity = this.updateOrderState(entity);
+        //撤销成功
+        if (DictEnum.ORDER_DETAIL_STATE_CANCELED.getCode().equals(entity.getState()) || DictEnum.ORDER_DETAIL_STATE_PARTIAL_CANCELED.getCode().equals(entity.getState())) {
+            response = ResponseData.success();
+        }
+        return response;
     }
 
 

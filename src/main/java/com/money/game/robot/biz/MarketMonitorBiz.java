@@ -265,8 +265,7 @@ public class MarketMonitorBiz {
             String baseCurrency = getBaseCurrency(rateChangeVo.getBuyerSymbol());
             rateChangeVo.setBaseCurrency(baseCurrency);
             //交易
-            transBiz.buy(rateChangeVo, symbolTradeConfig);
-            tranResult = true;
+            tranResult = transBiz.buy(rateChangeVo, symbolTradeConfig);
         } catch (ApiException e) {
             log.warn("buy fail.errCode={},errMsg={}", e.getErrCode(), e.getMessage());
         }

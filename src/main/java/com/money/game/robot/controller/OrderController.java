@@ -41,4 +41,13 @@ public class OrderController extends BaseController {
         String userId = this.getLoginUser();
         return orderBiz.findLimitOrderList(dto, userId);
     }
+
+    @RequestMapping(value = "/cancelOrder", method = RequestMethod.GET)
+    @ApiOperation(value = "撤销订单", notes = "", httpMethod = "GET")
+    @ApiImplicitParams({@ApiImplicitParam(name = "oid", value = "oid", required = true, paramType = "query", dataType = "String")})
+    @ResponseBody
+    public ResponseData cancelOrder(String oid) {
+        this.getLoginUser();
+        return orderBiz.cancelOrder(oid);
+    }
 }
