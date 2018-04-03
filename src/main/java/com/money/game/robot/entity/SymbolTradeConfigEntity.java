@@ -72,7 +72,7 @@ public class SymbolTradeConfigEntity extends UUID {
     /**
      * 单笔订单,eth最多下单值
      */
-    private BigDecimal ethMxzUse;
+    private BigDecimal ethMaxUse;
 
     /**
      * 单笔下单,qc最多下单值

@@ -48,5 +48,5 @@ public class SymbolTradeConfigVo {
     /**
      * 单笔订单,eth最多下单值
      */
-    private BigDecimal ethMxzUse;
+    private BigDecimal ethMaxUse;
 }
