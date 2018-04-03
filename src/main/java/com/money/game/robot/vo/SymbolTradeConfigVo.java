@@ -11,6 +11,8 @@ import java.math.BigDecimal;
 @Data
 public class SymbolTradeConfigVo {
 
+    private String oid;
+
     private String userId;
 
     /**
