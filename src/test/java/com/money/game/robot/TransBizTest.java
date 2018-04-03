@@ -26,6 +26,6 @@ public class TransBizTest {
 
     @Test
     public void limitBuyOrderTest(){
-        transBiz.transModelLimitOrder();
+        transBiz.hbTransModelLimitOrder();
     }
 }

@@ -29,6 +29,11 @@ public class SymbolTradeConfigServiceImpl implements SymbolTradeConfigService {
     }
 
     @Override
+    public SymbolTradeConfigEntity findByUserIdAndThresholdTypeAndMarketType(String userId, String thresholdType, String marketType) {
+        return symbolTradeConfigDao.findByUserIdAndThresholdTypeAndMarketType(userId, thresholdType, marketType);
+    }
+
+    @Override
     public SymbolTradeConfigEntity findById(String id) {
         return symbolTradeConfigDao.findOne(id);
     }

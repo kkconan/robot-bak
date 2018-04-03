@@ -1,9 +1,12 @@
 package com.money.game.robot.schedule;
 
-import com.money.game.robot.biz.MarketMonitorBiz;
+import com.money.game.robot.biz.HbMarketMonitorBiz;
 import com.money.game.robot.biz.TransBiz;
+import com.money.game.robot.biz.ZbMarketMonitorBiz;
 import com.money.game.robot.market.HuobiApi;
 import com.money.game.robot.vo.huobi.SymBolsDetailVo;
+import com.money.game.robot.zb.api.ZbApi;
+import com.money.game.robot.zb.vo.ZbSymbolInfoVo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,7 +29,7 @@ public class MonitorSchedule {
     private HuobiApi huobiApi;
 
     @Autowired
-    private MarketMonitorBiz marketMonitorBiz;
+    private HbMarketMonitorBiz hbMarketMonitorBiz;
 
     @Autowired
     private TransBiz transBiz;
@@ -34,7 +37,16 @@ public class MonitorSchedule {
     @Value("${is.schedule:true}")
     private boolean isSchedule;
 
-    @Scheduled(cron = "${cron.option[huoBi.symBols]:0 0/5 * * * ?}")
+    @Autowired
+    private ZbApi zbApi;
+
+    @Autowired
+    private ZbMarketMonitorBiz zbMarketMonitorBiz;
+
+    /**
+     * hb所有交易对实时监控
+     */
+    @Scheduled(cron = "${cron.option[hb.symBols]:55 0/3 * * * ?}")
     public void huoBiSymBolsSchedule() {
         if (isSchedule) {
             log.info("huobi all symbol monitor start...");
@@ -43,12 +55,14 @@ public class MonitorSchedule {
         }
     }
 
-
-    @Scheduled(cron = "${cron.option[trans.model.limit.order]:0 0/4 * * * ?}")
-    public void checkTransModelLimitOrder() {
+    /**
+     * hb限价单监控
+     */
+    @Scheduled(cron = "${cron.option[hb.trans.model.limit.order]:0 0/4 * * * ?}")
+    public void checkHbTransModelLimitOrder() {
         if (isSchedule) {
             log.info("check to trans model limit order start...");
-            transBiz.transModelLimitOrder();
+            transBiz.hbTransModelLimitOrder();
             log.info("check to trans model limit order end...");
         }
     }
@@ -57,20 +71,20 @@ public class MonitorSchedule {
     /**
      * 检查是否有成交的实时买单可以挂单售出(切日志方法已check开头)
      */
-    @Scheduled(cron = "${cron.option[check.order.to.sale]:0/5 * * * * ?}")
-    public void checkRealOrderToSale() {
+    @Scheduled(cron = "${cron.option[hb.check.order.to.Sale]:0/5 * * * * ?}")
+    public void checkHbRealOrderToSale() {
         if (isSchedule) {
-            transBiz.sale();
+            transBiz.hbToSale();
         }
     }
 
     /**
      * 检查实时卖单是否已完成(切日志方法已check开头)
      */
-    @Scheduled(cron = "${cron.option[check.order.sale.finish]:0/30 * * * * ?}")
-    public void checkRealOrderSaleFinish() {
+    @Scheduled(cron = "${cron.option[hb.check.order.hb.sale.finish]:0/30 * * * * ?}")
+    public void checkHbRealOrderSaleFinish() {
         if (isSchedule) {
-            transBiz.checkSaleFinish();
+            transBiz.hbCheckSaleFinish();
         }
     }
 
@@ -81,7 +95,63 @@ public class MonitorSchedule {
         List<SymBolsDetailVo> list = huobiApi.getSymbolsInfo();
         List<List<SymBolsDetailVo>> allList = averageAssign(list, 50);
         for (List<SymBolsDetailVo> subList : allList) {
-            marketMonitorBiz.asyncDoMonitor(subList);
+            hbMarketMonitorBiz.asyncDoMonitor(subList);
+        }
+
+    }
+
+
+    @Scheduled(cron = "${cron.option[zb.symBols]:05 0/4 * * * ?}")
+    public void zbSymBolsSchedule() {
+        if (isSchedule) {
+            log.info("zb all symbol monitor start...");
+            this.zbAllSymBolsMonitor();
+            log.info("ab all symbol monitor end...");
+        }
+    }
+
+    /**
+     * zb限价单监控
+     */
+    @Scheduled(cron = "${cron.option[zb.trans.model.limit.order]:0 0/4 * * * ?}")
+    public void checkZbTransModelLimitOrder() {
+        if (isSchedule) {
+            log.info("zb check to trans model limit order start...");
+            transBiz.zbTransModelLimitOrder();
+            log.info("zb check to trans model limit order end...");
+        }
+    }
+
+
+    /**
+     * 检查是否有成交的实时买单可以挂单售出(切日志方法已check开头)
+     */
+    @Scheduled(cron = "${cron.option[zb.check.order.to.Sale]:0/5 * * * * ?}")
+    public void checkZbRealOrderToSale() {
+        if (isSchedule) {
+            transBiz.zbToSale();
+        }
+    }
+
+    /**
+     * 检查实时卖单是否已完成(切日志方法已check开头)
+     */
+    @Scheduled(cron = "${cron.option[zb.check.order.hb.sale.finish]:0/30 * * * * ?}")
+    public void checkZbRealOrderSaleFinish() {
+        if (isSchedule) {
+            transBiz.zbCheckSaleFinish();
+        }
+    }
+
+
+    /**
+     * 异步方法调用不能再同一个类，否则异步注解不起作用
+     */
+    public void zbAllSymBolsMonitor() {
+        List<ZbSymbolInfoVo> list = zbApi.getSymbolInfo();
+        List<List<ZbSymbolInfoVo>> allList = averageAssign(list, 50);
+        for (List<ZbSymbolInfoVo> subList : allList) {
+            zbMarketMonitorBiz.asyncDoMonitor(subList);
         }
 
     }

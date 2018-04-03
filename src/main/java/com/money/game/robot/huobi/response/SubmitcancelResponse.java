@@ -10,7 +10,7 @@ public class SubmitcancelResponse {
 
 
     /**
-     * status : ok
+     * state : ok
      * data : 59378
      */
 

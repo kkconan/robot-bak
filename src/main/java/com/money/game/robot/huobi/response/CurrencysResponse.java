@@ -12,7 +12,7 @@ public class CurrencysResponse {
 
 
     /**
-     * status : ok
+     * state : ok
      * data : ["usdt","eth","etc"]
      */
 

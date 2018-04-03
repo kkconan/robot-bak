@@ -23,16 +23,6 @@ import java.sql.Timestamp;
 @DynamicInsert
 @DynamicUpdate
 public class UserEntity extends UUID implements Serializable {
-
-    private String apiKey;
-
-    private String apiSecret;
-
-    /**
-     * 火币账号id
-     */
-    private String accountId;
-
     /**
      * normal freeze
      */

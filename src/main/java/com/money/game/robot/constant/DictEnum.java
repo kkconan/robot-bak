@@ -20,10 +20,10 @@ public enum DictEnum {
     MARKET_PERIOD_1YEAR("1year", "一年"),
 
 
-    //基础对
-    MARKET_BASE_BTC("btc", "btc"),
-    MARKET_BASE_ETH("eth", "eth"),
-    MARKET_BASE_USDT("usdt", "usdt"),
+    //火币基础对
+    HB_MARKET_BASE_BTC("btc", "btc"),
+    HB_MARKET_BASE_ETH("eth", "eth"),
+    HB_MARKET_BASE_USDT("usdt", "usdt"),
 
 
     //主流
@@ -123,6 +123,9 @@ public enum DictEnum {
     MARKET_HUOBI_SYMBOL_BTC_BCX("bcxbtc", "btc/bcx市场"),
 
 
+    /**
+     * hb订单状态
+     */
     ORDER_DETAIL_STATE_PRE_SUBMITTED("pre-submitted", "准备提交"),
     ORDER_DETAIL_STATE_SUBMITTING("submitting", "已提交"),
     ORDER_DETAIL_STATE_SUBMITTED("submitted", "已提交"),
@@ -131,6 +134,12 @@ public enum DictEnum {
     ORDER_DETAIL_STATE_FILLED("filled", "完全成交"),
     ORDER_DETAIL_STATE_CANCELED("canceled", "已撤销"),
     ORDER_DETAIL_STATE_SELL("sell", "已挂单售卖"),
+
+    ZB_ORDER_DETAIL_STATE_0("0","待成交"),
+    ZB_ORDER_DETAIL_STATE_1("1","取消"),
+    ZB_ORDER_DETAIL_STATE_2("2","交易完成"),
+    ZB_ORDER_DETAIL_STATE_3("3","部分成交"),
+    ZB_ORDER_DETAIL_STATE_4("4","已挂单售卖"),
 
 
     ORDER_TYPE_BUY_LIMIT("buy-limit", "限价买单"),
@@ -144,6 +153,18 @@ public enum DictEnum {
 
     USER_STATUS_NORMAL("normal","正常"),
     USER_STATUS_FREEZE("freeze","冻结"),
+
+
+    //中币基础对
+    ZB_MARKET_BASE_BTC("btc", "btc"),
+    ZB_MARKET_BASE_QC("qc", "qc"),
+    ZB_MARKET_BASE_USDT("usdt", "usdt"),
+
+    MARKET_TYPE_HB("hb","火币"),
+    MARKET_TYPE_ZB("zb","中币"),
+
+    ZB_ORDER_TRADE_TYPE_SELL("0","卖"),
+    ZB_ORDER_TRADE_TYPE_BUY("1","买"),
 
     ;
 

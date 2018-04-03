@@ -34,7 +34,7 @@ public class TradeBizTest {
         dto.setPrice(new BigDecimal(0.00117328));
         dto.setSymbol("elfeth");
         dto.setOrderType("buy-limit");
-        String orderId = tradeBiz.createOrder(dto);
+        String orderId = tradeBiz.createHbOrder(dto);
         log.info("orderId={}", orderId);
     }
 
@@ -43,7 +43,7 @@ public class TradeBizTest {
         HuobiBaseDto dto = new HuobiBaseDto();
         dto.setOrderId("2822172040");
         dto.setUserId("2c94a4ab624281b90162428266740001");
-        OrdersDetail detail = tradeBiz.orderDetail(dto);
+        OrdersDetail detail = tradeBiz.getHbOrderDetail(dto);
         log.info("detail={}", detail);
     }
 

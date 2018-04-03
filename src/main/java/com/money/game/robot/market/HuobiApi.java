@@ -123,7 +123,7 @@ public class HuobiApi {
             jsonStr = EntityUtils.toString(entity, "utf-8");
             httpGet.releaseConnection();
             JSONObject json = JSON.parseObject(jsonStr);
-            if (!"ok".equals(json.getString("status"))) {
+            if (!"ok".equals(json.getString("state"))) {
                 log.info(symbol + " market info not found. result={}", json);
                 return null;
             }

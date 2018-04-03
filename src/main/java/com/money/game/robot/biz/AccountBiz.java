@@ -1,10 +1,15 @@
 package com.money.game.robot.biz;
 
 import com.money.game.core.util.StringUtil;
+import com.money.game.robot.constant.DictEnum;
 import com.money.game.robot.dto.huobi.HuobiBaseDto;
-import com.money.game.robot.entity.UserEntity;
+import com.money.game.robot.dto.zb.BaseZbDto;
+import com.money.game.robot.entity.AccountEntity;
 import com.money.game.robot.huobi.api.ApiClient;
 import com.money.game.robot.huobi.response.*;
+import com.money.game.robot.service.AccountService;
+import com.money.game.robot.zb.api.ZbApi;
+import com.money.game.robot.zb.vo.ZbAccountDetailVo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -23,9 +28,30 @@ public class AccountBiz {
     @Autowired
     private UserBiz userBiz;
 
-    public Accounts getSpotAccounts(HuobiBaseDto dto) {
+    @Autowired
+    private AccountService accountService;
 
-        setApiKey(dto);
+    @Autowired
+    private ZbApi zbApi;
+
+
+    /**
+     * 根据用户id和账号类型获取账号信息
+     */
+    public AccountEntity getByUserIdAndType(String userId, String type) {
+        return accountService.findByUserIdAndType(userId, type);
+    }
+
+    public List<AccountEntity> findByType(String type) {
+        return accountService.findByTypeAndStatus(type,DictEnum.USER_STATUS_NORMAL.getCode());
+    }
+
+    /**
+     * 获取火币账号信息
+     */
+    public Accounts getHuobiSpotAccounts(HuobiBaseDto dto) {
+
+        setHuobiApiKey(dto);
 
         ApiClient client = new ApiClient(dto.getApiKey(), dto.getApiSecret());
         AccountsResponse<List<Accounts>> accounts = client.accounts();
@@ -36,8 +62,11 @@ public class AccountBiz {
         return null;
     }
 
-    public List<BalanceBean> getAccountBalance(HuobiBaseDto dto, Accounts accounts) {
-        setApiKey(dto);
+    /**
+     * 获取火币账号所有余额
+     */
+    public List<BalanceBean> getHuobiAccountBalance(HuobiBaseDto dto, Accounts accounts) {
+        setHuobiApiKey(dto);
         ApiClient client = new ApiClient(dto.getApiKey(), dto.getApiSecret());
         BalanceResponse<Balance<List<BalanceBean>>> response = client.balance(String.valueOf(accounts.getId()));
         Balance<List<BalanceBean>> balance = response.getData();
@@ -45,13 +74,16 @@ public class AccountBiz {
     }
 
 
-    public BigDecimal getQuoteBalance(String userId, String quote) {
+    /**
+     * 获取hb当前币种最大余额
+     */
+    public BigDecimal getHuobiQuoteBalance(String userId, String quote) {
         BigDecimal maxBalance = BigDecimal.ZERO;
         HuobiBaseDto dto = new HuobiBaseDto();
         dto.setUserId(userId);
-        setApiKey(dto);
-        Accounts accounts = this.getSpotAccounts(dto);
-        List<BalanceBean> balanceBeanList = this.getAccountBalance(dto, accounts);
+        setHuobiApiKey(dto);
+        Accounts accounts = this.getHuobiSpotAccounts(dto);
+        List<BalanceBean> balanceBeanList = this.getHuobiAccountBalance(dto, accounts);
         for (BalanceBean balanceBean : balanceBeanList) {
             //获取当前quote余额
             if (quote.equals(balanceBean.getCurrency()) && "trade".equals(balanceBean.getType())) {
@@ -63,11 +95,43 @@ public class AccountBiz {
         return maxBalance;
     }
 
-    public HuobiBaseDto setApiKey(HuobiBaseDto dto) {
+
+    /**
+     * 获取zb当前币种最大余额
+     */
+    public BigDecimal getZbBalance(String userId, String quote) {
+        BigDecimal maxBalance = BigDecimal.ZERO;
+        BaseZbDto baseZbDto = new BaseZbDto();
+        this.setZbApiKey(baseZbDto, userId);
+        List<ZbAccountDetailVo> zbAccountDetailVoList = zbApi.getAccountInfo(baseZbDto);
+        for (ZbAccountDetailVo vo : zbAccountDetailVoList) {
+            //获取当前quote余额
+            if (quote.equals(vo.getKey())) {
+                maxBalance = vo.getAvailable();
+                break;
+            }
+        }
+        log.info("maxBalance={}", maxBalance);
+        return maxBalance;
+    }
+
+    /**
+     * 设置火币账号api信息
+     */
+    public HuobiBaseDto setHuobiApiKey(HuobiBaseDto dto) {
         if (StringUtil.isEmpty(dto.getApiKey())) {
-            UserEntity userEntity = userBiz.findById(dto.getUserId());
-            dto.setApiKey(userEntity.getApiKey());
-            dto.setApiSecret(userEntity.getApiSecret());
+            AccountEntity accountEntity = accountService.findByUserIdAndType(dto.getUserId(), DictEnum.MARKET_TYPE_HB.getCode());
+            dto.setApiKey(accountEntity.getApiKey());
+            dto.setApiSecret(accountEntity.getApiSecret());
+        }
+        return dto;
+    }
+
+    public BaseZbDto setZbApiKey(BaseZbDto dto, String userId) {
+        if (StringUtil.isEmpty(dto.getAccessKey())) {
+            AccountEntity accountEntity = accountService.findByUserIdAndType(userId, DictEnum.MARKET_TYPE_HB.getCode());
+            dto.setAccessKey(accountEntity.getApiKey());
+            dto.setSecretKey(accountEntity.getApiSecret());
         }
         return dto;
     }

@@ -28,6 +28,11 @@ public class SymbolTradeConfigEntity extends UUID {
     private String userId;
 
     /**
+     * 交易所 hb,zb
+     */
+    private String marketType;
+
+    /**
      * 阈值类型(1min,5min)
      */
     private String thresholdType;
@@ -68,6 +73,11 @@ public class SymbolTradeConfigEntity extends UUID {
      * 单笔订单,eth最多下单值
      */
     private BigDecimal ethMxzUse;
+
+    /**
+     * 单笔下单,qc最多下单值
+     */
+    private BigDecimal qcMaxUse;
 
 
     private Timestamp createTime;

@@ -44,13 +44,13 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public List<OrderEntity> findBySymbolAndType(String symbol, String orderType, List<String> states) {
-        return orderDao.findBySymbolAndType(symbol, orderType, states);
+    public List<OrderEntity> findBySymbolAndType(String symbol, String orderType,String symbolConfigId,List<String> states) {
+        return orderDao.findBySymbolAndType(symbol, orderType, symbolConfigId,states);
     }
 
     @Override
-    public List<OrderEntity> findByParam(String userId, String model, String orderType, String symbol, String symbolTradeConfigId, List<String> states) {
-        return orderDao.findByParam(userId, model, orderType, symbol, symbolTradeConfigId, states);
+    public List<OrderEntity> findByParam(String userId, String model, String orderType, String symbol, String symbolTradeConfigId,String marketType, List<String> states) {
+        return orderDao.findByParam(userId, model, orderType, symbol, symbolTradeConfigId,marketType, states);
     }
 
     @Override

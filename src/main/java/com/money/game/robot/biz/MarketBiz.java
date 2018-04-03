@@ -1,8 +1,9 @@
 package com.money.game.robot.biz;
 
 import com.money.game.core.util.StringUtil;
+import com.money.game.robot.constant.DictEnum;
 import com.money.game.robot.dto.huobi.DepthDto;
-import com.money.game.robot.entity.UserEntity;
+import com.money.game.robot.entity.AccountEntity;
 import com.money.game.robot.huobi.api.ApiClient;
 import com.money.game.robot.huobi.request.DepthRequest;
 import com.money.game.robot.huobi.response.Depth;
@@ -20,16 +21,16 @@ import org.springframework.stereotype.Component;
 public class MarketBiz {
 
     @Autowired
-    private UserBiz userBiz;
+    private AccountBiz accountBiz;
 
     /**
-     * 获取交易对限价单信息
+     * 获取HB交易对限价单信息
      */
-    public Depth depth(DepthDto dto) {
+    public Depth HbDepth(DepthDto dto) {
         if (StringUtil.isEmpty(dto.getApiKey())) {
-            UserEntity userEntity = userBiz.findById(dto.getUserId());
-            dto.setApiKey(userEntity.getApiKey());
-            dto.setApiSecret(userEntity.getApiSecret());
+            AccountEntity accountEntity = accountBiz.getByUserIdAndType(dto.getUserId(), DictEnum.MARKET_TYPE_HB.getCode());
+            dto.setApiKey(accountEntity.getApiKey());
+            dto.setApiSecret(accountEntity.getApiSecret());
         }
         ApiClient client = new ApiClient(dto.getApiKey(), dto.getApiSecret());
         DepthRequest depthRequest = new DepthRequest();

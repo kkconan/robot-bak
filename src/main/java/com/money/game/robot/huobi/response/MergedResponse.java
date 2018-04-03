@@ -12,7 +12,7 @@ import com.money.game.robot.huobi.api.ApiException;
 public class MergedResponse<T> {
 
     /**
-     * status : ok
+     * state : ok
      * ch : market.ethusdt.detail.merged
      * ts : 1499225276950
      * tick : {"id":1499225271,"ts":1499225271000,"close":1885,"open":1960,"high":1985,"low":1856,"amount":81486.2926,"count":42122,"vol":1.57052744857082E8,"ask":[1885,21.8804],"bid":[1884,1.6702]}

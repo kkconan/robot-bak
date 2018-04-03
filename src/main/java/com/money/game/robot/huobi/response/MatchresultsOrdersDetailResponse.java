@@ -10,7 +10,7 @@ public class MatchresultsOrdersDetailResponse<T> {
 
 
     /**
-     * status : ok
+     * state : ok
      * data : [{"id":29553,"order-id":59378,"match-id":59335,"symbol":"ethusdt","type":"buy-limit","source":"api","price":"100.1000000000","filled-amount":"9.1155000000","filled-fees":"0.0182310000","created-at":1494901400435}]
      */
 

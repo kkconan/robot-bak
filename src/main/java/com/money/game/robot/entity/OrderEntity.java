@@ -111,6 +111,11 @@ public class OrderEntity extends UUID implements Serializable {
      */
     private String model;
 
+    /**
+     * hb/zb
+     */
+    private String marketType;
+
     private long createdAt;
 
     private long canceledAt;

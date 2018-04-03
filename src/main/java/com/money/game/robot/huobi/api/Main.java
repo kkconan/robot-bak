@@ -95,7 +95,7 @@ public class Main {
         MergedResponse merged = client.merged("ethusdt");
         print(merged);
 
-        //------------------------------------------------------ depth -------------------------------------------------------
+        //------------------------------------------------------ HbDepth -------------------------------------------------------
 
         DepthRequest depthRequest = new DepthRequest();
         depthRequest.setSymbol("btcusdt");
@@ -198,7 +198,7 @@ public class Main {
 
 
 //    public String symbol;	   //true	string	交易对		btcusdt, bccbtc, rcneth ...
-//    public String types;	   //false	string	查询的订单类型组合，使用','分割		buy-market：市价买, sell-market：市价卖, buy-limit：限价买, sell-limit：限价卖
+//    public String types;	   //false	string	查询的订单类型组合，使用','分割		hbToBuy-market：市价买, sell-market：市价卖, hbToBuy-limit：限价买, sell-limit：限价卖
 //    public String startDate;   //false	string	查询开始日期, 日期格式yyyy-mm-dd
 //    public String endDate;	   //false	string	查询结束日期, 日期格式yyyy-mm-dd
 //    public String states;	   //true	string	查询的订单状态组合，使用','分割		pre-submitted 准备提交, submitted 已提交, partial-filled 部分成交,

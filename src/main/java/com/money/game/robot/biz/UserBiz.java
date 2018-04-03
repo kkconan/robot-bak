@@ -8,14 +8,11 @@ import com.money.game.robot.constant.DictEnum;
 import com.money.game.robot.constant.ErrorEnum;
 import com.money.game.robot.dto.client.ModifyUserInfoDto;
 import com.money.game.robot.dto.client.UserRegisterDto;
-import com.money.game.robot.dto.huobi.HuobiBaseDto;
 import com.money.game.robot.entity.UserEntity;
 import com.money.game.robot.exception.BizException;
-import com.money.game.robot.huobi.response.Accounts;
 import com.money.game.robot.service.UserService;
 import com.money.game.robot.vo.LoginVo;
 import com.money.game.robot.vo.UserVo;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -32,24 +29,8 @@ public class UserBiz {
     @Autowired
     private UserService userService;
 
-    @Autowired
-    private AccountBiz accountBiz;
-
     public List<UserEntity> findAllByNormal() {
-        List<UserEntity> list = userService.findAllByStatus(DictEnum.USER_STATUS_NORMAL.getCode());
-        for (UserEntity userEntity : list) {
-            if (StringUtil.isEmpty(userEntity.getAccountId())) {
-                HuobiBaseDto dto = new HuobiBaseDto();
-                dto.setApiKey(userEntity.getApiKey());
-                dto.setApiSecret(userEntity.getApiSecret());
-                Accounts accounts = accountBiz.getSpotAccounts(dto);
-                if (accounts != null) {
-                    userEntity.setAccountId(String.valueOf(accounts.getId()));
-                    userService.save(userEntity);
-                }
-            }
-        }
-        return list;
+        return userService.findAllByStatus(DictEnum.USER_STATUS_NORMAL.getCode());
     }
 
     public ResponseData getUserInfo(String userId) {
@@ -65,9 +46,6 @@ public class UserBiz {
         if (!StringUtil.isEmpty(dto.getPassword())) {
             user.setSalt(Digests.genSalt());
             user.setPassword(PwdUtil.encryptPassword(dto.getPassword(), user.getSalt()));
-        }
-        if (StringUtils.isNotEmpty(user.getApiKey()) && StringUtils.isNotEmpty(user.getApiSecret())) {
-            user.setStatus(DictEnum.USER_STATUS_NORMAL.getCode());
         }
         userService.save(user);
         return ResponseData.success();
@@ -98,7 +76,7 @@ public class UserBiz {
         user.setPhone(dto.getPhone());
         user.setSalt(Digests.genSalt());
         user.setPassword(PwdUtil.encryptPassword(dto.getUserPwd(), user.getSalt()));
-        user.setStatus(DictEnum.USER_STATUS_FREEZE.getCode());
+        user.setStatus(DictEnum.USER_STATUS_NORMAL.getCode());
         return userService.save(user);
     }
 }

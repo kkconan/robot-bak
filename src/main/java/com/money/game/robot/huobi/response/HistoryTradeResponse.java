@@ -10,7 +10,7 @@ public class HistoryTradeResponse<T> {
 
 
     /**
-     * status : ok
+     * state : ok
      * ch : market.ethusdt.trade.detail
      * ts : 1502448925216
      * data : [{"id":31459998,"ts":1502448920106,"data":[{"id":17592256642623,"amount":0.04,"price":1997,"direction":"buy","ts":1502448920106}]}]

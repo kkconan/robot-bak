@@ -28,6 +28,11 @@ public class SymbolTradeConfigBiz {
         return symbolTradeConfigService.findByUserIdAndThresholdType(userId, thresholdType);
     }
 
+    public SymbolTradeConfigEntity findByUserIdAndThresholdTypeAndMarketType(String userId, String thresholdType, String marketType) {
+
+        return symbolTradeConfigService.findByUserIdAndThresholdTypeAndMarketType(userId, thresholdType, marketType);
+    }
+
     public SymbolTradeConfigEntity findById(String id) {
         return symbolTradeConfigService.findById(id);
     }
@@ -46,7 +51,7 @@ public class SymbolTradeConfigBiz {
     public SymbolTradeConfigVo info(String oid) {
         SymbolTradeConfigEntity entity = symbolTradeConfigService.findById(oid);
         SymbolTradeConfigVo vo = new SymbolTradeConfigVo();
-        if(entity != null) {
+        if (entity != null) {
             BeanUtils.copyProperties(entity, vo);
         }
         return vo;

@@ -12,7 +12,7 @@ import com.money.game.robot.huobi.api.ApiException;
 public class AccountsResponse<T> {
 
     /**
-     * status : ok
+     * state : ok
      * data : [{"id":100009,"type":"spot","state":"working","user-id":1000}]
      */
 

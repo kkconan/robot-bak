@@ -10,7 +10,7 @@ public class TradeResponse {
 
 
     /**
-     * status : ok
+     * state : ok
      * ch : market.btcusdt.trade.detail
      * ts : 1489473346905
      * tick : {"id":600848670,"ts":1489464451000,"data":[{"id":600848670,"price":7962.62,"amount":0.0122,"direction":"buy","ts":1489464451000}]}

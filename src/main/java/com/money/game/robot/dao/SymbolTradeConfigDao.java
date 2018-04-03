@@ -14,5 +14,7 @@ public interface SymbolTradeConfigDao extends JpaRepository<SymbolTradeConfigEnt
 
     List<SymbolTradeConfigEntity> findByUserId(String userId);
 
-    SymbolTradeConfigEntity findByUserIdAndThresholdType(String userId,String thresholdType);
+    SymbolTradeConfigEntity findByUserIdAndThresholdType(String userId, String thresholdType);
+
+    SymbolTradeConfigEntity findByUserIdAndThresholdTypeAndMarketType(String userId, String thresholdType, String marketType);
 }

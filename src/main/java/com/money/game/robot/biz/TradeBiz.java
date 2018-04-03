@@ -2,16 +2,21 @@ package com.money.game.robot.biz;
 
 import com.money.game.core.util.StringUtil;
 import com.money.game.robot.constant.DictEnum;
+import com.money.game.robot.constant.ErrorEnum;
 import com.money.game.robot.dto.huobi.BatchCancelDto;
 import com.money.game.robot.dto.huobi.CreateOrderDto;
 import com.money.game.robot.dto.huobi.HuobiBaseDto;
 import com.money.game.robot.dto.huobi.IntrustOrderDto;
+import com.money.game.robot.dto.zb.ZbCreateOrderDto;
+import com.money.game.robot.entity.AccountEntity;
 import com.money.game.robot.entity.UserEntity;
 import com.money.game.robot.exception.BizException;
 import com.money.game.robot.huobi.api.ApiClient;
 import com.money.game.robot.huobi.api.ApiException;
 import com.money.game.robot.huobi.request.CreateOrderRequest;
 import com.money.game.robot.huobi.response.*;
+import com.money.game.robot.zb.api.ZbApi;
+import com.money.game.robot.zb.vo.ZbCreateOrderVo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -35,22 +40,26 @@ public class TradeBiz {
     @Autowired
     private AccountBiz accountBiz;
 
+    @Autowired
+    private ZbApi zbApi;
+
     /**
-     * create order
+     * create hb order
      */
 
-    public String createOrder(CreateOrderDto dto) {
+    public String createHbOrder(CreateOrderDto dto) {
         if (StringUtil.isEmpty(dto.getApiKey())) {
             UserEntity userEntity = userBiz.findById(dto.getUserId());
-            dto.setApiKey(userEntity.getApiKey());
-            dto.setApiSecret(userEntity.getApiSecret());
+            AccountEntity accountEntity = accountBiz.getByUserIdAndType(dto.getUserId(), DictEnum.MARKET_TYPE_HB.getCode());
+            dto.setApiKey(accountEntity.getApiKey());
+            dto.setApiSecret(accountEntity.getApiSecret());
         }
         ApiClient client = new ApiClient(dto.getApiKey(), dto.getApiSecret());
         CreateOrderRequest createOrderReq = new CreateOrderRequest();
         createOrderReq.setAccountId(dto.getAccountId());
         createOrderReq.setAmount(dto.getAmount().setScale(2, BigDecimal.ROUND_DOWN).toString());
         createOrderReq.setPrice(dto.getPrice().setScale(4, BigDecimal.ROUND_DOWN).toString());
-        if (dto.getSymbol().endsWith(DictEnum.MARKET_BASE_BTC.getCode()) || dto.getSymbol().endsWith(DictEnum.MARKET_BASE_ETH.getCode())) {
+        if (dto.getSymbol().endsWith(DictEnum.HB_MARKET_BASE_BTC.getCode()) || dto.getSymbol().endsWith(DictEnum.HB_MARKET_BASE_ETH.getCode())) {
             createOrderReq.setPrice(dto.getPrice().setScale(8, BigDecimal.ROUND_DOWN).toString());
             createOrderReq.setPrice(dto.getPrice().setScale(8, BigDecimal.ROUND_DOWN).toString());
         }
@@ -76,7 +85,7 @@ public class TradeBiz {
             }
             orderId = client.createOrder(createOrderReq);
         }
-        log.info("createOrder,dto={},createOrderReq={},orderId={}", dto, createOrderReq, orderId);
+        log.info("createHbOrder,dto={},createOrderReq={},orderId={}", dto, createOrderReq, orderId);
         return client.placeOrder(orderId);
     }
 
@@ -84,11 +93,11 @@ public class TradeBiz {
      * cancel order
      */
     public void submitCancel(HuobiBaseDto dto) {
-        accountBiz.setApiKey(dto);
+        accountBiz.setHuobiApiKey(dto);
         ApiClient client = new ApiClient(dto.getApiKey(), dto.getApiSecret());
         SubmitcancelResponse response = client.submitcancel(dto.getOrderId());
         if (!"ok".equals(response.getStatus())) {
-            log.info("撤销订单失败,orderId={},errCode={},errmsg={},status={}", dto.getOrderId(), response.getErrCode(), response.getErrMsg(), response.getStatus());
+            log.info("撤销订单失败,orderId={},errCode={},errmsg={},state={}", dto.getOrderId(), response.getErrCode(), response.getErrMsg(), response.getStatus());
             throw new BizException(response.getErrCode(), response.getErrMsg());
         }
     }
@@ -105,8 +114,8 @@ public class TradeBiz {
     /**
      * order detail
      */
-    public OrdersDetail orderDetail(HuobiBaseDto dto) {
-        accountBiz.setApiKey(dto);
+    public OrdersDetail getHbOrderDetail(HuobiBaseDto dto) {
+        accountBiz.setHuobiApiKey(dto);
         ApiClient client = new ApiClient(dto.getApiKey(), dto.getApiSecret());
         OrdersDetailResponse<OrdersDetail> response = client.ordersDetail(dto.getOrderId());
         if (!"ok".equals(response.getStatus())) {
@@ -120,11 +129,11 @@ public class TradeBiz {
     /**
      * 订单成交明细
      */
-    public MatchresultsOrdersDetail matchresults(HuobiBaseDto dto) {
+    public MatchresultsOrdersDetail hbMatchresults(HuobiBaseDto dto) {
         if (StringUtil.isEmpty(dto.getApiKey())) {
-            UserEntity userEntity = userBiz.findById(dto.getUserId());
-            dto.setApiKey(userEntity.getApiKey());
-            dto.setApiSecret(userEntity.getApiSecret());
+            AccountEntity accountEntity = accountBiz.getByUserIdAndType(dto.getUserId(), DictEnum.MARKET_TYPE_HB.getCode());
+            dto.setApiKey(accountEntity.getApiKey());
+            dto.setApiSecret(accountEntity.getApiSecret());
         }
         ApiClient client = new ApiClient(dto.getApiKey(), dto.getApiSecret());
         MatchresultsOrdersDetailResponse<MatchresultsOrdersDetail> response = client.matchresults(dto.getOrderId());
@@ -150,5 +159,30 @@ public class TradeBiz {
         IntrustDetailResponse<List<IntrustDetail>> response = client.intrustOrdersDetail(map);
         return response.getData();
     }
+
+    /**
+     * 创建zb订单
+     */
+    public String zbCreateOrder(String symbol, BigDecimal price, BigDecimal amount, String tradeType, String userId) {
+        AccountEntity account = accountBiz.getByUserIdAndType(userId, DictEnum.MARKET_TYPE_ZB.getCode());
+        //todo 精度放到redis里面，下单获取
+        if (StringUtil.isEmpty(account.getApiKey()) || StringUtil.isEmpty(account.getApiSecret())) {
+            throw new BizException(ErrorEnum.USER_API_NOT_FOUND);
+        }
+        ZbCreateOrderDto dto = new ZbCreateOrderDto();
+        dto.setAccessKey(account.getApiKey());
+        dto.setSecretKey(account.getApiSecret());
+        dto.setCurrency(symbol);
+        dto.setPrice(price.toString());
+        dto.setAmount(amount.toString());
+        dto.setTradeType(tradeType);
+        ZbCreateOrderVo vo = zbApi.createOrder(dto);
+        if (!"1000".equals(vo.getCode())) {
+            log.error("订单创建失败,vo={}", vo);
+            throw new BizException(ErrorEnum.CREATE_ORDER_FAIL);
+        }
+        return vo.getId();
+    }
+
 
 }

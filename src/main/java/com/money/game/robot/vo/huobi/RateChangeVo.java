@@ -6,13 +6,13 @@ import java.io.Serializable;
 import java.math.BigDecimal;
 
 /**
- *
  * 不同交易对之间汇率比较返回结果
+ *
  * @author conan
  *         2018/3/15 16:12
  **/
 @Data
-public class RateChangeVo implements Serializable{
+public class RateChangeVo implements Serializable {
 
 
     /**
@@ -25,7 +25,7 @@ public class RateChangeVo implements Serializable{
      */
     private BigDecimal buyPrice;
     /**
-     *欲购买的最新一条行情信息
+     * 欲购买的最新一条行情信息
      */
     private MarketDetailVo nowMarketDetailVo;
 
@@ -58,4 +58,19 @@ public class RateChangeVo implements Serializable{
      * 原交易对
      */
     private String originSymbol;
+
+    /**
+     * 交易所类型 hb,hb
+     */
+    private String marketType;
+
+    /**
+     * 交易对指定时间内变动是否超过阈值
+     */
+    private boolean isOperate = false;
+
+    /**
+     * 短信和邮件通知的内容
+     */
+    private String context;
 }

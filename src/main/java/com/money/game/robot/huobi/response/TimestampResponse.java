@@ -12,7 +12,7 @@ import java.util.Date;
 public class TimestampResponse {
 
     /**
-     * status : ok
+     * state : ok
      * data : 1494900087029
      */
 

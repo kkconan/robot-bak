@@ -10,7 +10,7 @@ public class DepthResponse<T> {
 
 
     /**
-     * status : ok
+     * state : ok
      * ch : market.btcusdt.depth.step1
      * ts : 1489472598812
      * tick : {"id":"1489464585407","ts":"1489464585407","bids":[[7964,0.0678],[7963,0.9162]],"asks":[[7979,0.0736],[8020,13.6584]]}

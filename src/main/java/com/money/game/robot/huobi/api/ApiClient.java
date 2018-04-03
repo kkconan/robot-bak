@@ -97,8 +97,7 @@ public class ApiClient {
      */
     public List<Symbol> getSymbols() {
         ApiResponse<List<Symbol>> resp =
-                get("/v1/common/symbols", null, new TypeReference<ApiResponse<List<Symbol>>>() {
-                });
+                get("/v1/common/symbols", null, new TypeReference<ApiResponse<List<Symbol>>>() { });
         return resp.checkAndReturn();
     }
 
@@ -176,7 +175,7 @@ public class ApiClient {
     }
 
     /**
-     * GET /market/depth 获取 Market Depth 数据
+     * GET /market/HbDepth 获取 Market Depth 数据
      *
      * @param request
      * @return
@@ -186,7 +185,7 @@ public class ApiClient {
         map.put("symbol", request.getSymbol());
         map.put("type", request.getType());
 
-        DepthResponse resp = get("/market/depth", map, new TypeReference<DepthResponse<Depth>>() {
+        DepthResponse resp = get("/market/HbDepth", map, new TypeReference<DepthResponse<Depth>>() {
         });
         return resp;
     }

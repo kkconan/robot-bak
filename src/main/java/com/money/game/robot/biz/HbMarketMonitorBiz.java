@@ -27,7 +27,7 @@ import java.util.List;
  **/
 @Component
 @Slf4j
-public class MarketMonitorBiz {
+public class HbMarketMonitorBiz {
 
 
     @Value("${need.sms:false}")
@@ -44,6 +44,9 @@ public class MarketMonitorBiz {
 
     @Autowired
     private SymbolTradeConfigBiz symbolTradeConfigBiz;
+
+    @Autowired
+    private MarketRuleBiz marketRuleBiz;
 
 
     @Async("marketMonitor")
@@ -137,44 +140,44 @@ public class MarketMonitorBiz {
      * 检查是否可交易
      */
     public boolean checkToTrans(String symbol, BigDecimal increase, SymbolTradeConfigEntity symbolTradeConfig) {
-        log.info("checkToTrans,symbol={},increase={}", symbol, increase);
+        log.info("checkToZbTrans,symbol={},increase={}", symbol, increase);
         RateChangeVo rateChangeVo;
         BigDecimal salePrice;
         //应用对
-        String quoteCurrency = getQuoteCurrency(symbol);
+        String quoteCurrency = marketRuleBiz.getHbQuoteCurrency(symbol);
 
         boolean tranResult = false;
 
         String otherSymbol;
         //is btc
-        if (symbol.endsWith(DictEnum.MARKET_BASE_BTC.getCode())) {
+        if (symbol.endsWith(DictEnum.HB_MARKET_BASE_BTC.getCode())) {
             //compare to eth
-            otherSymbol = quoteCurrency + DictEnum.MARKET_BASE_ETH.getCode();
+            otherSymbol = quoteCurrency + DictEnum.HB_MARKET_BASE_ETH.getCode();
             rateChangeVo = compareToOtherCurrency(symbol, otherSymbol, increase, symbolTradeConfig);
             if (StringUtils.isNotEmpty(rateChangeVo.getBuyerSymbol())) {
                 //原对增长
                 if (increase.compareTo(BigDecimal.ZERO) > 0) {
-                    salePrice = getMultiplySalePrice(rateChangeVo.getBuyPrice(), DictEnum.MARKET_BASE_BTC.getCode(), DictEnum.MARKET_BASE_ETH.getCode(), symbolTradeConfig);
+                    salePrice = getMultiplySalePrice(rateChangeVo.getBuyPrice(), DictEnum.HB_MARKET_BASE_BTC.getCode(), DictEnum.HB_MARKET_BASE_ETH.getCode(), symbolTradeConfig);
                 }
                 //原对下降
                 else {
-                    salePrice = getDivideSalePrice(rateChangeVo.getBuyPrice(), DictEnum.MARKET_BASE_BTC.getCode(), DictEnum.MARKET_BASE_ETH.getCode(), symbolTradeConfig);
+                    salePrice = getDivideSalePrice(rateChangeVo.getBuyPrice(), DictEnum.HB_MARKET_BASE_BTC.getCode(), DictEnum.HB_MARKET_BASE_ETH.getCode(), symbolTradeConfig);
                 }
                 //验证是否成功创建订单
                 tranResult = checkTransResult(rateChangeVo, quoteCurrency, salePrice, symbolTradeConfig);
             }
             //compare to usdt
             if (!tranResult) {
-                otherSymbol = quoteCurrency + DictEnum.MARKET_BASE_USDT.getCode();
+                otherSymbol = quoteCurrency + DictEnum.HB_MARKET_BASE_USDT.getCode();
                 rateChangeVo = compareToOtherCurrency(symbol, otherSymbol, increase, symbolTradeConfig);
                 if (StringUtils.isNotEmpty(rateChangeVo.getBuyerSymbol())) {
                     //原对增长
                     if (increase.compareTo(BigDecimal.ZERO) > 0) {
-                        salePrice = getDivideSalePrice(rateChangeVo.getBuyPrice(), DictEnum.MARKET_BASE_BTC.getCode(), DictEnum.MARKET_BASE_USDT.getCode(), symbolTradeConfig);
+                        salePrice = getDivideSalePrice(rateChangeVo.getBuyPrice(), DictEnum.HB_MARKET_BASE_BTC.getCode(), DictEnum.HB_MARKET_BASE_USDT.getCode(), symbolTradeConfig);
                     }
                     //原对下降
                     else {
-                        salePrice = getMultiplySalePrice(rateChangeVo.getBuyPrice(), DictEnum.MARKET_BASE_BTC.getCode(), DictEnum.MARKET_BASE_USDT.getCode(), symbolTradeConfig);
+                        salePrice = getMultiplySalePrice(rateChangeVo.getBuyPrice(), DictEnum.HB_MARKET_BASE_BTC.getCode(), DictEnum.HB_MARKET_BASE_USDT.getCode(), symbolTradeConfig);
                     }
                     //验证是否成功创建订单
                     checkTransResult(rateChangeVo, quoteCurrency, salePrice, symbolTradeConfig);
@@ -182,34 +185,34 @@ public class MarketMonitorBiz {
             }
         }
         //is eth
-        else if (symbol.endsWith(DictEnum.MARKET_BASE_ETH.getCode())) {
+        else if (symbol.endsWith(DictEnum.HB_MARKET_BASE_ETH.getCode())) {
             //compare to btc
-            otherSymbol = quoteCurrency + DictEnum.MARKET_BASE_BTC.getCode();
+            otherSymbol = quoteCurrency + DictEnum.HB_MARKET_BASE_BTC.getCode();
             rateChangeVo = compareToOtherCurrency(symbol, otherSymbol, increase, symbolTradeConfig);
             if (StringUtils.isNotEmpty(rateChangeVo.getBuyerSymbol())) {
                 //原对增长
                 if (increase.compareTo(BigDecimal.ZERO) > 0) {
-                    salePrice = getDivideSalePrice(rateChangeVo.getBuyPrice(), DictEnum.MARKET_BASE_ETH.getCode(), DictEnum.MARKET_BASE_BTC.getCode(), symbolTradeConfig);
+                    salePrice = getDivideSalePrice(rateChangeVo.getBuyPrice(), DictEnum.HB_MARKET_BASE_ETH.getCode(), DictEnum.HB_MARKET_BASE_BTC.getCode(), symbolTradeConfig);
                 }
                 //原对下降
                 else {
-                    salePrice = getMultiplySalePrice(rateChangeVo.getBuyPrice(), DictEnum.MARKET_BASE_ETH.getCode(), DictEnum.MARKET_BASE_BTC.getCode(), symbolTradeConfig);
+                    salePrice = getMultiplySalePrice(rateChangeVo.getBuyPrice(), DictEnum.HB_MARKET_BASE_ETH.getCode(), DictEnum.HB_MARKET_BASE_BTC.getCode(), symbolTradeConfig);
                 }
                 //验证是否成功创建订单
                 tranResult = checkTransResult(rateChangeVo, quoteCurrency, salePrice, symbolTradeConfig);
             }
             //compare to usdt
             if (!tranResult) {
-                otherSymbol = quoteCurrency + DictEnum.MARKET_BASE_USDT.getCode();
+                otherSymbol = quoteCurrency + DictEnum.HB_MARKET_BASE_USDT.getCode();
                 rateChangeVo = compareToOtherCurrency(symbol, otherSymbol, increase, symbolTradeConfig);
                 if (StringUtils.isNotEmpty(rateChangeVo.getBuyerSymbol())) {
                     //原对增长
                     if (increase.compareTo(BigDecimal.ZERO) > 0) {
-                        salePrice = getDivideSalePrice(rateChangeVo.getBuyPrice(), DictEnum.MARKET_BASE_ETH.getCode(), DictEnum.MARKET_BASE_USDT.getCode(), symbolTradeConfig);
+                        salePrice = getDivideSalePrice(rateChangeVo.getBuyPrice(), DictEnum.HB_MARKET_BASE_ETH.getCode(), DictEnum.HB_MARKET_BASE_USDT.getCode(), symbolTradeConfig);
                     }
                     //原对下降
                     else {
-                        salePrice = getMultiplySalePrice(rateChangeVo.getBuyPrice(), DictEnum.MARKET_BASE_ETH.getCode(), DictEnum.MARKET_BASE_USDT.getCode(), symbolTradeConfig);
+                        salePrice = getMultiplySalePrice(rateChangeVo.getBuyPrice(), DictEnum.HB_MARKET_BASE_ETH.getCode(), DictEnum.HB_MARKET_BASE_USDT.getCode(), symbolTradeConfig);
                     }
                     //验证是否成功创建订单
                     checkTransResult(rateChangeVo, quoteCurrency, salePrice, symbolTradeConfig);
@@ -219,32 +222,32 @@ public class MarketMonitorBiz {
         //is usdt
         else {
             //compare to btc
-            otherSymbol = quoteCurrency + DictEnum.MARKET_BASE_BTC.getCode();
+            otherSymbol = quoteCurrency + DictEnum.HB_MARKET_BASE_BTC.getCode();
             rateChangeVo = compareToOtherCurrency(symbol, otherSymbol, increase, symbolTradeConfig);
             if (StringUtils.isNotEmpty(rateChangeVo.getBuyerSymbol())) {
                 //原对增长
                 if (increase.compareTo(BigDecimal.ZERO) > 0) {
-                    salePrice = getMultiplySalePrice(rateChangeVo.getBuyPrice(), DictEnum.MARKET_BASE_USDT.getCode(), DictEnum.MARKET_BASE_BTC.getCode(), symbolTradeConfig);
+                    salePrice = getMultiplySalePrice(rateChangeVo.getBuyPrice(), DictEnum.HB_MARKET_BASE_USDT.getCode(), DictEnum.HB_MARKET_BASE_BTC.getCode(), symbolTradeConfig);
                 }
                 //原对下降
                 else {
-                    salePrice = getDivideSalePrice(rateChangeVo.getBuyPrice(), DictEnum.MARKET_BASE_USDT.getCode(), DictEnum.MARKET_BASE_BTC.getCode(), symbolTradeConfig);
+                    salePrice = getDivideSalePrice(rateChangeVo.getBuyPrice(), DictEnum.HB_MARKET_BASE_USDT.getCode(), DictEnum.HB_MARKET_BASE_BTC.getCode(), symbolTradeConfig);
                 }
                 //验证是否成功创建订单
                 tranResult = checkTransResult(rateChangeVo, quoteCurrency, salePrice, symbolTradeConfig);
             }
             //compare to eth
             if (!tranResult) {
-                otherSymbol = quoteCurrency + DictEnum.MARKET_BASE_ETH.getCode();
+                otherSymbol = quoteCurrency + DictEnum.HB_MARKET_BASE_ETH.getCode();
                 rateChangeVo = compareToOtherCurrency(symbol, otherSymbol, increase, symbolTradeConfig);
                 if (StringUtils.isNotEmpty(rateChangeVo.getBuyerSymbol())) {
                     //原对增长
                     if (increase.compareTo(BigDecimal.ZERO) > 0) {
-                        salePrice = getMultiplySalePrice(rateChangeVo.getBuyPrice(), DictEnum.MARKET_BASE_USDT.getCode(), DictEnum.MARKET_BASE_ETH.getCode(), symbolTradeConfig);
+                        salePrice = getMultiplySalePrice(rateChangeVo.getBuyPrice(), DictEnum.HB_MARKET_BASE_USDT.getCode(), DictEnum.HB_MARKET_BASE_ETH.getCode(), symbolTradeConfig);
                     }
                     //原对下降
                     else {
-                        salePrice = getDivideSalePrice(rateChangeVo.getBuyPrice(), DictEnum.MARKET_BASE_USDT.getCode(), DictEnum.MARKET_BASE_ETH.getCode(), symbolTradeConfig);
+                        salePrice = getDivideSalePrice(rateChangeVo.getBuyPrice(), DictEnum.HB_MARKET_BASE_USDT.getCode(), DictEnum.HB_MARKET_BASE_ETH.getCode(), symbolTradeConfig);
                     }
                     //验证是否成功创建订单
                     checkTransResult(rateChangeVo, quoteCurrency, salePrice, symbolTradeConfig);
@@ -259,13 +262,13 @@ public class MarketMonitorBiz {
         boolean tranResult = false;
         try {
             rateChangeVo.setQuoteCurrency(quoteCurrency);
-            //set sale price
+            //set hbToSale price
             rateChangeVo.setSalePrice(salePrice);
             //要购买的交易对主对
-            String baseCurrency = getBaseCurrency(rateChangeVo.getBuyerSymbol());
+            String baseCurrency = marketRuleBiz.getHbBaseCurrency(rateChangeVo.getBuyerSymbol());
             rateChangeVo.setBaseCurrency(baseCurrency);
             //交易
-            tranResult = transBiz.buy(rateChangeVo, symbolTradeConfig);
+            tranResult = transBiz.hbToBuy(rateChangeVo, symbolTradeConfig);
         } catch (ApiException e) {
             log.warn("buy fail.errCode={},errMsg={}", e.getErrCode(), e.getMessage());
         }
@@ -372,36 +375,18 @@ public class MarketMonitorBiz {
     private String twoBaseCurrencyGroup(String base1, String base2) {
         String baseSymbol = null;
         //is usdt
-        if (DictEnum.MARKET_BASE_USDT.getCode().equals(base1)) {
+        if (DictEnum.HB_MARKET_BASE_USDT.getCode().equals(base1)) {
             baseSymbol = base2 + base1;
-        } else if (DictEnum.MARKET_BASE_USDT.getCode().equals(base2)) {
+        } else if (DictEnum.HB_MARKET_BASE_USDT.getCode().equals(base2)) {
             baseSymbol = base1 + base2;
-        } else if (DictEnum.MARKET_BASE_BTC.getCode().equals(base1)) {
+        } else if (DictEnum.HB_MARKET_BASE_BTC.getCode().equals(base1)) {
             baseSymbol = base2 + base1;
-        } else if (DictEnum.MARKET_BASE_BTC.getCode().equals(base2)) {
+        } else if (DictEnum.HB_MARKET_BASE_BTC.getCode().equals(base2)) {
             baseSymbol = base1 + base2;
         }
         log.info("baseSymbol={}", baseSymbol);
         return baseSymbol;
     }
 
-    private String getBaseCurrency(String symbol) {
-        String baseCurrency;
-        if (symbol.endsWith(DictEnum.MARKET_BASE_BTC.getCode()) || symbol.endsWith(DictEnum.MARKET_BASE_ETH.getCode())) {
-            baseCurrency = symbol.substring(symbol.length() - 3, symbol.length());
-        } else {
-            baseCurrency = symbol.substring(symbol.length() - 4, symbol.length());
-        }
-        return baseCurrency;
-    }
 
-    private String getQuoteCurrency(String symbol) {
-        String quoteCurrency;
-        if (symbol.endsWith(DictEnum.MARKET_BASE_BTC.getCode()) || symbol.endsWith(DictEnum.MARKET_BASE_ETH.getCode())) {
-            quoteCurrency = symbol.substring(0, symbol.length() - 3);
-        } else {
-            quoteCurrency = symbol.substring(0, symbol.length() - 4);
-        }
-        return quoteCurrency;
-    }
 }

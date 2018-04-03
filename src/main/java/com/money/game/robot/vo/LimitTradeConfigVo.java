@@ -14,6 +14,9 @@ public class LimitTradeConfigVo implements Serializable {
 
     private String oid;
 
+    /**
+     * 交易对代码
+     */
     private String symbol;
 
     /**

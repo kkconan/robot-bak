@@ -10,7 +10,7 @@ public class BatchcancelResponse<T> {
 
 
     /**
-     * status : ok
+     * state : ok
      * data : {"success":["1","3"],"failed":[{"err-msg":"记录无效","order-id":"2","err-code":"base-record-invalid"}]}
      */
 

@@ -25,6 +25,14 @@ public class ExecutorBean {
     }
 
     @Bean
+    public Executor zbMarketMonitor() {
+        ThreadPoolTaskExecutor executor = init();
+        executor.setThreadNamePrefix("zbMarketMonitor-");
+        executor.initialize();
+        return executor;
+    }
+
+    @Bean
     public Executor oneMarketMonitor() {
         ThreadPoolTaskExecutor executor = init();
         executor.setThreadNamePrefix("oneMarketMonitor-");

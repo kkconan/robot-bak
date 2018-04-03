@@ -1,12 +1,15 @@
 package com.money.game.robot;
 
-import com.money.game.robot.biz.MarketMonitorBiz;
+import com.money.game.robot.biz.HbMarketMonitorBiz;
 import com.money.game.robot.biz.SymbolTradeConfigBiz;
+import com.money.game.robot.biz.UserBiz;
+import com.money.game.robot.biz.ZbMarketMonitorBiz;
 import com.money.game.robot.entity.SymbolTradeConfigEntity;
-import com.money.game.robot.mail.MailQQ;
+import com.money.game.robot.entity.UserEntity;
 import com.money.game.robot.market.HuobiApi;
 import com.money.game.robot.schedule.MonitorSchedule;
 import com.money.game.robot.vo.huobi.SymBolsDetailVo;
+import com.money.game.robot.zb.api.ZbApi;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -34,7 +37,7 @@ import java.util.List;
 public class MarketMonitorBizTest {
 
     @Autowired
-    private MarketMonitorBiz marketMonitorBiz;
+    private HbMarketMonitorBiz marketMonitorBiz;
 
     @Autowired
     private HuobiApi huobiApi;
@@ -45,12 +48,21 @@ public class MarketMonitorBizTest {
     @Autowired
     private SymbolTradeConfigBiz symbolTradeConfigBiz;
 
+    @Autowired
+    private ZbMarketMonitorBiz zbMarketMonitorBiz;
+
+    @Autowired
+    private ZbApi zbApi;
+
+    @Autowired
+    private UserBiz userBiz;
+
     /**
      * 火币单种行情监控
      */
     @Test
     public void huoBiMonitorTest() throws Exception {
-//        marketMonitorBiz.huoBiMonitor(DictEnum.MARKET_HUOBI_SYMBOL_BTC_USDT.getCode());
+//        marketMonitorBiz.zbMonitor(DictEnum.MARKET_HUOBI_SYMBOL_BTC_USDT.getCode());
         CloseableHttpClient httpclient = HttpClientBuilder.create().build();
         HttpGet httpGet = new HttpGet("https://api.huobipro.com/market/history/kline?period=1min&size=1&symbol=mtxbtc");
         CloseableHttpResponse response = httpclient.execute(httpGet);
@@ -84,7 +96,8 @@ public class MarketMonitorBizTest {
      */
     @Test
     public void sendEmailTest() throws Exception {
-        MailQQ.sendEmail("aa", "bbb", "824968443@qq.com");
+        List<UserEntity> list = userBiz.findAllByNormal();
+        log.info("list={}", list);
 
     }
 
@@ -97,4 +110,18 @@ public class MarketMonitorBizTest {
         marketMonitorBiz.checkToTrans("eoseth", new BigDecimal("0.1"), symbolTradeConfigEntity);
 
     }
+
+
+    @Test
+    @Rollback(false)
+    public void zbMonitorTest() {
+        try {
+            zbMarketMonitorBiz.zbMonitor("eth_usdt");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+    }
+
+
 }

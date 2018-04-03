@@ -14,9 +14,9 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class LogAspect {
 
-    @Pointcut("execution(* com.money.game.robot.biz.MarketMonitorBiz.asyncDoMonitor(..)) || " +
+    @Pointcut("execution(* com.money.game.robot.biz.HbMarketMonitorBiz.asyncDoMonitor(..)) || " +
             "execution(* com.money.game.robot.schedule.MonitorSchedule.check*(..)) || " +
-            "execution(* com.money.game.robot.biz.TransBiz.createModelLimitOrder(..))")
+            "execution(* com.money.game.robot.biz.TransBiz.hbCreateModelLimitOrder(..))")
     public void aspect() {
 
     }

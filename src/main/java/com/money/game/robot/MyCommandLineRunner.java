@@ -1,6 +1,6 @@
 package com.money.game.robot;
 
-import com.money.game.robot.biz.MarketMonitorBiz;
+import com.money.game.robot.biz.HbMarketMonitorBiz;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
 public class MyCommandLineRunner implements CommandLineRunner {
 
     @Autowired
-    private MarketMonitorBiz marketMonitorBiz;
+    private HbMarketMonitorBiz marketMonitorBiz;
 
     @Override
     public void run(String... var1) throws Exception{
