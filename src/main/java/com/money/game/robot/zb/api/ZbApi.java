@@ -158,6 +158,17 @@ public class ZbApi {
     }
 
     /**
+     * 最新行情数据
+     */
+    public ZbOrderDepthVo ticker(String currency) {
+        String url = apiHost + "/data/v1/ticker?market=" + currency;
+        log.info(currency + "-testTicker url: " + url);
+        // 请求测试
+        String callback = get(url);
+        return get(url, new TypeReference<ZbOrderDepthVo>() {
+        });
+    }
+    /**
      * 获取个人信息
      */
     public List<ZbAccountDetailVo> getAccountInfo(BaseZbDto dto) {
