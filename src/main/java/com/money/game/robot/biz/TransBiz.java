@@ -450,10 +450,10 @@ public class TransBiz {
             maxBalance = maxBalance.compareTo(symbolTradeConfig.getUsdtMaxUse()) < 0 ? maxBalance : symbolTradeConfig.getUsdtMaxUse();
             amount = maxBalance.divide(newPrice, 4, BigDecimal.ROUND_FLOOR);
         } else if (symbol.endsWith(DictEnum.MARKET_BASE_BTC.getCode())) {
-            maxBalance = maxBalance.compareTo(symbolTradeConfig.getBtcMaxUse()) < 0 ? maxBalance : symbolTradeConfig.getUsdtMaxUse();
+            maxBalance = maxBalance.compareTo(symbolTradeConfig.getBtcMaxUse()) < 0 ? maxBalance : symbolTradeConfig.getBtcMaxUse();
             amount = maxBalance.divide(newPrice, 8, BigDecimal.ROUND_FLOOR);
         } else {
-            maxBalance = maxBalance.compareTo(symbolTradeConfig.getEthMxzUse()) < 0 ? maxBalance : symbolTradeConfig.getUsdtMaxUse();
+            maxBalance = maxBalance.compareTo(symbolTradeConfig.getEthMxzUse()) < 0 ? maxBalance : symbolTradeConfig.getEthMxzUse();
             amount = maxBalance.divide(newPrice, 8, BigDecimal.ROUND_FLOOR);
         }
         log.info("getBuyAmount,symbols={},newPrice={},amount={},symbolTradeConfig={}", symbol, newPrice, amount, symbolTradeConfig);
