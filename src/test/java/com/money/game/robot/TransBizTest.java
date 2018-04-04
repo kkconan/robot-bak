@@ -19,25 +19,31 @@ public class TransBizTest {
 
     @Autowired
     TransBiz transBiz;
+
     @Test
-    public void transTest(){
+    public void transTest() {
 //        transBiz.trans("eoseth","eos",new BigDecimal(0.1),"1min",2,new BigDecimal(0.05));
     }
 
     @Test
-    public void limitBuyOrderTest(){
+    public void limitBuyOrderTest() {
         transBiz.hbTransModelLimitOrder();
     }
 
 
     @Test
-    public void zbToSaleTest(){
+    public void zbToSaleTest() {
         transBiz.zbToSale();
     }
 
     @Test
-    public void zbCheckSaleFinishTest(){
+    public void zbCheckSaleFinishTest() {
         transBiz.zbCheckSaleFinish();
+    }
+
+    @Test
+    public void zbTransModelLimitOrderTest() {
+        transBiz.zbTransModelLimitOrder();
     }
 
 

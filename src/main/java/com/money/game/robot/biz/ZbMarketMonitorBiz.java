@@ -59,6 +59,9 @@ public class ZbMarketMonitorBiz {
     private RedisTemplate<String, String> redis;
 
 
+    /**
+     *
+     */
     @Async("zbMarketMonitor")
     public void asyncDoMonitor(List<ZbSymbolInfoVo> list) {
         for (ZbSymbolInfoVo zbSymbolInfoVo : list) {

@@ -24,8 +24,8 @@ public class LimitTradeConfgBiz {
     @Autowired
     private LimitTradeConfigService limitTradeConfigService;
 
-    public List<LimitTradeConfigEntity> findAllByUserId(String userId) {
-        return limitTradeConfigService.findAllByUserId(userId);
+    public List<LimitTradeConfigEntity> findAllByUserIdAndMarketType(String userId,String marketType) {
+        return limitTradeConfigService.findAllByUserIdAndMarketType(userId,marketType);
     }
 
     public List<LimitTradeConfigVo> findAllList(String userId) {

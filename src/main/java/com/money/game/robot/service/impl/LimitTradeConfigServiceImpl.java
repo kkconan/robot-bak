@@ -19,6 +19,11 @@ public class LimitTradeConfigServiceImpl implements LimitTradeConfigService {
     private LimitTrdeConfigDao limitTrdeConfigDao;
 
     @Override
+    public List<LimitTradeConfigEntity> findAllByUserIdAndMarketType(String userId, String marketType) {
+        return limitTrdeConfigDao.findAllByUserIdAndMarketType(userId,marketType);
+    }
+
+    @Override
     public List<LimitTradeConfigEntity> findAllByUserId(String userId) {
         return limitTrdeConfigDao.findAllByUserId(userId);
     }

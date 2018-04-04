@@ -27,4 +27,9 @@ public class AccountServiceImpl implements AccountService {
     public List<AccountEntity> findByTypeAndStatus(String type, String status) {
         return accountDao.findByTypeAndStatus(type,status);
     }
+
+    @Override
+    public AccountEntity save(AccountEntity entity) {
+        return accountDao.save(entity);
+    }
 }

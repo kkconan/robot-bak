@@ -174,7 +174,7 @@ public class TransBiz {
 
         List<AccountEntity> accountList = accountBiz.findByType(DictEnum.MARKET_TYPE_HB.getCode());
         for (AccountEntity accountEntity : accountList) {
-            List<LimitTradeConfigEntity> configList = limitTradeConfgBiz.findAllByUserId(accountEntity.getUserId());
+            List<LimitTradeConfigEntity> configList = limitTradeConfgBiz.findAllByUserIdAndMarketType(accountEntity.getUserId(), DictEnum.MARKET_TYPE_HB.getCode());
             for (LimitTradeConfigEntity config : configList) {
                 hbCreateModelLimitOrder(config, accountEntity);
             }
@@ -376,7 +376,7 @@ public class TransBiz {
     }
 
 
-    /*  *
+    /**
      * HB交易下单
      */
     private List<String> hbToBuyOrder(String symbol, BigDecimal buyPrice, String baseQuote, SymbolTradeConfigEntity symbolTradeConfig) {
@@ -459,7 +459,7 @@ public class TransBiz {
 
         List<AccountEntity> accountEntityList = accountBiz.findByType(DictEnum.MARKET_TYPE_ZB.getCode());
         for (AccountEntity accountEntity : accountEntityList) {
-            List<LimitTradeConfigEntity> configList = limitTradeConfgBiz.findAllByUserId(accountEntity.getOid());
+            List<LimitTradeConfigEntity> configList = limitTradeConfgBiz.findAllByUserIdAndMarketType(accountEntity.getUserId(), DictEnum.MARKET_TYPE_ZB.getCode());
             for (LimitTradeConfigEntity config : configList) {
                 zbCreateModelLimitOrder(config, accountEntity);
             }

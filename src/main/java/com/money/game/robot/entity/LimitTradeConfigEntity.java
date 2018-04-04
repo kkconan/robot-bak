@@ -49,6 +49,11 @@ public class LimitTradeConfigEntity extends UUID implements Serializable {
      */
     private BigDecimal totalAmount;
 
+    /**
+     * zb/hb
+     */
+    private String marketType;
+
 
     private Timestamp createTime;
 

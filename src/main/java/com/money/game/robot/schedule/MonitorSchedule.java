@@ -149,9 +149,15 @@ public class MonitorSchedule {
      */
     public void zbAllSymBolsMonitor() {
         List<ZbSymbolInfoVo> list = zbApi.getSymbolInfo();
-        List<List<ZbSymbolInfoVo>> allList = averageAssign(list, 50);
-        for (List<ZbSymbolInfoVo> subList : allList) {
-            zbMarketMonitorBiz.asyncDoMonitor(subList);
+//        List<List<ZbSymbolInfoVo>> allList = averageAssign(list, 50);
+        for (ZbSymbolInfoVo zbSymbolInfoVo : list) {
+            try {
+                Thread.sleep(1500);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+//            zb限制每秒只能请求一次行情接口,需改写逻辑
+            zbMarketMonitorBiz.zbMonitor(zbSymbolInfoVo.getCurrency());
         }
 
     }

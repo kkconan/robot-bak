@@ -10,6 +10,8 @@ import java.util.List;
  **/
 public interface LimitTradeConfigService {
 
+    List<LimitTradeConfigEntity> findAllByUserIdAndMarketType(String userId,String marketType);
+
     List<LimitTradeConfigEntity> findAllByUserId(String userId);
 
     LimitTradeConfigEntity findById(String oid);

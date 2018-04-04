@@ -24,10 +24,6 @@ import java.util.List;
 @Slf4j
 @Component
 public class AccountBiz {
-
-    @Autowired
-    private UserBiz userBiz;
-
     @Autowired
     private AccountService accountService;
 
@@ -43,7 +39,18 @@ public class AccountBiz {
     }
 
     public List<AccountEntity> findByType(String type) {
-        return accountService.findByTypeAndStatus(type,DictEnum.USER_STATUS_NORMAL.getCode());
+        List<AccountEntity> list = accountService.findByTypeAndStatus(type, DictEnum.USER_STATUS_NORMAL.getCode());
+        for (AccountEntity accountEntity : list) {
+            if (StringUtil.isEmpty(accountEntity.getAccountId()) || DictEnum.MARKET_TYPE_HB.getCode().equals(type)) {
+                HuobiBaseDto dto = new HuobiBaseDto();
+                dto.setApiKey(accountEntity.getApiKey());
+                dto.setApiSecret(accountEntity.getApiSecret());
+                Accounts accounts = this.getHuobiSpotAccounts(dto);
+                accountEntity.setAccountId(String.valueOf(accounts.getId()));
+                accountService.save(accountEntity);
+            }
+        }
+        return list;
     }
 
     /**

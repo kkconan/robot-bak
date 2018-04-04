@@ -13,4 +13,6 @@ public interface AccountService {
     AccountEntity findByUserIdAndType(String userId, String type);
 
     List<AccountEntity> findByTypeAndStatus(String type,String status);
+
+    AccountEntity save(AccountEntity entity);
 }

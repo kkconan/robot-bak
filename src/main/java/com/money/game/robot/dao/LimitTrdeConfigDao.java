@@ -10,8 +10,10 @@ import java.util.List;
  * @author conan
  *         2018/3/26 13:37
  **/
-public interface LimitTrdeConfigDao  extends JpaRepository<LimitTradeConfigEntity, String>, JpaSpecificationExecutor<LimitTradeConfigEntity>{
+public interface LimitTrdeConfigDao extends JpaRepository<LimitTradeConfigEntity, String>, JpaSpecificationExecutor<LimitTradeConfigEntity> {
 
     List<LimitTradeConfigEntity> findAllByUserId(String userId);
+
+    List<LimitTradeConfigEntity> findAllByUserIdAndMarketType(String userId, String marketType);
 
 }
