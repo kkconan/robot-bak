@@ -82,7 +82,7 @@ public class OrderBiz {
     /**
      * 保存hb下单记录
      */
-    public OrderEntity saveHbOrder(String orderId, String rateChangeId, String buyOrderId, String symbolTradeConfigId, String userId, String orderType,String model) {
+    public OrderEntity saveHbOrder(String orderId, String rateChangeId, String buyOrderId, String symbolTradeConfigId, String userId, String orderType, String model) {
 
         HuobiBaseDto dto = new HuobiBaseDto();
         dto.setOrderId(orderId);
@@ -147,7 +147,7 @@ public class OrderBiz {
     /**
      * 保存zb下单记录
      */
-    public OrderEntity savezbOrder(String orderId, String symbol, String rateChangeId, String buyOrderId, String symbolTradeConfigId, String userId, String orderType,String model) {
+    public OrderEntity saveZbOrder(String orderId, String symbol, String rateChangeId, String buyOrderId, String symbolTradeConfigId, String userId, String orderType, String model) {
 
         ZbOrderDetailDto dto = new ZbOrderDetailDto();
         dto.setOrderId(orderId);
@@ -188,8 +188,9 @@ public class OrderBiz {
 
         ZbOrderDetailVo detailVo = zbApi.orderDetail(dto);
         //订单状态或者成交数量有变动
-        if (detailVo != null && (!detailVo.getState().equals(orderEntity.getState()) || !detailVo.getFieldAmount().equals(orderEntity.getFieldAmount()))) {
-            BeanUtils.copyProperties(detailVo, orderEntity);
+        if (detailVo != null && (!detailVo.getState().equals(orderEntity.getState()) || detailVo.getFieldAmount().compareTo(orderEntity.getFieldAmount()) != 0)) {
+            orderEntity.setFieldAmount(detailVo.getFieldAmount());
+            orderEntity.setState(detailVo.getState());
             orderEntity = this.saveOrder(orderEntity);
         }
         return orderEntity;
@@ -233,7 +234,7 @@ public class OrderBiz {
         states.add(DictEnum.ORDER_DETAIL_STATE_SUBMITTING.getCode());
         states.add(DictEnum.ORDER_DETAIL_STATE_SUBMITTED.getCode());
         states.add(DictEnum.ORDER_DETAIL_STATE_PARTIAL_FILLED.getCode());
-        return orderService.findByParam(userId, model, orderType, symbol, symbolTradeConfigId,DictEnum.MARKET_TYPE_HB.getCode(), states);
+        return orderService.findByParam(userId, model, orderType, symbol, symbolTradeConfigId, DictEnum.MARKET_TYPE_HB.getCode(), states);
 
     }
 
@@ -267,7 +268,7 @@ public class OrderBiz {
         List<String> states = new ArrayList<>();
         states.add(DictEnum.ZB_ORDER_DETAIL_STATE_0.getCode());
         states.add(DictEnum.ZB_ORDER_DETAIL_STATE_3.getCode());
-        return orderService.findByParam(userId, model, orderType, symbol, symbolTradeConfigId, DictEnum.MARKET_TYPE_ZB.getCode(),states);
+        return orderService.findByParam(userId, model, orderType, symbol, symbolTradeConfigId, DictEnum.MARKET_TYPE_ZB.getCode(), states);
 
     }
 

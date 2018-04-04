@@ -129,7 +129,7 @@ public class AccountBiz {
 
     public BaseZbDto setZbApiKey(BaseZbDto dto, String userId) {
         if (StringUtil.isEmpty(dto.getAccessKey())) {
-            AccountEntity accountEntity = accountService.findByUserIdAndType(userId, DictEnum.MARKET_TYPE_HB.getCode());
+            AccountEntity accountEntity = accountService.findByUserIdAndType(userId, DictEnum.MARKET_TYPE_ZB.getCode());
             dto.setAccessKey(accountEntity.getApiKey());
             dto.setSecretKey(accountEntity.getApiSecret());
         }

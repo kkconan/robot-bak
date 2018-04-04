@@ -1,5 +1,6 @@
 package com.money.game.robot.biz;
 
+import com.money.game.core.util.StrRedisUtil;
 import com.money.game.core.util.StringUtil;
 import com.money.game.robot.constant.DictEnum;
 import com.money.game.robot.constant.ErrorEnum;
@@ -19,6 +20,7 @@ import com.money.game.robot.zb.api.ZbApi;
 import com.money.game.robot.zb.vo.ZbCreateOrderVo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -42,6 +44,9 @@ public class TradeBiz {
 
     @Autowired
     private ZbApi zbApi;
+
+    @Autowired
+    private RedisTemplate<String, String> redis;
 
     /**
      * create hb order
@@ -165,20 +170,21 @@ public class TradeBiz {
      */
     public String zbCreateOrder(String symbol, BigDecimal price, BigDecimal amount, String tradeType, String userId) {
         AccountEntity account = accountBiz.getByUserIdAndType(userId, DictEnum.MARKET_TYPE_ZB.getCode());
-        //todo 精度放到redis里面，下单获取
         if (StringUtil.isEmpty(account.getApiKey()) || StringUtil.isEmpty(account.getApiSecret())) {
             throw new BizException(ErrorEnum.USER_API_NOT_FOUND);
         }
+        Integer priceScale = Integer.valueOf(StrRedisUtil.get(redis, DictEnum.ZB_CURRENCY_KEY_PRICE.getCode() + symbol));
+        Integer amountScale = Integer.valueOf(StrRedisUtil.get(redis, DictEnum.ZB_CURRENCY__KEY_AMOUNT.getCode() + symbol));
         ZbCreateOrderDto dto = new ZbCreateOrderDto();
         dto.setAccessKey(account.getApiKey());
         dto.setSecretKey(account.getApiSecret());
         dto.setCurrency(symbol);
-        dto.setPrice(price.toString());
-        dto.setAmount(amount.toString());
+        dto.setPrice(price.setScale(priceScale, BigDecimal.ROUND_HALF_UP).toString());
+        dto.setAmount(amount.setScale(amountScale, BigDecimal.ROUND_HALF_UP).toString());
         dto.setTradeType(tradeType);
         ZbCreateOrderVo vo = zbApi.createOrder(dto);
         if (!"1000".equals(vo.getCode())) {
-            log.error("订单创建失败,vo={}", vo);
+            log.error("订单创建失败,errno={},errMsg={},dto={}", vo.getCode(), vo.getMessage(), dto);
             throw new BizException(ErrorEnum.CREATE_ORDER_FAIL);
         }
         return vo.getId();

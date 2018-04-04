@@ -1,19 +1,20 @@
 package com.money.game.robot.zb.vo;
 
-import lombok.Data;
+import com.google.gson.annotations.SerializedName;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 
 /**
  * @author conan
  *         2018/3/30 10:32
  **/
-@Data
-public class ZbOrderDetailVo {
+public class ZbOrderDetailVo implements Serializable {
     /**
      * 交易类型
      */
-    private String currency;
+    @SerializedName("currency")
+    private String symbol;
 
     /**
      * 委托挂单号
@@ -27,35 +28,107 @@ public class ZbOrderDetailVo {
     /**
      * 挂单状态(1：取消,2：交易完成,0/3：待成交/待成交未交易部份)
      */
-    @com.google.gson.annotations.SerializedName("state")
+    @SerializedName("status")
     private String state;
 
     /**
      * 挂单总数量
      */
-    @com.google.gson.annotations.SerializedName("total_amount")
-    private BigDecimal totalAmount;
+    @SerializedName("total_amount")
+    private BigDecimal amount;
 
     /**
      * 已成交数量
      */
-    @com.google.gson.annotations.SerializedName("trade_amount")
+    @SerializedName("trade_amount")
     private BigDecimal fieldAmount;
 
     /**
      * 委托时间
      */
-    @com.google.gson.annotations.SerializedName("trade_date")
+    @SerializedName("trade_date")
     private Long tradeDate;
 
     /**
      * 已成交总金额
      */
-    @com.google.gson.annotations.SerializedName("trade_money")
+    @SerializedName("trade_money")
     private BigDecimal fieldCashAmount;
 
     /**
      * 挂单类型 1/0[buy/sell]
      */
     private String type;
+
+    public String getSymbol() {
+        return symbol;
+    }
+
+    public void setSymbol(String symbol) {
+        this.symbol = symbol;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public BigDecimal getPrice() {
+        return price;
+    }
+
+    public void setPrice(BigDecimal price) {
+        this.price = price;
+    }
+
+    public String getState() {
+        return state;
+    }
+
+    public void setState(String state) {
+        this.state = state;
+    }
+
+    public BigDecimal getAmount() {
+        return amount;
+    }
+
+    public void setAmount(BigDecimal amount) {
+        this.amount = amount;
+    }
+
+    public BigDecimal getFieldAmount() {
+        return fieldAmount;
+    }
+
+    public void setFieldAmount(BigDecimal fieldAmount) {
+        this.fieldAmount = fieldAmount;
+    }
+
+    public Long getTradeDate() {
+        return tradeDate;
+    }
+
+    public void setTradeDate(Long tradeDate) {
+        this.tradeDate = tradeDate;
+    }
+
+    public BigDecimal getFieldCashAmount() {
+        return fieldCashAmount;
+    }
+
+    public void setFieldCashAmount(BigDecimal fieldCashAmount) {
+        this.fieldCashAmount = fieldCashAmount;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
 }

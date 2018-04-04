@@ -1,5 +1,6 @@
 package com.money.game.robot.biz;
 
+import com.money.game.core.util.StrRedisUtil;
 import com.money.game.robot.constant.DictEnum;
 import com.money.game.robot.entity.AccountEntity;
 import com.money.game.robot.entity.SymbolTradeConfigEntity;
@@ -10,14 +11,17 @@ import com.money.game.robot.zb.api.ZbApi;
 import com.money.game.robot.zb.vo.ZbKineDetailVo;
 import com.money.game.robot.zb.vo.ZbKineVo;
 import com.money.game.robot.zb.vo.ZbSymbolInfoVo;
+import com.money.game.robot.zb.vo.ZbTickerVo;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -51,6 +55,9 @@ public class ZbMarketMonitorBiz {
     @Autowired
     private MarketRuleBiz marketRuleBiz;
 
+    @Autowired
+    private RedisTemplate<String, String> redis;
+
 
     @Async("zbMarketMonitor")
     public void asyncDoMonitor(List<ZbSymbolInfoVo> list) {
@@ -61,21 +68,36 @@ public class ZbMarketMonitorBiz {
 
     public void zbMonitor(String symbol) {
         ZbKineVo info = zbApi.getKline(symbol, DictEnum.MARKET_PERIOD_1MIN.getCode(), 6);
-        if (info != null && info.getData().size() > 0) {
+        if (info.getData() != null && info.getData().size() > 0) {
+            List<ZbKineDetailVo> kineDetailVoList = info.getData();
+            // 倒序排列,zb最新数据在最后面
+            Collections.reverse(kineDetailVoList);
             List<UserEntity> userList = userBiz.findAllByNormal();
 
-            ZbKineDetailVo nowVo = info.getData().get(0);
+            ZbKineDetailVo nowVo = kineDetailVoList.get(0);
             for (UserEntity user : userList) {
                 AccountEntity account = accountBiz.getByUserIdAndType(user.getOid(), DictEnum.MARKET_TYPE_ZB.getCode());
                 if (account != null && StringUtils.isNotEmpty(account.getApiKey())) {
                     // 1min monitor
-                    oneMinMonitor(symbol, nowVo, info.getData(), user);
+                    oneMinMonitor(symbol, nowVo, kineDetailVoList, user);
                     // 5min monitor
-                    fiveMinMonitor(symbol, nowVo, info.getData(), user);
+                    fiveMinMonitor(symbol, nowVo, kineDetailVoList, user);
                 }
             }
         }
 
+    }
+
+    /**
+     * 初始化zb各交易对小数位
+     */
+    public void initScaleToRedis() {
+        List<ZbSymbolInfoVo> list = zbApi.getSymbolInfo();
+        for (ZbSymbolInfoVo vo : list) {
+            StrRedisUtil.set(redis, DictEnum.ZB_CURRENCY_KEY_PRICE.getCode() + vo.getCurrency(), vo.getPriceScale());
+            StrRedisUtil.set(redis, DictEnum.ZB_CURRENCY__KEY_AMOUNT.getCode() + vo.getCurrency(), vo.getAmountScale());
+
+        }
     }
 
     private void oneMinMonitor(String symbol, ZbKineDetailVo nowVo, List<ZbKineDetailVo> detailVos, UserEntity user) {
@@ -289,8 +311,8 @@ public class ZbMarketMonitorBiz {
      */
     private BigDecimal getMultiplySalePrice(BigDecimal buyPrice, String base1, String base2, BigDecimal rateValue) {
         String baseCurrencyGroup = twoBaseCurrencyGroup(base1, base2);
-        ZbKineVo info = zbApi.getKline(baseCurrencyGroup, DictEnum.MARKET_PERIOD_1MIN.getCode(), 1);
-        return marketRuleBiz.getMultiplySalePrice(buyPrice, info.getData().get(0).getClose(), rateValue);
+        ZbTickerVo info = zbApi.getTicker(baseCurrencyGroup);
+        return marketRuleBiz.getMultiplySalePrice(buyPrice, info.getLast(), rateValue);
     }
 
     /**
@@ -298,8 +320,8 @@ public class ZbMarketMonitorBiz {
      */
     private BigDecimal getDivideSalePrice(BigDecimal buyPrice, String base1, String base2, BigDecimal rateValue) {
         String baseCurrencyGroup = twoBaseCurrencyGroup(base1, base2);
-        ZbKineVo info = zbApi.getKline(baseCurrencyGroup, DictEnum.MARKET_PERIOD_1MIN.getCode(), 1);
-        return marketRuleBiz.getDivideSalePrice(buyPrice, info.getData().get(0).getClose(), rateValue);
+        ZbTickerVo info = zbApi.getTicker(baseCurrencyGroup);
+        return marketRuleBiz.getDivideSalePrice(buyPrice, info.getLast(), rateValue);
     }
 
 

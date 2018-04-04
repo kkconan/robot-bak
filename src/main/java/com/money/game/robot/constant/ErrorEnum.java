@@ -30,7 +30,7 @@ public enum ErrorEnum {
     SMS_CODE_CHECK_FAIL("1013","无效的验证码"),
 
     CANCEL_ORDER_FAIL("1014", "撤销订单失败"),
-    USER_API_NOT_FOUND("1015", "用户api信息未设置"),
+    USER_API_NOT_FOUND("1015", "用户api信息未设置或设置错误"),
     CREATE_ORDER_FAIL("1016", "创建订单失败"),
 
     SYSTEM_ERROR("-1", "系统异常");

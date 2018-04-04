@@ -166,6 +166,9 @@ public enum DictEnum {
     ZB_ORDER_TRADE_TYPE_SELL("0","卖"),
     ZB_ORDER_TRADE_TYPE_BUY("1","买"),
 
+    ZB_CURRENCY_KEY_PRICE("currency_price_","价格小数位key值"),
+    ZB_CURRENCY__KEY_AMOUNT("currency_amount_","数量小数位key值"),
+
     ;
 
     public static List<String> filledOrderStates = new ArrayList<>();

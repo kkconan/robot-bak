@@ -20,9 +20,9 @@ import com.money.game.robot.service.RateChangeService;
 import com.money.game.robot.vo.huobi.MarketDetailVo;
 import com.money.game.robot.vo.huobi.RateChangeVo;
 import com.money.game.robot.zb.api.ZbApi;
-import com.money.game.robot.zb.vo.ZbKineDetailVo;
 import com.money.game.robot.zb.vo.ZbOrderDepthVo;
 import com.money.game.robot.zb.vo.ZbOrderDetailVo;
+import com.money.game.robot.zb.vo.ZbTickerVo;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.BeanUtils;
@@ -200,7 +200,7 @@ public class TransBiz {
             RateChangeEntity rateChangeEntity = rateChangeBiz.save(rateChangeVo);
             //保存下单结果
             for (String orderId : orderIds) {
-                orderBiz.savezbOrder(orderId, rateChangeVo.getBuyerSymbol(), rateChangeEntity.getOid(), null, symbolTradeConfig.getOid(),
+                orderBiz.saveZbOrder(orderId, rateChangeVo.getBuyerSymbol(), rateChangeEntity.getOid(), null, symbolTradeConfig.getOid(),
                         symbolTradeConfig.getUserId(), DictEnum.ORDER_TYPE_BUY_LIMIT.getCode(), DictEnum.ORDER_MODEL_REAL.getCode());
             }
             result = true;
@@ -225,8 +225,8 @@ public class TransBiz {
                 saleOrdes = zbBeginSaleOrder(rateChangeEntity, buyOrderEntity.getFieldAmount(), symbolTradeConfig);
                 for (String orderId : saleOrdes) {
                     //保存卖单
-                    orderBiz.savezbOrder(orderId, rateChangeEntity.getSaleSymbol(), rateChangeEntity.getOid(), buyOrderEntity.getOrderId(), symbolTradeConfig.getOid(),
-                            symbolTradeConfig.getUserId(), DictEnum.ORDER_TYPE_SELL_LIMIT.getCode(), DictEnum.ORDER_MODEL_LIMIT.getCode());
+                    orderBiz.saveZbOrder(orderId, rateChangeEntity.getSaleSymbol(), rateChangeEntity.getOid(), buyOrderEntity.getOrderId(), symbolTradeConfig.getOid(),
+                            symbolTradeConfig.getUserId(), DictEnum.ORDER_TYPE_SELL_LIMIT.getCode(), DictEnum.ORDER_MODEL_REAL.getCode());
                 }
                 //更新原买单状态
                 buyOrderEntity.setState(DictEnum.ZB_ORDER_DETAIL_STATE_4.getCode());
@@ -506,14 +506,14 @@ public class TransBiz {
         if (!result) {
             return;
         }
-        ZbKineDetailVo zbKineDetailVo = zbApi.getOneKineInfo(config.getSymbol());
-        if (zbKineDetailVo == null) {
+        ZbTickerVo zbTickerVo = zbApi.getTicker(config.getSymbol());
+        if (zbTickerVo == null) {
             log.info("获取行情失败");
             return;
         }
         log.info("创建限价单开始,symbols={},userId={}", config.getSymbol(), accountEntity.getUserId());
 
-        BigDecimal buyPrice = (new BigDecimal(1).subtract(config.getDecrease())).multiply(zbKineDetailVo.getClose());
+        BigDecimal buyPrice = (new BigDecimal(1).subtract(config.getDecrease())).multiply(zbTickerVo.getLast());
 
         String baseCurrency = marketRuleBiz.getZbBaseCurrency(config.getSymbol());
         //基对余额
@@ -522,7 +522,7 @@ public class TransBiz {
         BigDecimal totalAmount = config.getTotalAmount().compareTo(balanceMax) <= 0 ? config.getTotalAmount() : balanceMax;
         //购买数量
         BigDecimal amount = totalAmount.divide(buyPrice, 4, BigDecimal.ROUND_DOWN);
-        BigDecimal salePrice = (new BigDecimal(1).add(config.getIncrease())).multiply(zbKineDetailVo.getClose());
+        BigDecimal salePrice = (new BigDecimal(1).add(config.getIncrease())).multiply(zbTickerVo.getLast());
         CreateOrderDto buyOrderDto = new CreateOrderDto();
         buyOrderDto.setSymbol(config.getSymbol());
         buyOrderDto.setPrice(buyPrice);
@@ -534,7 +534,7 @@ public class TransBiz {
         //创建限价买单
         String buyOrderId = tradeBiz.zbCreateOrder(config.getSymbol(), buyPrice, amount, DictEnum.ZB_ORDER_TRADE_TYPE_BUY.getCode(), config.getUserId());
         //保存
-        orderBiz.savezbOrder(buyOrderId, config.getSymbol(), null, null, config.getOid(), config.getUserId(), DictEnum.ORDER_TYPE_BUY_LIMIT.getCode(), DictEnum.ORDER_MODEL_LIMIT.getCode());
+        orderBiz.saveZbOrder(buyOrderId, config.getSymbol(), null, null, config.getOid(), config.getUserId(), DictEnum.ORDER_TYPE_BUY_LIMIT.getCode(), DictEnum.ORDER_MODEL_LIMIT.getCode());
 
         String quoteCurrency = marketRuleBiz.getZbQuoteCurrency(config.getSymbol());
         //业务对余额
@@ -544,7 +544,7 @@ public class TransBiz {
         //创建限价卖单
         String saleOrderId = tradeBiz.zbCreateOrder(config.getSymbol(), salePrice, amount, DictEnum.ZB_ORDER_TRADE_TYPE_SELL.getCode(), config.getUserId());
         //保存
-        orderBiz.savezbOrder(saleOrderId, config.getSymbol(), null, buyOrderId, config.getOid(), config.getUserId(), DictEnum.ORDER_TYPE_SELL_LIMIT.getCode(), DictEnum.ORDER_MODEL_LIMIT.getCode());
+        orderBiz.saveZbOrder(saleOrderId, config.getSymbol(), null, buyOrderId, config.getOid(), config.getUserId(), DictEnum.ORDER_TYPE_SELL_LIMIT.getCode(), DictEnum.ORDER_MODEL_LIMIT.getCode());
         log.info("创建限价单结束,symbols={},userId={},buyOrderId={},saleOrderId={}", config.getSymbol(), accountEntity.getUserId(), buyOrderId, saleOrderId);
     }
 
@@ -593,7 +593,6 @@ public class TransBiz {
     private Map<BigDecimal, BigDecimal> checkDeptAndBeginCreate(String symbol, BigDecimal buyPrice, BigDecimal amount, String baseQuote, SymbolTradeConfigEntity symbolTradeConfig, List<List<BigDecimal>> bids, List<List<BigDecimal>> asks) {
         log.info("checkDeptAndBeginCreate,symbols={},buyPrice={},baseCurrency={}", symbol, buyPrice, baseQuote);
         Map<BigDecimal, BigDecimal> buyMap = new HashMap<>();
-
         //判断卖单是否足够
         for (List<BigDecimal> ask : asks) {
             //卖单价格
@@ -721,10 +720,12 @@ public class TransBiz {
             if ((salePrice.subtract(buyPrice)).divide(buyPrice, 4, BigDecimal.ROUND_HALF_UP).compareTo(symbolTradeConfig.getAsksBlunder()) <= 0) {
                 //买单足够
                 if (remainAmount.compareTo(BigDecimal.ZERO) > 0) {
-                    //卖一+上浮=购买价
+                    //买一+上浮=购买价
                     salePrice = salePrice.subtract(symbolTradeConfig.getBuyIncreasePrice());
                     BigDecimal saleAmount = bid.get(1);
-                    map.put(salePrice, saleAmount);
+                    //比较要卖的数量是否超过买一
+                    remainAmount = remainAmount.compareTo(saleAmount) < 0 ? remainAmount : saleAmount;
+                    map.put(salePrice, remainAmount);
                     log.info("买单价售出,salePrice={},remainAmount={},saleAmount={}", salePrice, remainAmount, saleAmount);
                     remainAmount = remainAmount.subtract(saleAmount);
                 } else {

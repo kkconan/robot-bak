@@ -8,7 +8,8 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.money.game.robot.constant.DictEnum;
+import com.google.gson.Gson;
+import com.money.game.robot.constant.ErrorEnum;
 import com.money.game.robot.dto.zb.BaseZbDto;
 import com.money.game.robot.dto.zb.ZbCancelOrderDto;
 import com.money.game.robot.dto.zb.ZbCreateOrderDto;
@@ -39,19 +40,11 @@ import java.util.*;
 @Slf4j
 public class ZbApi {
 
-    @Value("${zb.trade.host:https://trade.zb.com/api/}")
+    @Value("${zb.trade.host:https://trade.bitkk.com/api/}")
     public String tradeHost;
 
-    @Value("${zb.api.host:http://api.zb.com}")
+    @Value("${zb.api.host:http://api.bitkk.com}")
     public String apiHost;
-
-    public ZbKineDetailVo getOneKineInfo(String currency) {
-        ZbKineVo zbKineVo = getKline(currency, DictEnum.TRADE_CONFIG_THRESHOLD_TYPE_ONE_MIN.getCode(), 1);
-        if (zbKineVo != null && zbKineVo.getData() != null) {
-            return zbKineVo.getData().get(0);
-        }
-        return null;
-    }
 
     /**
      * 获取K线行情
@@ -140,8 +133,9 @@ public class ZbApi {
         params.put("method", "getOrder");
         params.put("id", dto.getOrderId());
         params.put("currency", dto.getCurrency());
-        return this.post(params, dto.getAccessKey(), dto.getSecretKey(), new TypeReference<ZbOrderDetailVo>() {
-        });
+        String json = this.getJsonPost(params, dto.getAccessKey(), dto.getSecretKey());
+        Gson gson = new Gson();
+        return gson.fromJson(json, ZbOrderDetailVo.class);
     }
 
 
@@ -160,14 +154,13 @@ public class ZbApi {
     /**
      * 最新行情数据
      */
-    public ZbOrderDepthVo ticker(String currency) {
+    public ZbTickerVo getTicker(String currency) {
         String url = apiHost + "/data/v1/ticker?market=" + currency;
-        log.info(currency + "-testTicker url: " + url);
-        // 请求测试
-        String callback = get(url);
-        return get(url, new TypeReference<ZbOrderDepthVo>() {
+        ZbTickerResponseVo zbTickerResponseVo = get(url, new TypeReference<ZbTickerResponseVo>() {
         });
+        return zbTickerResponseVo.getTicker();
     }
+
     /**
      * 获取个人信息
      */
@@ -177,6 +170,10 @@ public class ZbApi {
         params.put("method", "getAccountInfo");
         ZbAccountResponseVo accountResponseVo = this.post(params, dto.getAccessKey(), dto.getSecretKey(), new TypeReference<ZbAccountResponseVo>() {
         });
+        if (accountResponseVo.getResult() == null) {
+            log.error("用户账户信息错误,accountResponseVo={}", accountResponseVo);
+            throw new BizException(ErrorEnum.USER_API_NOT_FOUND);
+        }
         return accountResponseVo.getResult().getCoins();
 
     }

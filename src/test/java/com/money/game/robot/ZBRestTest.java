@@ -1,6 +1,7 @@
 package com.money.game.robot;
 
 import com.money.game.robot.dto.zb.BaseZbDto;
+import com.money.game.robot.dto.zb.ZbOrderDetailDto;
 import com.money.game.robot.zb.EncryDigestUtil;
 import com.money.game.robot.zb.HttpUtilManager;
 import com.money.game.robot.zb.MapSort;
@@ -85,17 +86,16 @@ public class ZBRestTest {
     /**
      * 获取订单信息
      */
-//	 @Test
+    @Test
     public void testGetOrder() {
-        String orderId = "201710122805";
+        String orderId = "2018040430464889";
         try {
-            Map<String, String> params = new HashMap<String, String>();
-            params.put("method", "getOrder");
-            params.put("id", orderId);
-            params.put("currency", "ltc_btc");
-            String json = this.getJsonPost(params);
-
-            System.out.println("testGetOrder 结果: " + json);
+            ZbOrderDetailDto dto = new ZbOrderDetailDto();
+            dto.setCurrency("eos_usdt");
+            dto.setOrderId(orderId);
+            dto.setAccessKey("7c08f59f-1b32-4cd8-ab8e-cb32564f6e12");
+            dto.setSecretKey("3ad4640f-d2f5-4fa1-bedb-9752e1e38284");
+            zbApi.orderDetail(dto);
         } catch (Exception ex) {
             ex.printStackTrace();
         }

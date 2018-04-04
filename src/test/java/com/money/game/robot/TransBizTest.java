@@ -28,4 +28,17 @@ public class TransBizTest {
     public void limitBuyOrderTest(){
         transBiz.hbTransModelLimitOrder();
     }
+
+
+    @Test
+    public void zbToSaleTest(){
+        transBiz.zbToSale();
+    }
+
+    @Test
+    public void zbCheckSaleFinishTest(){
+        transBiz.zbCheckSaleFinish();
+    }
+
+
 }

@@ -116,7 +116,7 @@ public class MarketMonitorBizTest {
     @Rollback(false)
     public void zbMonitorTest() {
         try {
-            zbMarketMonitorBiz.zbMonitor("eth_usdt");
+            zbMarketMonitorBiz.zbMonitor("eos_usdt");
         } catch (Exception e) {
             e.printStackTrace();
         }
