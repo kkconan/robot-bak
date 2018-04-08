@@ -41,13 +41,15 @@ public class AccountBiz {
     public List<AccountEntity> findByType(String type) {
         List<AccountEntity> list = accountService.findByTypeAndStatus(type, DictEnum.USER_STATUS_NORMAL.getCode());
         for (AccountEntity accountEntity : list) {
-            if (StringUtil.isEmpty(accountEntity.getAccountId()) || DictEnum.MARKET_TYPE_HB.getCode().equals(type)) {
+            if (StringUtil.isEmpty(accountEntity.getAccountId()) && DictEnum.MARKET_TYPE_HB.getCode().equals(type)) {
                 HuobiBaseDto dto = new HuobiBaseDto();
                 dto.setApiKey(accountEntity.getApiKey());
                 dto.setApiSecret(accountEntity.getApiSecret());
                 Accounts accounts = this.getHuobiSpotAccounts(dto);
-                accountEntity.setAccountId(String.valueOf(accounts.getId()));
-                accountService.save(accountEntity);
+                if (accounts != null) {
+                    accountEntity.setAccountId(String.valueOf(accounts.getId()));
+                    accountService.save(accountEntity);
+                }
             }
         }
         return list;
