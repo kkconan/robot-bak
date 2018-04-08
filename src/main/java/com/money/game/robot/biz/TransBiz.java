@@ -168,35 +168,35 @@ public class TransBiz {
         //买单状态更新
         List<OrderEntity> buyList = orderBiz.findByUserIdAndModel(userEntity.getOid(), DictEnum.ORDER_MODEL_LIMIT.getCode(), DictEnum.ORDER_TYPE_BUY_LIMIT.getCode(), config.getSymbol(), config.getOid());
         Iterator<OrderEntity> buyIt = buyList.iterator();
-        while (buyIt.hasNext()) {
-            OrderEntity buyOrder = buyIt.next();
-            buyOrder = orderBiz.updateOrderState(buyOrder);
-            //买单已完成
-            if (DictEnum.filledOrderStates.contains(buyOrder.getState())) {
-                log.info("买单已完结,buyOrder={}", buyOrder);
-                buyIt.remove();
-                if (DictEnum.ORDER_DETAIL_STATE_FILLED.getCode().equals(buyOrder.getState())) {
-                    transToEmailNotify(buyOrder);
-                }
-            }
-        }
+//        while (buyIt.hasNext()) {
+//            OrderEntity buyOrder = buyIt.next();
+//            buyOrder = orderBiz.updateOrderState(buyOrder);
+//            //买单已完成
+//            if (DictEnum.filledOrderStates.contains(buyOrder.getState())) {
+//                log.info("买单已完结,buyOrder={}", buyOrder);
+//                buyIt.remove();
+//                if (DictEnum.ORDER_DETAIL_STATE_FILLED.getCode().equals(buyOrder.getState())) {
+//                    transToEmailNotify(buyOrder);
+//                }
+//            }
+//        }
         //卖单状态更新
         List<OrderEntity> saleList = orderBiz.findByUserIdAndModel(userEntity.getOid(), DictEnum.ORDER_MODEL_LIMIT.getCode(), DictEnum.ORDER_TYPE_SELL_LIMIT.getCode(), config.getSymbol(), config.getOid());
         Iterator<OrderEntity> saleIt = saleList.iterator();
-        while (saleIt.hasNext()) {
-            OrderEntity saleOrder = saleIt.next();
-            saleOrder = orderBiz.updateOrderState(saleOrder);
-            //卖单已完成
-            if (DictEnum.filledOrderStates.contains(saleOrder.getState())) {
-                log.info("卖单已完结,saleOrder={}", saleOrder);
-                saleIt.remove();
-                if (DictEnum.ORDER_DETAIL_STATE_FILLED.getCode().equals(saleOrder.getState())) {
-                    transToEmailNotify(saleOrder);
-                }
-            }
-        }
+//        while (saleIt.hasNext()) {
+//            OrderEntity saleOrder = saleIt.next();
+//            saleOrder = orderBiz.updateOrderState(saleOrder);
+//            //卖单已完成
+//            if (DictEnum.filledOrderStates.contains(saleOrder.getState())) {
+//                log.info("卖单已完结,saleOrder={}", saleOrder);
+//                saleIt.remove();
+//                if (DictEnum.ORDER_DETAIL_STATE_FILLED.getCode().equals(saleOrder.getState())) {
+//                    transToEmailNotify(saleOrder);
+//                }
+//            }
+//        }
         //买单大于最大数量 || 买单不为空且买单等于卖单 ||买单有成交,卖单未成交
-        if (buyList.size() >= config.getMaxTradeCount() || (!buyList.isEmpty() && buyList.size() == buyList.size()) || (buyList.size() == (config.getMaxTradeCount() - 1) && saleList.size() > buyList.size())) {
+        if (buyList.size() >= config.getMaxTradeCount() || (!buyList.isEmpty() && buyList.size() == saleList.size()) || (buyList.size() == (config.getMaxTradeCount() - 1) && saleList.size() > buyList.size())) {
             log.info("挂单已满,symbol={},userId={},configId={}", config.getSymbol(), userEntity.getOid(), config.getOid());
             return;
         } else if (buyList.isEmpty() && saleList.size() >= config.getMaxTradeCount()) {
