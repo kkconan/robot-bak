@@ -30,9 +30,9 @@ public class LimitTradeConfgBiz {
 
     public List<LimitTradeConfigVo> findAllList(String userId) {
         List<LimitTradeConfigVo> voList = new ArrayList<>();
-        LimitTradeConfigVo vo = new LimitTradeConfigVo();
         List<LimitTradeConfigEntity> list = limitTradeConfigService.findAllByUserId(userId);
         for (LimitTradeConfigEntity entity : list) {
+            LimitTradeConfigVo vo = new LimitTradeConfigVo();
             BeanUtils.copyProperties(entity, vo);
             voList.add(vo);
         }
@@ -48,7 +48,7 @@ public class LimitTradeConfgBiz {
         return vo;
     }
 
-    public void save(LimitTradeConfigDto dto,String userId) {
+    public void save(LimitTradeConfigDto dto, String userId) {
         LimitTradeConfigEntity entity = new LimitTradeConfigEntity();
         entity.setUserId(userId);
         if (StringUtils.isNotEmpty(dto.getOid())) {
