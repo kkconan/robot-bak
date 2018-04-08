@@ -389,6 +389,7 @@ public class ApiClient {
             if (this.assetPassword != null) {
                 builder.addHeader("AuthData", authData());
             }
+            builder.addHeader("Content-type", "application/json");
             Request request = builder.build();
             Response response = client.newCall(request).execute();
             String s = response.body().string();

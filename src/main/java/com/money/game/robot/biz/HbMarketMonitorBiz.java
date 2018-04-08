@@ -80,15 +80,6 @@ public class HbMarketMonitorBiz {
 
     }
 
-    private void fiveMinMonitor(String symbol, MarketDetailVo nowVo, List<MarketDetailVo> detailVos, UserEntity user) {
-        MarketDetailVo lastMinVo = detailVos.get(1);
-        //查询用户五分钟交易配置
-        SymbolTradeConfigEntity symbolTradeConfig = symbolTradeConfigBiz.findByUserIdAndThresholdTypeAndMarketType(user.getOid(), DictEnum.TRADE_CONFIG_THRESHOLD_TYPE_FIVE_MIN.getCode(), DictEnum.MARKET_TYPE_HB.getCode());
-        if (symbolTradeConfig != null) {
-            checkMinMoitor(symbol, nowVo, lastMinVo, user, symbolTradeConfig);
-        }
-    }
-
     private void checkMinMoitor(String symbol, MarketDetailVo nowVo, MarketDetailVo lastMinVo, UserEntity user, SymbolTradeConfigEntity symbolTradeConfig) {
         RateChangeVo rateChangeVo = marketRuleBiz.initMonitor(symbol, nowVo.getClose(), lastMinVo.getClose(), symbolTradeConfig, user);
         if (rateChangeVo.isOperate()) {
@@ -221,6 +212,25 @@ public class HbMarketMonitorBiz {
         }
         return tranResult;
     }
+
+
+    /**
+     * 只有单个交易对的下降趋势检查
+     */
+//    private void checkOneQuoteCanTrade(RateChangeVo rateChangeVo, String symbol, BigDecimal nowPrice, BigDecimal increase) {
+//        MarketInfoVo info = huobiApi.getMarketInfo(DictEnum.MARKET_PERIOD_1MIN.getCode(), 6, symbol);
+//        BigDecimal otherMinPrice;
+//        BigDecimal otherMinIncrease;
+//        MarketDetailVo oneMinVo = info.getData().get(5);
+//        otherMinPrice = oneMinVo.getClose();
+//        //当前价格与5分钟之前的比较,
+//        otherMinIncrease = (nowPrice.subtract(otherMinPrice)).divide(otherMinPrice, 9, BigDecimal.ROUND_HALF_UP);
+//
+//        rateChangeVo = marketRuleBiz.getRateChangeVo(originSymbol, nowPrice, otherSymbol, increase, symbolTradeConfigEntity, nowPrice, otherMinPrice);
+//        rateChangeVo.setMarketType(DictEnum.MARKET_TYPE_HB.getCode());
+//        log.info("compare to other currency. otherSymbol={},increase={},nowPrice={},otherMinPrice={},otherMinIncrease={},rateChangeVo={}", otherSymbol, increase, nowPrice, otherMinPrice, otherMinIncrease, rateChangeVo);
+//        return rateChangeVo;
+//    }
 
     private boolean checkTransResult(RateChangeVo rateChangeVo, String quoteCurrency, BigDecimal salePrice, SymbolTradeConfigEntity symbolTradeConfig) {
         log.info("checkTransResult,rateChangeVo={},quoteCurrency={},salePrice={}", rateChangeVo, quoteCurrency, salePrice);

@@ -108,6 +108,8 @@ public class MarketRuleBiz {
                 rateChangeVo.setRateValue(otherMinIncrease.subtract(increase));
             }
         }
+        //存在其他主区交易对
+        rateChangeVo.setHasOtherBase(true);
         log.info("不同交易对比较结果,originSymbol={},otherSymbol={},increase={},nowPrice={},otherMinPrice={},otherMinIncrease={},rateChangeVo={}", originSymbol, otherSymbol, increase, otherNowPrice, otherMinPrice, otherMinIncrease, rateChangeVo);
         return rateChangeVo;
     }

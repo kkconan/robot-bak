@@ -73,4 +73,9 @@ public class RateChangeVo implements Serializable {
      * 短信和邮件通知的内容
      */
     private String context;
+
+    /**
+     * 存在其他主对交易区,例如eos存在btc,eth,usdt交易区
+     */
+    private boolean hasOtherBase = false;
 }

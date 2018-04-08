@@ -103,11 +103,11 @@ public class MonitorSchedule {
 
     @Scheduled(cron = "${cron.option[zb.symBols]:05 0/4 * * * ?}")
     public void zbSymBolsSchedule() {
-        if (isSchedule) {
+//        if (isSchedule) {
             log.info("zb all symbol monitor start...");
             this.zbAllSymBolsMonitor();
             log.info("ab all symbol monitor end...");
-        }
+//        }
     }
 
     /**
