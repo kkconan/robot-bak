@@ -10,7 +10,6 @@ import com.money.game.robot.dto.huobi.HuobiBaseDto;
 import com.money.game.robot.dto.huobi.IntrustOrderDto;
 import com.money.game.robot.dto.zb.ZbCreateOrderDto;
 import com.money.game.robot.entity.AccountEntity;
-import com.money.game.robot.entity.UserEntity;
 import com.money.game.robot.exception.BizException;
 import com.money.game.robot.huobi.api.ApiClient;
 import com.money.game.robot.huobi.api.ApiException;
@@ -54,7 +53,6 @@ public class TradeBiz {
 
     public String createHbOrder(CreateOrderDto dto) {
         if (StringUtil.isEmpty(dto.getApiKey())) {
-            UserEntity userEntity = userBiz.findById(dto.getUserId());
             AccountEntity accountEntity = accountBiz.getByUserIdAndType(dto.getUserId(), DictEnum.MARKET_TYPE_HB.getCode());
             dto.setApiKey(accountEntity.getApiKey());
             dto.setApiSecret(accountEntity.getApiSecret());
@@ -102,7 +100,7 @@ public class TradeBiz {
         ApiClient client = new ApiClient(dto.getApiKey(), dto.getApiSecret());
         SubmitcancelResponse response = client.submitcancel(dto.getOrderId());
         if (!"ok".equals(response.getStatus())) {
-            log.info("撤销订单失败,orderId={},errCode={},errmsg={},state={}", dto.getOrderId(), response.getErrCode(), response.getErrMsg(), response.getStatus());
+            log.info("撤销订单失败,orderId={},response={}", dto.getOrderId(), response);
             throw new BizException(response.getErrCode(), response.getErrMsg());
         }
     }

@@ -10,7 +10,7 @@ import com.money.game.robot.constant.ErrorEnum;
 import com.money.game.robot.huobi.request.CreateOrderRequest;
 import com.money.game.robot.huobi.request.DepthRequest;
 import com.money.game.robot.huobi.response.*;
-import lombok.extern.log4j.Log4j;
+import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
 import okhttp3.OkHttpClient.Builder;
 import org.apache.commons.lang.StringUtils;
@@ -39,7 +39,7 @@ import java.util.stream.Collectors;
  * conan
  */
 @Component
-@Log4j
+@Slf4j
 public class ApiClient {
 
     static final int CONN_TIMEOUT = 5;
@@ -97,7 +97,8 @@ public class ApiClient {
      */
     public List<Symbol> getSymbols() {
         ApiResponse<List<Symbol>> resp =
-                get("/v1/common/symbols", null, new TypeReference<ApiResponse<List<Symbol>>>() { });
+                get("/v1/common/symbols", null, new TypeReference<ApiResponse<List<Symbol>>>() {
+                });
         return resp.checkAndReturn();
     }
 
@@ -175,7 +176,7 @@ public class ApiClient {
     }
 
     /**
-     * GET /market/HbDepth 获取 Market Depth 数据
+     * GET /market/depth 获取 Market Depth 数据
      *
      * @param request
      * @return
@@ -185,7 +186,7 @@ public class ApiClient {
         map.put("symbol", request.getSymbol());
         map.put("type", request.getType());
 
-        DepthResponse resp = get("/market/HbDepth", map, new TypeReference<DepthResponse<Depth>>() {
+        DepthResponse resp = get("/market/depth", map, new TypeReference<DepthResponse<Depth>>() {
         });
         return resp;
     }
@@ -393,6 +394,7 @@ public class ApiClient {
             String s = response.body().string();
             return JsonUtil.readValue(s, ref);
         } catch (IOException e) {
+            log.warn("uri={},params={},e={}", uri, params, e);
             throw new ApiException(e);
         }
     }

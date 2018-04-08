@@ -71,7 +71,7 @@ public class ZbMarketMonitorBiz {
 
     public void zbMonitor(String symbol) {
         ZbKineVo info = zbApi.getKline(symbol, DictEnum.MARKET_PERIOD_1MIN.getCode(), 6);
-        if (info.getData() != null && info.getData().size() > 0) {
+        if (info != null && info.getData() != null && info.getData().size() > 0) {
             List<ZbKineDetailVo> kineDetailVoList = info.getData();
             // 倒序排列,zb最新数据在最后面
             Collections.reverse(kineDetailVoList);
@@ -104,26 +104,27 @@ public class ZbMarketMonitorBiz {
     }
 
     private void oneMinMonitor(String symbol, ZbKineDetailVo nowVo, List<ZbKineDetailVo> detailVos, UserEntity user) {
-        ZbKineDetailVo lastMinVo = detailVos.get(1);
         //查询用户一分钟zb交易配置
         SymbolTradeConfigEntity symbolTradeConfig = symbolTradeConfigBiz.findByUserIdAndThresholdTypeAndMarketType(user.getOid(), DictEnum.TRADE_CONFIG_THRESHOLD_TYPE_ONE_MIN.getCode(), DictEnum.MARKET_TYPE_ZB.getCode());
         if (symbolTradeConfig != null) {
+            ZbKineDetailVo lastMinVo = detailVos.get(1);
             checkMinMoitor(symbol, nowVo, lastMinVo, user, symbolTradeConfig);
         }
 
     }
 
     private void fiveMinMonitor(String symbol, ZbKineDetailVo nowVo, List<ZbKineDetailVo> detailVos, UserEntity user) {
-        ZbKineDetailVo lastMinVo = detailVos.get(5);
         //查询用户五分钟交易配置
         SymbolTradeConfigEntity symbolTradeConfig = symbolTradeConfigBiz.findByUserIdAndThresholdTypeAndMarketType(user.getOid(), DictEnum.TRADE_CONFIG_THRESHOLD_TYPE_FIVE_MIN.getCode(), DictEnum.MARKET_TYPE_ZB.getCode());
         if (symbolTradeConfig != null) {
+            ZbKineDetailVo lastMinVo = detailVos.get(5);
             checkMinMoitor(symbol, nowVo, lastMinVo, user, symbolTradeConfig);
         }
     }
 
     private void checkMinMoitor(String symbol, ZbKineDetailVo nowVo, ZbKineDetailVo lastMinVo, UserEntity user, SymbolTradeConfigEntity symbolTradeConfig) {
         RateChangeVo rateChangeVo = marketRuleBiz.initMonitor(symbol, nowVo.getClose(), lastMinVo.getClose(), symbolTradeConfig, user);
+        log.info("zb checkMinMoitor,rateChangeVo={}",rateChangeVo);
         if (rateChangeVo.isOperate()) {
             //check buy
             boolean transResult = checkToZbTrans(symbol, nowVo.getClose(), rateChangeVo.getRateValue(), symbolTradeConfig);

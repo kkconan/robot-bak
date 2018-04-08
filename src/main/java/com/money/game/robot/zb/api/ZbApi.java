@@ -57,8 +57,8 @@ public class ZbApi {
         String callback = get(url);
         JSONObject json = JSONObject.parseObject(callback);
         if (json == null || json.get("data") == null) {
-            log.info("交易对不存在,url={},json={}", url, json);
-            return kineVo;
+            log.info("获取详情失败,url={},json={}", url, json);
+            return null;
         }
         Object[] objects = json.getJSONArray("data").toArray();
         for (Object object : objects) {

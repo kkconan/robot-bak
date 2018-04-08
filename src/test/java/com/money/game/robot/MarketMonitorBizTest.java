@@ -1,15 +1,13 @@
 package com.money.game.robot;
 
-import com.money.game.robot.biz.HbMarketMonitorBiz;
-import com.money.game.robot.biz.SymbolTradeConfigBiz;
-import com.money.game.robot.biz.UserBiz;
-import com.money.game.robot.biz.ZbMarketMonitorBiz;
+import com.money.game.robot.biz.*;
+import com.money.game.robot.dto.huobi.DepthDto;
 import com.money.game.robot.entity.SymbolTradeConfigEntity;
 import com.money.game.robot.entity.UserEntity;
+import com.money.game.robot.huobi.response.Depth;
 import com.money.game.robot.market.HuobiApi;
 import com.money.game.robot.schedule.MonitorSchedule;
 import com.money.game.robot.vo.huobi.SymBolsDetailVo;
-import com.money.game.robot.zb.api.ZbApi;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -24,7 +22,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.Rollback;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -52,7 +49,7 @@ public class MarketMonitorBizTest {
     private ZbMarketMonitorBiz zbMarketMonitorBiz;
 
     @Autowired
-    private ZbApi zbApi;
+    private MarketBiz marketBiz;
 
     @Autowired
     private UserBiz userBiz;
@@ -107,7 +104,7 @@ public class MarketMonitorBizTest {
     public void checkTransTest() {
         SymbolTradeConfigEntity symbolTradeConfigEntity = symbolTradeConfigBiz.findById("1");
         //increase eosbtc
-        marketMonitorBiz.checkToTrans("eoseth", new BigDecimal("0.1"), symbolTradeConfigEntity);
+//        marketMonitorBiz.checkToTrans("eoseth", new BigDecimal("0.1"), symbolTradeConfigEntity);
 
     }
 
@@ -120,8 +117,25 @@ public class MarketMonitorBizTest {
         } catch (Exception e) {
             e.printStackTrace();
         }
-
     }
 
+    @Test
+    @Rollback(false)
+    public void zbAllSymBolsMonitorTest() {
+        try {
+            monitorSchedule.zbAllSymBolsMonitor();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void HbDepthTest() {
+        DepthDto dto = new DepthDto();
+        dto.setSymbol("itcusdt");
+        dto.setUserId("2c94a4ab624281b90162428266740001");
+        Depth depth = marketBiz.HbDepth(dto);
+        System.err.println("Depth=" + depth);
+    }
 
 }

@@ -673,7 +673,7 @@ public class TransBiz {
     private boolean checkNeedToCreateLimitOrder(List<OrderEntity> buyList, List<OrderEntity> saleList, LimitTradeConfigEntity config, String userId) {
         boolean result = true;
         //买单大于最大数量 || 买单不为空且买单等于卖单 ||买单有成交,卖单未成交
-        if (buyList.size() >= config.getMaxTradeCount() || (!buyList.isEmpty() && buyList.size() == buyList.size()) || (buyList.size() == (config.getMaxTradeCount() - 1) && saleList.size() > buyList.size())) {
+        if (buyList.size() >= config.getMaxTradeCount() || (!buyList.isEmpty() && saleList.size() == buyList.size()) || (buyList.size() == (config.getMaxTradeCount() - 1) && saleList.size() > buyList.size())) {
             log.info("挂单已满,symbol={},userId={},configId={}", config.getSymbol(), userId, config.getOid());
             result = false;
         } else if (buyList.isEmpty() && saleList.size() >= config.getMaxTradeCount()) {
