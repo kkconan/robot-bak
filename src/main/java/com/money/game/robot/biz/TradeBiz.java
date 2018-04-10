@@ -178,7 +178,7 @@ public class TradeBiz {
         dto.setSecretKey(account.getApiSecret());
         dto.setCurrency(symbol);
         dto.setPrice(price.setScale(priceScale, BigDecimal.ROUND_HALF_UP).toString());
-        dto.setAmount(amount.setScale(amountScale, BigDecimal.ROUND_HALF_UP).toString());
+        dto.setAmount(amount.setScale(amountScale, BigDecimal.ROUND_DOWN).toString());
         dto.setTradeType(tradeType);
         ZbCreateOrderVo vo = zbApi.createOrder(dto);
         if (!"1000".equals(vo.getCode())) {
@@ -187,6 +187,5 @@ public class TradeBiz {
         }
         return vo.getId();
     }
-
 
 }

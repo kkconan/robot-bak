@@ -123,7 +123,7 @@ public class MarketMonitorBizTest {
     @Rollback(false)
     public void zbAllSymBolsMonitorTest() {
         try {
-            monitorSchedule.zbAllSymBolsMonitor();
+            zbMarketMonitorBiz.initScaleToRedisAndMonitor();
         } catch (Exception e) {
             e.printStackTrace();
         }

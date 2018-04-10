@@ -305,7 +305,7 @@ public class ApiClient {
      * @return
      */
     public SubmitcancelResponse submitcancel(String orderId) {
-        SubmitcancelResponse resp = get("/v1/order/orders/" + orderId + "/submitcancel", null, new TypeReference<SubmitcancelResponse>() {
+        SubmitcancelResponse resp = post("/v1/order/orders/" + orderId + "/submitcancel", null, new TypeReference<SubmitcancelResponse>() {
         });
         return resp;
     }

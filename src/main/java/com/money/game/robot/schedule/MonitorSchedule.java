@@ -6,7 +6,6 @@ import com.money.game.robot.biz.ZbMarketMonitorBiz;
 import com.money.game.robot.market.HuobiApi;
 import com.money.game.robot.vo.huobi.SymBolsDetailVo;
 import com.money.game.robot.zb.api.ZbApi;
-import com.money.game.robot.zb.vo.ZbSymbolInfoVo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -101,15 +100,6 @@ public class MonitorSchedule {
     }
 
 
-    @Scheduled(cron = "${cron.option[zb.symBols]:05 0/4 * * * ?}")
-    public void zbSymBolsSchedule() {
-//        if (isSchedule) {
-            log.info("zb all symbol monitor start...");
-            this.zbAllSymBolsMonitor();
-            log.info("ab all symbol monitor end...");
-//        }
-    }
-
     /**
      * zb限价单监控
      */
@@ -143,24 +133,6 @@ public class MonitorSchedule {
         }
     }
 
-
-    /**
-     * 异步方法调用不能再同一个类，否则异步注解不起作用
-     */
-    public void zbAllSymBolsMonitor() {
-        List<ZbSymbolInfoVo> list = zbApi.getSymbolInfo();
-//        List<List<ZbSymbolInfoVo>> allList = averageAssign(list, 50);
-        for (ZbSymbolInfoVo zbSymbolInfoVo : list) {
-            try {
-                Thread.sleep(1500);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-//            zb限制每秒只能请求一次行情接口,需改写逻辑
-            zbMarketMonitorBiz.zbMonitor(zbSymbolInfoVo.getCurrency());
-        }
-
-    }
 
     /**
      * 将一个list均分成n个list,主要通过偏移量来实现的

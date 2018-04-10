@@ -84,7 +84,7 @@ public class ZbMarketMonitorBiz {
                     // 1min monitor
                     oneMinMonitor(symbol, nowVo, kineDetailVoList, user);
                     // 5min monitor
-                    fiveMinMonitor(symbol, nowVo, kineDetailVoList, user);
+//                    fiveMinMonitor(symbol, nowVo, kineDetailVoList, user);
                 }
             }
         }
@@ -92,15 +92,33 @@ public class ZbMarketMonitorBiz {
     }
 
     /**
-     * 初始化zb各交易对小数位
+     * 初始化zb各交易对小数位并开启监控(项目启动时加载)
      */
-    public void initScaleToRedis() {
+    public void initScaleToRedisAndMonitor() {
         List<ZbSymbolInfoVo> list = zbApi.getSymbolInfo();
         for (ZbSymbolInfoVo vo : list) {
             StrRedisUtil.set(redis, DictEnum.ZB_CURRENCY_KEY_PRICE.getCode() + vo.getCurrency(), vo.getPriceScale());
             StrRedisUtil.set(redis, DictEnum.ZB_CURRENCY__KEY_AMOUNT.getCode() + vo.getCurrency(), vo.getAmountScale());
-
         }
+        zbAllSymBolsMonitor(list);
+    }
+
+    /**
+     * 监控交易对,由于zb行情接口每秒只能请求一次,无法多线程，直接项目启动时监控
+     */
+    private void zbAllSymBolsMonitor(List<ZbSymbolInfoVo> list) {
+        while (true) {
+            log.info("zb symbol monitor start...");
+            for (ZbSymbolInfoVo zbSymbolInfoVo : list) {
+                try {
+                    this.zbMonitor(zbSymbolInfoVo.getCurrency());
+                } catch (Exception e) {
+                    log.warn("e={}", e.getMessage());
+                }
+            }
+            log.info("zb symbol monitor end...");
+        }
+
     }
 
     private void oneMinMonitor(String symbol, ZbKineDetailVo nowVo, List<ZbKineDetailVo> detailVos, UserEntity user) {
@@ -124,7 +142,6 @@ public class ZbMarketMonitorBiz {
 
     private void checkMinMoitor(String symbol, ZbKineDetailVo nowVo, ZbKineDetailVo lastMinVo, UserEntity user, SymbolTradeConfigEntity symbolTradeConfig) {
         RateChangeVo rateChangeVo = marketRuleBiz.initMonitor(symbol, nowVo.getClose(), lastMinVo.getClose(), symbolTradeConfig, user);
-        log.info("zb checkMinMoitor,rateChangeVo={}",rateChangeVo);
         if (rateChangeVo.isOperate()) {
             //check buy
             boolean transResult = checkToZbTrans(symbol, nowVo.getClose(), rateChangeVo.getRateValue(), symbolTradeConfig);
@@ -253,7 +270,40 @@ public class ZbMarketMonitorBiz {
                 }
             }
         }
+        //检查是否只有当前一个交易对
+        checkOneQuoteCanTrade(rateChangeVo, symbol, nowPrice, increase);
+        if (StringUtils.isNotEmpty(rateChangeVo.getBuyerSymbol())) {
+            //卖单价=买单价*(1-(-增长率))
+            salePrice = rateChangeVo.getBuyPrice().multiply((new BigDecimal(1).subtract(increase)));
+            tranResult = checkTransResult(rateChangeVo, quoteCurrency, salePrice, symbolTradeConfig);
+        }
         return tranResult;
+    }
+
+    /**
+     * 只有单个交易对的下降趋势检查是否购买
+     */
+    private RateChangeVo checkOneQuoteCanTrade(RateChangeVo rateChangeVo, String symbol, BigDecimal nowPrice, BigDecimal increase) {
+        //交易对下降且不存在其他主区交易对
+        if (increase.compareTo(BigDecimal.ZERO) < 0 && !rateChangeVo.isHasOtherBase()) {
+            ZbKineVo info = zbApi.getKline(DictEnum.MARKET_PERIOD_1MIN.getCode(), symbol, 6);
+            BigDecimal otherMinPrice;
+            BigDecimal otherMinIncrease;
+            ZbKineDetailVo oneMinVo = info.getData().get(5);
+            otherMinPrice = oneMinVo.getClose();
+            //当前价格与5分钟之前的比较
+            otherMinIncrease = (nowPrice.subtract(otherMinPrice)).divide(otherMinPrice, 9, BigDecimal.ROUND_HALF_UP);
+            //比较降低幅度是否符合购买条件,例如当前价格一分钟内跌幅-5%,但是与5分钟前比较,当前价格跌幅小与-5%,则有可能是几分钟之内拉高又迅速回落，这种情况不购买
+            if (otherMinIncrease.compareTo(increase) > 0) {
+                rateChangeVo.setBuyerSymbol(symbol);
+                rateChangeVo.setSaleSymbol(symbol);
+                rateChangeVo.setBuyPrice(nowPrice);
+                rateChangeVo.setRateValue(increase);
+                rateChangeVo.setMarketType(DictEnum.MARKET_TYPE_ZB.getCode());
+            }
+            log.info("单个交易对下降趋势检查是否需要购买,rateChangeVo={}", rateChangeVo);
+        }
+        return rateChangeVo;
     }
 
     private boolean checkTransResult(RateChangeVo rateChangeVo, String quoteCurrency, BigDecimal salePrice, SymbolTradeConfigEntity symbolTradeConfig) {
@@ -285,7 +335,6 @@ public class ZbMarketMonitorBiz {
             log.info(otherSymbol + " currency not found.");
             return rateChangeVo;
         }
-        log.info("marketInfo={}", info);
         ZbKineDetailVo zbKineDetailVo = info.getData().get(0);
         BigDecimal otherNowPrice = zbKineDetailVo.getClose();
         BigDecimal otherMinPrice;

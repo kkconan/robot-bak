@@ -17,6 +17,7 @@ import com.money.game.robot.vo.OrderVo;
 import com.money.game.robot.vo.huobi.MarketInfoVo;
 import com.money.game.robot.zb.api.ZbApi;
 import com.money.game.robot.zb.vo.ZbOrderDetailVo;
+import com.money.game.robot.zb.vo.ZbTickerVo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -97,8 +98,8 @@ public class OrderBiz {
         orderEntity.setOrderId(ordersDetail.getId());
         orderEntity.setBuyOrderId(buyOrderId);
         BigDecimal totalToUsdt = getTotalToUsdt(orderEntity.getSymbol(), orderEntity.getPrice(), orderEntity.getAmount());
-        orderEntity.setSymbolTradeConfigId(symbolTradeConfigId);
         orderEntity.setTotalToUsdt(totalToUsdt);
+        orderEntity.setSymbolTradeConfigId(symbolTradeConfigId);
         orderEntity.setUserId(userId);
         orderEntity.setType(orderType);
         orderEntity.setModel(model);
@@ -118,6 +119,10 @@ public class OrderBiz {
         //订单状态或者成交数量有变动
         if (ordersDetail != null && (!ordersDetail.getState().equals(orderEntity.getState()) || !ordersDetail.getFieldAmount().equals(orderEntity.getFieldAmount()))) {
             BeanUtils.copyProperties(ordersDetail, orderEntity);
+            if (DictEnum.ORDER_DETAIL_STATE_FILLED.getCode().equals(orderEntity.getState()) || DictEnum.ORDER_DETAIL_STATE_PARTIAL_CANCELED.getCode().equals(orderEntity.getState())) {
+                BigDecimal totalToUsdt = getTotalToUsdt(orderEntity.getSymbol(), ordersDetail.getPrice(), ordersDetail.getFieldAmount());
+                orderEntity.setTotalToUsdt(totalToUsdt);
+            }
             orderEntity = this.saveOrder(orderEntity);
         }
         return orderEntity;
@@ -191,6 +196,8 @@ public class OrderBiz {
         if (detailVo != null && (!detailVo.getState().equals(orderEntity.getState()) || detailVo.getFieldAmount().compareTo(orderEntity.getFieldAmount()) != 0)) {
             orderEntity.setFieldAmount(detailVo.getFieldAmount());
             orderEntity.setState(detailVo.getState());
+            BigDecimal totalToUsdt = getTotalToUsdt(orderEntity.getSymbol(), detailVo.getPrice(), detailVo.getFieldAmount());
+            orderEntity.setTotalToUsdt(totalToUsdt);
             orderEntity = this.saveOrder(orderEntity);
         }
         return orderEntity;
@@ -201,7 +208,7 @@ public class OrderBiz {
     }
 
     /**
-     * 获取未完成的hb买单(部分成交,部分成交撤销，完全成交)
+     * 获取未完成的hb实时买单(部分成交,部分成交撤销，完全成交)
      */
     public List<OrderEntity> findHbNoFilledBuyOrder() {
         List<String> states = new ArrayList<>();
@@ -213,7 +220,7 @@ public class OrderBiz {
     }
 
     /**
-     * 获取未完成的hb卖单(已提交,部分成交,部分成交撤销)
+     * 获取未完成的hb实时卖单(已提交,部分成交,部分成交撤销)
      */
     public List<OrderEntity> findHbNoFilledSaleOrder() {
         List<String> states = new ArrayList<>();
@@ -345,9 +352,15 @@ public class OrderBiz {
         } else if (symbol.endsWith(DictEnum.HB_MARKET_BASE_BTC.getCode())) {
             marketInfoVo = huobiApi.getMarketInfo(DictEnum.MARKET_PERIOD_1MIN.getCode(), 1, DictEnum.MARKET_HUOBI_SYMBOL_BTC_USDT.getCode());
             totalToUsdt = price.multiply(amount).multiply(marketInfoVo.getData().get(0).getClose());
-        } else {
+        } else if (symbol.endsWith(DictEnum.HB_MARKET_BASE_ETH.getCode())) {
             marketInfoVo = huobiApi.getMarketInfo(DictEnum.MARKET_PERIOD_1MIN.getCode(), 1, DictEnum.MARKET_HUOBI_SYMBOL_ETH_USDT.getCode());
             totalToUsdt = price.multiply(amount).multiply(marketInfoVo.getData().get(0).getClose());
+        } else if (symbol.endsWith(DictEnum.ZB_MARKET_BASE_QC.getCode())) {
+            ZbTickerVo vo = zbApi.getTicker("usdt_qc");
+            totalToUsdt = price.multiply(amount).divide(vo.getLast(), 2);
+        } else {
+            totalToUsdt = BigDecimal.ZERO;
+            log.warn("未找到该主对兑换USDT信息symbol={},price={},amount={},totalToUsdt={}", symbol, price, amount, totalToUsdt);
         }
         log.info("getTotalToUsdt,symbol={},price={},amount={},totalToUsdt={}", symbol, price, amount, totalToUsdt);
         return totalToUsdt;

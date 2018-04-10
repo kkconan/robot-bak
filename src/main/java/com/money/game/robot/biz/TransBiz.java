@@ -22,6 +22,7 @@ import com.money.game.robot.vo.huobi.RateChangeVo;
 import com.money.game.robot.zb.api.ZbApi;
 import com.money.game.robot.zb.vo.ZbOrderDepthVo;
 import com.money.game.robot.zb.vo.ZbOrderDetailVo;
+import com.money.game.robot.zb.vo.ZbResponseVo;
 import com.money.game.robot.zb.vo.ZbTickerVo;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
@@ -104,7 +105,7 @@ public class TransBiz {
 
 
     /**
-     * 检查hb是否有需要卖出的订单
+     * 检查hb是否有需要卖出的实时订单
      */
     public void hbToSale() {
         List<String> saleOrdes;
@@ -146,7 +147,7 @@ public class TransBiz {
     }
 
     /**
-     * 检查hb是否有完成的卖单
+     * 检查hb是否有完成的实时卖单
      */
     public void hbCheckSaleFinish() {
         List<OrderEntity> saleOrderList = orderBiz.findHbNoFilledSaleOrder();
@@ -209,7 +210,7 @@ public class TransBiz {
     }
 
     /**
-     * 检查zb是否有需要卖出的订单
+     * 检查zb是否有需要卖出的实时订单
      */
     public void zbToSale() {
         List<String> saleOrdes;
@@ -234,7 +235,7 @@ public class TransBiz {
                 //发送成交邮件通知
                 transToEmailNotify(buyOrderEntity);
             }
-            //部分成交或未成交
+            //未成交
             else if (DictEnum.ZB_ORDER_DETAIL_STATE_3.getCode().equals(buyOrderEntity.getState()) || DictEnum.ZB_ORDER_DETAIL_STATE_0.getCode().equals(buyOrderEntity.getState())) {
                 //买单超时则撤销
                 Integer buyOrderWaitTime = (symbolTradeConfig != null && symbolTradeConfig.getBuyWaitTime() != null) ? symbolTradeConfig.getBuyWaitTime() : 10;
@@ -244,10 +245,15 @@ public class TransBiz {
                     dto.setOrderId(buyOrderEntity.getOrderId());
                     dto.setCurrency(buyOrderEntity.getSymbol());
                     AccountEntity accountEntity = accountBiz.getByUserIdAndType(buyOrderEntity.getUserId(), DictEnum.MARKET_TYPE_ZB.getCode());
-                    dto.setSecretKey(accountEntity.getApiKey());
+                    dto.setAccessKey(accountEntity.getApiKey());
                     dto.setSecretKey(accountEntity.getApiSecret());
-                    zbApi.cancelOrder(dto);
-                    orderBiz.updateHbOrderState(buyOrderEntity);
+                    ZbResponseVo vo = zbApi.cancelOrder(dto);
+                    if ("1000".equals(vo.getCode())) {
+                        log.info("撤单成功");
+                        orderBiz.updateZbOrderState(buyOrderEntity);
+                    } else {
+                        log.info("撤单失败,vo={}", vo);
+                    }
                 }
             }
         }

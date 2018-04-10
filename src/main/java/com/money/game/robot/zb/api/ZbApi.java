@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.google.gson.Gson;
+import com.money.game.core.util.StrRedisUtil;
 import com.money.game.robot.constant.ErrorEnum;
 import com.money.game.robot.dto.zb.BaseZbDto;
 import com.money.game.robot.dto.zb.ZbCancelOrderDto;
@@ -20,8 +21,11 @@ import com.money.game.robot.zb.HttpUtilManager;
 import com.money.game.robot.zb.MapSort;
 import com.money.game.robot.zb.vo.*;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.io.BufferedReader;
@@ -46,18 +50,31 @@ public class ZbApi {
     @Value("${zb.api.host:http://api.bitkk.com}")
     public String apiHost;
 
+    @Autowired
+    private RedisTemplate<String, String> redis;
+
+    private static final String KLINE_KEY = "kline_key";
+
     /**
-     * 获取K线行情
+     * 获取K线行情(每秒只能请求一次)
      */
     public ZbKineVo getKline(String currency, String type, Integer size) {
         ZbKineVo kineVo = new ZbKineVo();
         List<ZbKineDetailVo> detailVos = new ArrayList<>();
         // 请求地址
         String url = apiHost + "/data/v1/kline?market=" + currency + "&type=" + type + "&size=" + size;
+        String klineKey = StrRedisUtil.get(redis, KLINE_KEY);
+        if (StringUtils.isNotEmpty(klineKey)) {
+            try {
+                Thread.sleep(1100);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
         String callback = get(url);
         JSONObject json = JSONObject.parseObject(callback);
         if (json == null || json.get("data") == null) {
-            log.info("获取详情失败,url={},json={}", url, json);
+            log.info("获取详情失败,url={},json={},currency={}", url, json, currency);
             return null;
         }
         Object[] objects = json.getJSONArray("data").toArray();
@@ -75,6 +92,7 @@ public class ZbApi {
         kineVo.setData(detailVos);
         kineVo.setMoneyType(json.getString("moneyType"));
         kineVo.setSymbol(json.getString("symbol"));
+        StrRedisUtil.setEx(redis, KLINE_KEY, 1, KLINE_KEY);
         return kineVo;
     }
 

@@ -57,7 +57,7 @@ public class HbMarketMonitorBiz {
 
     public void huoBiMonitor(String symbol) {
         MarketInfoVo info = huobiApi.getMarketInfo(DictEnum.MARKET_PERIOD_1MIN.getCode(), 6, symbol);
-        if (info != null && info.getData().size() > 0) {
+        if (info != null && info.getData().size() > 5) {
             List<UserEntity> userList = userBiz.findAllByNormal();
             for (UserEntity user : userList) {
                 MarketDetailVo nowVo = info.getData().get(0);
@@ -136,7 +136,7 @@ public class HbMarketMonitorBiz {
                         salePrice = getMultiplySalePrice(rateChangeVo.getBuyPrice(), DictEnum.HB_MARKET_BASE_BTC.getCode(), DictEnum.HB_MARKET_BASE_USDT.getCode(), rateChangeVo.getRateValue());
                     }
                     //验证是否成功创建订单
-                    checkTransResult(rateChangeVo, quoteCurrency, salePrice, symbolTradeConfig);
+                    tranResult = checkTransResult(rateChangeVo, quoteCurrency, salePrice, symbolTradeConfig);
                 }
             }
         }
@@ -171,7 +171,7 @@ public class HbMarketMonitorBiz {
                         salePrice = getMultiplySalePrice(rateChangeVo.getBuyPrice(), DictEnum.HB_MARKET_BASE_ETH.getCode(), DictEnum.HB_MARKET_BASE_USDT.getCode(), rateChangeVo.getRateValue());
                     }
                     //验证是否成功创建订单
-                    checkTransResult(rateChangeVo, quoteCurrency, salePrice, symbolTradeConfig);
+                    tranResult = checkTransResult(rateChangeVo, quoteCurrency, salePrice, symbolTradeConfig);
                 }
             }
         }
@@ -206,31 +206,47 @@ public class HbMarketMonitorBiz {
                         salePrice = getDivideSalePrice(rateChangeVo.getBuyPrice(), DictEnum.HB_MARKET_BASE_USDT.getCode(), DictEnum.HB_MARKET_BASE_ETH.getCode(), rateChangeVo.getRateValue());
                     }
                     //验证是否成功创建订单
-                    checkTransResult(rateChangeVo, quoteCurrency, salePrice, symbolTradeConfig);
+                    tranResult = checkTransResult(rateChangeVo, quoteCurrency, salePrice, symbolTradeConfig);
                 }
             }
+        }
+
+        //检查是否只有当前一个交易对
+        checkOneQuoteCanTrade(rateChangeVo, symbol, nowPrice, increase);
+        if (StringUtils.isNotEmpty(rateChangeVo.getBuyerSymbol())) {
+            //卖单价=买单价*(1-(-增长率))
+            salePrice = rateChangeVo.getBuyPrice().multiply((new BigDecimal(1).subtract(increase)));
+            tranResult = checkTransResult(rateChangeVo, quoteCurrency, salePrice, symbolTradeConfig);
         }
         return tranResult;
     }
 
 
     /**
-     * 只有单个交易对的下降趋势检查
+     * 只有单个交易对的下降趋势检查是否购买
      */
-//    private void checkOneQuoteCanTrade(RateChangeVo rateChangeVo, String symbol, BigDecimal nowPrice, BigDecimal increase) {
-//        MarketInfoVo info = huobiApi.getMarketInfo(DictEnum.MARKET_PERIOD_1MIN.getCode(), 6, symbol);
-//        BigDecimal otherMinPrice;
-//        BigDecimal otherMinIncrease;
-//        MarketDetailVo oneMinVo = info.getData().get(5);
-//        otherMinPrice = oneMinVo.getClose();
-//        //当前价格与5分钟之前的比较,
-//        otherMinIncrease = (nowPrice.subtract(otherMinPrice)).divide(otherMinPrice, 9, BigDecimal.ROUND_HALF_UP);
-//
-//        rateChangeVo = marketRuleBiz.getRateChangeVo(originSymbol, nowPrice, otherSymbol, increase, symbolTradeConfigEntity, nowPrice, otherMinPrice);
-//        rateChangeVo.setMarketType(DictEnum.MARKET_TYPE_HB.getCode());
-//        log.info("compare to other currency. otherSymbol={},increase={},nowPrice={},otherMinPrice={},otherMinIncrease={},rateChangeVo={}", otherSymbol, increase, nowPrice, otherMinPrice, otherMinIncrease, rateChangeVo);
-//        return rateChangeVo;
-//    }
+    private RateChangeVo checkOneQuoteCanTrade(RateChangeVo rateChangeVo, String symbol, BigDecimal nowPrice, BigDecimal increase) {
+        //交易对下降且不存在其他主区交易对
+        if (increase.compareTo(BigDecimal.ZERO) < 0 && !rateChangeVo.isHasOtherBase()) {
+            MarketInfoVo info = huobiApi.getMarketInfo(DictEnum.MARKET_PERIOD_1MIN.getCode(), 6, symbol);
+            BigDecimal otherMinPrice;
+            BigDecimal otherMinIncrease;
+            MarketDetailVo oneMinVo = info.getData().get(5);
+            otherMinPrice = oneMinVo.getClose();
+            //当前价格与5分钟之前的比较
+            otherMinIncrease = (nowPrice.subtract(otherMinPrice)).divide(otherMinPrice, 9, BigDecimal.ROUND_HALF_UP);
+            //比较降低幅度是否符合购买条件,例如当前价格一分钟内跌幅-5%,但是与5分钟前比较,当前价格跌幅小与-5%,则有可能是几分钟之内拉高又迅速回落，这种情况不购买
+            if (otherMinIncrease.compareTo(increase) > 0) {
+                rateChangeVo.setBuyerSymbol(symbol);
+                rateChangeVo.setSaleSymbol(symbol);
+                rateChangeVo.setBuyPrice(nowPrice);
+                rateChangeVo.setRateValue(increase);
+                rateChangeVo.setMarketType(DictEnum.MARKET_TYPE_HB.getCode());
+            }
+            log.info("单个交易对下降趋势检查是否需要购买,rateChangeVo={}", rateChangeVo);
+        }
+        return rateChangeVo;
+    }
 
     private boolean checkTransResult(RateChangeVo rateChangeVo, String quoteCurrency, BigDecimal salePrice, SymbolTradeConfigEntity symbolTradeConfig) {
         log.info("checkTransResult,rateChangeVo={},quoteCurrency={},salePrice={}", rateChangeVo, quoteCurrency, salePrice);

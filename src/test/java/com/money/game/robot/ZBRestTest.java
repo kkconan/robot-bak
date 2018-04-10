@@ -1,12 +1,14 @@
 package com.money.game.robot;
 
 import com.money.game.robot.dto.zb.BaseZbDto;
+import com.money.game.robot.dto.zb.ZbCancelOrderDto;
 import com.money.game.robot.dto.zb.ZbOrderDetailDto;
 import com.money.game.robot.zb.EncryDigestUtil;
 import com.money.game.robot.zb.HttpUtilManager;
 import com.money.game.robot.zb.MapSort;
 import com.money.game.robot.zb.api.ZbApi;
 import com.money.game.robot.zb.vo.ZbOrderDepthVo;
+import com.money.game.robot.zb.vo.ZbResponseVo;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpException;
 import org.junit.Test;
@@ -64,38 +66,40 @@ public class ZBRestTest {
         }
     }
 
-    /**
-     * 取消下单
-     */
-//	 @Test
-    public void testCancelOrder() {
-        String orderId = "201710111625";// 201710111608
-        try {
-            Map<String, String> params = new HashMap<String, String>();
-            params.put("method", "cancelOrder");
-            params.put("id", orderId);
-            params.put("currency", "ltc_btc");
-
-            String json = this.getJsonPost(params);
-            System.out.println("testGetOrder 结果: " + json);
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        }
-    }
 
     /**
      * 获取订单信息
      */
     @Test
     public void testGetOrder() {
-        String orderId = "2018040430464889";
+        String orderId = "20180408856915";
         try {
             ZbOrderDetailDto dto = new ZbOrderDetailDto();
-            dto.setCurrency("eos_usdt");
+            dto.setCurrency("1st_btc");
             dto.setOrderId(orderId);
             dto.setAccessKey("7c08f59f-1b32-4cd8-ab8e-cb32564f6e12");
             dto.setSecretKey("3ad4640f-d2f5-4fa1-bedb-9752e1e38284");
             zbApi.orderDetail(dto);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+    }
+
+
+    /**
+     * 获取订单信息
+     */
+    @Test
+    public void testCancelOrder() {
+        String orderId = "201804091098273";
+        try {
+            ZbCancelOrderDto dto = new ZbCancelOrderDto();
+            dto.setCurrency("sbtc_btc");
+            dto.setOrderId(orderId);
+            dto.setAccessKey("7c08f59f-1b32-4cd8-ab8e-cb32564f6e12");
+            dto.setSecretKey("3ad4640f-d2f5-4fa1-bedb-9752e1e38284");
+            ZbResponseVo vo =zbApi.cancelOrder(dto);
+            System.err.println("vo="+vo);
         } catch (Exception ex) {
             ex.printStackTrace();
         }

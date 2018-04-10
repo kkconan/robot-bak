@@ -19,6 +19,6 @@ public class MyCommandLineRunner implements CommandLineRunner {
 
     @Override
     public void run(String... var1) throws Exception {
-        zbMarketMonitorBiz.initScaleToRedis();
+//        zbMarketMonitorBiz.initScaleToRedisAndMonitor();
     }
 }

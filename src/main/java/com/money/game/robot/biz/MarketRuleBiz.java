@@ -64,7 +64,7 @@ public class MarketRuleBiz {
         rateChangeVo.setRateValue(increase);
         if (isToOperate) {
             // send eamil
-            sendNotifyEmail(content, user.getNotifyEmail());
+//            sendNotifyEmail(content, user.getNotifyEmail());
             //设置通知内容
             rateChangeVo.setContext(content);
         }
