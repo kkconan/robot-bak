@@ -54,6 +54,16 @@ public class LimitTradeConfigEntity extends UUID implements Serializable {
      */
     private String marketType;
 
+    /**
+     * 启用open/停用stop
+     */
+    private String status;
+
+    /**
+     * no:未删除/yes:已删除
+     */
+    private String isDelete;
+
 
     private Timestamp createTime;
 

@@ -4,6 +4,7 @@ import com.money.game.basic.component.ext.web.BaseController;
 import com.money.game.core.constant.ResponseData;
 import com.money.game.robot.biz.LimitTradeConfgBiz;
 import com.money.game.robot.dto.client.LimitTradeConfigDto;
+import com.money.game.robot.dto.client.TradeConfigStatusDto;
 import com.money.game.robot.vo.LimitTradeConfigVo;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiImplicitParam;
@@ -48,7 +49,7 @@ public class LimitConfigController extends BaseController {
 
     @RequestMapping(value = "/save", method = RequestMethod.POST)
     @ApiOperation(value = "保存", notes = "", httpMethod = "POST")
-    @ApiImplicitParams({@ApiImplicitParam(name = "dto", value = "oid", required = true, paramType = "body", dataType = "LimitTradeConfigDto")})
+    @ApiImplicitParams({@ApiImplicitParam(name = "dto", value = "dto", required = true, paramType = "body", dataType = "LimitTradeConfigDto")})
     @ResponseBody
     public ResponseData save(@RequestBody @Valid LimitTradeConfigDto dto) {
         String userId = this.getLoginUser();
@@ -56,5 +57,25 @@ public class LimitConfigController extends BaseController {
         return ResponseData.success();
     }
 
+
+    @RequestMapping(value = "/delete", method = RequestMethod.POST)
+    @ApiOperation(value = "删除", notes = "", httpMethod = "POST")
+    @ApiImplicitParams({@ApiImplicitParam(name = "oid", value = "oid", required = true, paramType = "query", dataType = "String")})
+    @ResponseBody
+    public ResponseData delete(String oid) {
+        this.getLoginUser();
+        limitTradeConfgBiz.delete(oid);
+        return ResponseData.success();
+    }
+
+    @RequestMapping(value = "/updateStatus", method = RequestMethod.POST)
+    @ApiOperation(value = "停用/启用", notes = "", httpMethod = "POST")
+    @ApiImplicitParams({@ApiImplicitParam(name = "dto", value = "dto", required = true, paramType = "body", dataType = "TradeConfigStatusDto")})
+    @ResponseBody
+    public ResponseData updateStatus(@RequestBody @Valid TradeConfigStatusDto dto) {
+        this.getLoginUser();
+        limitTradeConfgBiz.updateStatus(dto);
+        return ResponseData.success();
+    }
 }
 

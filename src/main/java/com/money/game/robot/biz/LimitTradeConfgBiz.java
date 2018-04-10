@@ -1,7 +1,11 @@
 package com.money.game.robot.biz;
 
+import com.money.game.robot.constant.DictEnum;
+import com.money.game.robot.constant.ErrorEnum;
 import com.money.game.robot.dto.client.LimitTradeConfigDto;
+import com.money.game.robot.dto.client.TradeConfigStatusDto;
 import com.money.game.robot.entity.LimitTradeConfigEntity;
+import com.money.game.robot.exception.BizException;
 import com.money.game.robot.service.LimitTradeConfigService;
 import com.money.game.robot.vo.LimitTradeConfigVo;
 import lombok.extern.slf4j.Slf4j;
@@ -24,17 +28,19 @@ public class LimitTradeConfgBiz {
     @Autowired
     private LimitTradeConfigService limitTradeConfigService;
 
-    public List<LimitTradeConfigEntity> findAllByUserIdAndMarketType(String userId,String marketType) {
-        return limitTradeConfigService.findAllByUserIdAndMarketType(userId,marketType);
+    public List<LimitTradeConfigEntity> findAllByUserIdAndMarketType(String userId, String marketType) {
+        return limitTradeConfigService.findAllByUserIdAndMarketType(userId, marketType);
     }
 
     public List<LimitTradeConfigVo> findAllList(String userId) {
         List<LimitTradeConfigVo> voList = new ArrayList<>();
         List<LimitTradeConfigEntity> list = limitTradeConfigService.findAllByUserId(userId);
         for (LimitTradeConfigEntity entity : list) {
-            LimitTradeConfigVo vo = new LimitTradeConfigVo();
-            BeanUtils.copyProperties(entity, vo);
-            voList.add(vo);
+            if (DictEnum.IS_DELETE_NO.getCode().equals(entity.getIsDelete())) {
+                LimitTradeConfigVo vo = new LimitTradeConfigVo();
+                BeanUtils.copyProperties(entity, vo);
+                voList.add(vo);
+            }
         }
         return voList;
     }
@@ -55,6 +61,27 @@ public class LimitTradeConfgBiz {
             entity = limitTradeConfigService.findById(dto.getOid());
         }
         BeanUtils.copyProperties(dto, entity);
+        limitTradeConfigService.save(entity);
+    }
+
+
+    public void delete(String oid) {
+
+        LimitTradeConfigEntity entity = limitTradeConfigService.findById(oid);
+        if (entity == null) {
+            throw new BizException(ErrorEnum.RECOLD_NOT_FOUND);
+        }
+        entity.setIsDelete(DictEnum.IS_DELETE_YES.getCode());
+        limitTradeConfigService.save(entity);
+    }
+
+
+    public void updateStatus(TradeConfigStatusDto dto) {
+        LimitTradeConfigEntity entity = limitTradeConfigService.findById(dto.getOid());
+        if (entity == null) {
+            throw new BizException(ErrorEnum.RECOLD_NOT_FOUND);
+        }
+        entity.setStatus(dto.getStatus());
         limitTradeConfigService.save(entity);
     }
 }

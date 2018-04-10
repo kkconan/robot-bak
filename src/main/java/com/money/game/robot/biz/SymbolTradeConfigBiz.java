@@ -1,7 +1,11 @@
 package com.money.game.robot.biz;
 
+import com.money.game.robot.constant.DictEnum;
+import com.money.game.robot.constant.ErrorEnum;
 import com.money.game.robot.dto.client.SymbolTradeConfigDto;
+import com.money.game.robot.dto.client.TradeConfigStatusDto;
 import com.money.game.robot.entity.SymbolTradeConfigEntity;
+import com.money.game.robot.exception.BizException;
 import com.money.game.robot.service.SymbolTradeConfigService;
 import com.money.game.robot.vo.SymbolTradeConfigVo;
 import org.apache.commons.lang3.StringUtils;
@@ -28,9 +32,16 @@ public class SymbolTradeConfigBiz {
         return symbolTradeConfigService.findByUserIdAndThresholdType(userId, thresholdType);
     }
 
+    /**
+     * 获取使用中未删除配置
+     */
     public SymbolTradeConfigEntity findByUserIdAndThresholdTypeAndMarketType(String userId, String thresholdType, String marketType) {
 
-        return symbolTradeConfigService.findByUserIdAndThresholdTypeAndMarketType(userId, thresholdType, marketType);
+        SymbolTradeConfigEntity entity = symbolTradeConfigService.findByUserIdAndThresholdTypeAndMarketType(userId, thresholdType, marketType);
+        if (DictEnum.IS_DELETE_YES.getCode().equals(entity.getIsDelete()) || DictEnum.STATUS_CLOSE.getCode().equals(entity.getStatus())) {
+            return null;
+        }
+        return entity;
     }
 
     public SymbolTradeConfigEntity findById(String id) {
@@ -39,11 +50,13 @@ public class SymbolTradeConfigBiz {
 
     public List<SymbolTradeConfigVo> findAllList(String userId) {
         List<SymbolTradeConfigVo> voList = new ArrayList<>();
-        SymbolTradeConfigVo vo = new SymbolTradeConfigVo();
         List<SymbolTradeConfigEntity> list = symbolTradeConfigService.findByUserId(userId);
         for (SymbolTradeConfigEntity entity : list) {
-            BeanUtils.copyProperties(entity, vo);
-            voList.add(vo);
+            if (DictEnum.IS_DELETE_NO.getCode().equals(entity.getIsDelete())) {
+                SymbolTradeConfigVo vo = new SymbolTradeConfigVo();
+                voList.add(vo);
+                BeanUtils.copyProperties(entity, vo);
+            }
         }
         return voList;
     }
@@ -64,6 +77,27 @@ public class SymbolTradeConfigBiz {
             entity = symbolTradeConfigService.findById(dto.getOid());
         }
         BeanUtils.copyProperties(dto, entity);
+        symbolTradeConfigService.save(entity);
+    }
+
+
+    public void delete(String oid) {
+
+        SymbolTradeConfigEntity entity = symbolTradeConfigService.findById(oid);
+        if (entity == null) {
+            throw new BizException(ErrorEnum.RECOLD_NOT_FOUND);
+        }
+        entity.setIsDelete(DictEnum.IS_DELETE_YES.getCode());
+        symbolTradeConfigService.save(entity);
+    }
+
+
+    public void updateStatus(TradeConfigStatusDto dto) {
+        SymbolTradeConfigEntity entity = symbolTradeConfigService.findById(dto.getOid());
+        if (entity == null) {
+            throw new BizException(ErrorEnum.RECOLD_NOT_FOUND);
+        }
+        entity.setStatus(dto.getStatus());
         symbolTradeConfigService.save(entity);
     }
 }

@@ -13,6 +13,7 @@ import java.sql.Timestamp;
 
 /**
  * 交易对波动监控配置项
+ *
  * @author conan
  *         2018/3/21 16:53
  **/
@@ -79,6 +80,15 @@ public class SymbolTradeConfigEntity extends UUID {
      */
     private BigDecimal qcMaxUse;
 
+    /**
+     * 启用open/停用stop
+     */
+    private String status;
+
+    /**
+     * no:未删除/yes:已删除
+     */
+    private String isDelete;
 
     private Timestamp createTime;
 

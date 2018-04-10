@@ -36,4 +36,10 @@ public class LimitTradeConfigDto implements Serializable {
      */
     private BigDecimal totalAmount;
 
+    /**
+     * hb/zb
+     */
+    private String marketType;
+
+
 }

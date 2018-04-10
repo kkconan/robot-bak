@@ -290,7 +290,7 @@ public class ZbMarketMonitorBiz {
         RateChangeVo rateChangeVo = new RateChangeVo();
         //交易对下降
         if (increase.compareTo(BigDecimal.ZERO) < 0) {
-            ZbKineVo info = zbApi.getKline(DictEnum.MARKET_PERIOD_1MIN.getCode(), symbol, 6);
+            ZbKineVo info = zbApi.getKline(symbol, DictEnum.MARKET_PERIOD_1MIN.getCode(), 6);
             BigDecimal otherMinPrice;
             BigDecimal otherMinIncrease;
             ZbKineDetailVo oneMinVo = info.getData().get(5);

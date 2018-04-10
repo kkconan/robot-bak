@@ -169,6 +169,13 @@ public enum DictEnum {
     ZB_CURRENCY_KEY_PRICE("currency_price_","价格小数位key值"),
     ZB_CURRENCY__KEY_AMOUNT("currency_amount_","数量小数位key值"),
 
+    IS_DELETE_NO("no","未删除"),
+    IS_DELETE_YES("yes","已删除"),
+
+    STATUS_OPEN("open","启用"),
+    STATUS_CLOSE("close","停用"),
+
+
     ;
 
     public static List<String> filledOrderStates = new ArrayList<>();

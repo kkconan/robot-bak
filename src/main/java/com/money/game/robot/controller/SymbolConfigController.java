@@ -4,6 +4,7 @@ import com.money.game.basic.component.ext.web.BaseController;
 import com.money.game.core.constant.ResponseData;
 import com.money.game.robot.biz.SymbolTradeConfigBiz;
 import com.money.game.robot.dto.client.SymbolTradeConfigDto;
+import com.money.game.robot.dto.client.TradeConfigStatusDto;
 import com.money.game.robot.vo.SymbolTradeConfigVo;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiImplicitParam;
@@ -52,9 +53,29 @@ public class SymbolConfigController extends BaseController {
     @ResponseBody
     public ResponseData save(@RequestBody @Valid SymbolTradeConfigDto dto) {
         String userId = this.getLoginUser();
-        symbolTradeConfigBiz.save(dto,userId);
+        symbolTradeConfigBiz.save(dto, userId);
         return ResponseData.success();
     }
 
+
+    @RequestMapping(value = "/delete", method = RequestMethod.POST)
+    @ApiOperation(value = "删除", notes = "", httpMethod = "POST")
+    @ApiImplicitParams({@ApiImplicitParam(name = "oid", value = "oid", required = true, paramType = "query", dataType = "String")})
+    @ResponseBody
+    public ResponseData delete(String oid) {
+        this.getLoginUser();
+        symbolTradeConfigBiz.delete(oid);
+        return ResponseData.success();
+    }
+
+    @RequestMapping(value = "/updateStatus", method = RequestMethod.POST)
+    @ApiOperation(value = "停用/启用", notes = "", httpMethod = "POST")
+    @ApiImplicitParams({@ApiImplicitParam(name = "dto", value = "dto", required = true, paramType = "body", dataType = "TradeConfigStatusDto")})
+    @ResponseBody
+    public ResponseData updateStatus(@RequestBody @Valid TradeConfigStatusDto dto) {
+        this.getLoginUser();
+        symbolTradeConfigBiz.updateStatus(dto);
+        return ResponseData.success();
+    }
 }
 

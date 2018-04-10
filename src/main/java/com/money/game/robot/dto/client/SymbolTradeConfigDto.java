@@ -48,4 +48,9 @@ public class SymbolTradeConfigDto {
      * 单笔订单,eth最多下单值
      */
     private BigDecimal ethMxzUse;
+    /**
+     * hb/zb
+     */
+    private String marketType;
+
 }

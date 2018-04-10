@@ -39,4 +39,13 @@ public class LimitTradeConfigVo implements Serializable {
      */
     private BigDecimal totalAmount;
 
+
+    /**
+     * hb/zb
+     */
+    private String marketType;
+
+    private String status;
+
+
 }
