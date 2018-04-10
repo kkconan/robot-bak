@@ -162,6 +162,9 @@ public class TransBiz {
             if (DictEnum.ORDER_DETAIL_STATE_FILLED.getCode().equals(ordersDetail.getState()) || DictEnum.ORDER_DETAIL_STATE_PARTIAL_CANCELED.getCode().equals(ordersDetail.getState())) {
                 log.info("卖单已成交,交易完成.saleOrderId={}", saleOrder.getOrderId());
                 saleOrder.setState(ordersDetail.getState());
+                saleOrder.setFieldAmount(ordersDetail.getFieldAmount());
+                saleOrder.setFieldCashAmount(ordersDetail.getFieldCashAmount());
+                saleOrder.setFieldFees(ordersDetail.getFieldFees());
                 orderBiz.saveOrder(saleOrder);
                 //发送成交邮件通知
                 transToEmailNotify(saleOrder);
@@ -281,6 +284,8 @@ public class TransBiz {
             if (DictEnum.ZB_ORDER_DETAIL_STATE_2.getCode().equals(ordersDetail.getState())) {
                 log.info("卖单已成交,交易完成.saleOrderId={}", saleOrder.getOrderId());
                 saleOrder.setState(ordersDetail.getState());
+                saleOrder.setFieldAmount(ordersDetail.getFieldAmount());
+                saleOrder.setFieldCashAmount(ordersDetail.getFieldCashAmount());
                 orderBiz.saveOrder(saleOrder);
                 //发送成交邮件通知
                 transToEmailNotify(saleOrder);
