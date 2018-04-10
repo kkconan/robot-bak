@@ -73,6 +73,7 @@ public class ZbApi {
         }
         String callback = get(url);
         JSONObject json = JSONObject.parseObject(callback);
+        StrRedisUtil.setEx(redis, KLINE_KEY, 1, KLINE_KEY);
         if (json == null || json.get("data") == null) {
             log.info("获取详情失败,url={},json={},currency={}", url, json, currency);
             return null;
@@ -92,7 +93,6 @@ public class ZbApi {
         kineVo.setData(detailVos);
         kineVo.setMoneyType(json.getString("moneyType"));
         kineVo.setSymbol(json.getString("symbol"));
-        StrRedisUtil.setEx(redis, KLINE_KEY, 1, KLINE_KEY);
         return kineVo;
     }
 

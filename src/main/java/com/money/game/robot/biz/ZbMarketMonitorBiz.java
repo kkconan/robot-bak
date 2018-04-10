@@ -163,6 +163,16 @@ public class ZbMarketMonitorBiz {
         String quoteCurrency = marketRuleBiz.getZbQuoteCurrency(symbol);
 
         boolean tranResult = false;
+        //检查是否直接购买当前交易对
+        rateChangeVo = checkOneQuoteCanTrade(symbol, nowPrice, increase);
+        if (StringUtils.isNotEmpty(rateChangeVo.getBuyerSymbol())) {
+            //卖单价=买单价*(1-(-增长率))
+            salePrice = rateChangeVo.getBuyPrice().multiply((new BigDecimal(1).subtract(increase)));
+            tranResult = checkTransResult(rateChangeVo, quoteCurrency, salePrice, symbolTradeConfig);
+            if (tranResult) {
+                return true;
+            }
+        }
 
         String otherSymbol;
         //is btc
@@ -270,22 +280,16 @@ public class ZbMarketMonitorBiz {
                 }
             }
         }
-        //检查是否只有当前一个交易对
-        checkOneQuoteCanTrade(rateChangeVo, symbol, nowPrice, increase);
-        if (StringUtils.isNotEmpty(rateChangeVo.getBuyerSymbol())) {
-            //卖单价=买单价*(1-(-增长率))
-            salePrice = rateChangeVo.getBuyPrice().multiply((new BigDecimal(1).subtract(increase)));
-            tranResult = checkTransResult(rateChangeVo, quoteCurrency, salePrice, symbolTradeConfig);
-        }
         return tranResult;
     }
 
     /**
      * 只有单个交易对的下降趋势检查是否购买
      */
-    private RateChangeVo checkOneQuoteCanTrade(RateChangeVo rateChangeVo, String symbol, BigDecimal nowPrice, BigDecimal increase) {
-        //交易对下降且不存在其他主区交易对
-        if (increase.compareTo(BigDecimal.ZERO) < 0 && !rateChangeVo.isHasOtherBase()) {
+    private RateChangeVo checkOneQuoteCanTrade(String symbol, BigDecimal nowPrice, BigDecimal increase) {
+        RateChangeVo rateChangeVo = new RateChangeVo();
+        //交易对下降
+        if (increase.compareTo(BigDecimal.ZERO) < 0) {
             ZbKineVo info = zbApi.getKline(DictEnum.MARKET_PERIOD_1MIN.getCode(), symbol, 6);
             BigDecimal otherMinPrice;
             BigDecimal otherMinIncrease;

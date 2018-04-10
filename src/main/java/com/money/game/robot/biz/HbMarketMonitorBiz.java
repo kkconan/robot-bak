@@ -104,6 +104,17 @@ public class HbMarketMonitorBiz {
 
         boolean tranResult = false;
 
+        //优先检查当前交易对是否是下降趋势,是则直接比较是否需要购买当前交易对
+        rateChangeVo = checkOneQuoteCanTrade(symbol, nowPrice, increase);
+        if (StringUtils.isNotEmpty(rateChangeVo.getBuyerSymbol())) {
+            //卖单价=买单价*(1-(-增长率))
+            salePrice = rateChangeVo.getBuyPrice().multiply((new BigDecimal(1).subtract(increase)));
+            tranResult = checkTransResult(rateChangeVo, quoteCurrency, salePrice, symbolTradeConfig);
+            //购买完成
+            if (tranResult) {
+                return true;
+            }
+        }
         String otherSymbol;
         //is btc
         if (symbol.endsWith(DictEnum.HB_MARKET_BASE_BTC.getCode())) {
@@ -211,13 +222,6 @@ public class HbMarketMonitorBiz {
             }
         }
 
-        //检查是否只有当前一个交易对
-        checkOneQuoteCanTrade(rateChangeVo, symbol, nowPrice, increase);
-        if (StringUtils.isNotEmpty(rateChangeVo.getBuyerSymbol())) {
-            //卖单价=买单价*(1-(-增长率))
-            salePrice = rateChangeVo.getBuyPrice().multiply((new BigDecimal(1).subtract(increase)));
-            tranResult = checkTransResult(rateChangeVo, quoteCurrency, salePrice, symbolTradeConfig);
-        }
         return tranResult;
     }
 
@@ -225,9 +229,10 @@ public class HbMarketMonitorBiz {
     /**
      * 只有单个交易对的下降趋势检查是否购买
      */
-    private RateChangeVo checkOneQuoteCanTrade(RateChangeVo rateChangeVo, String symbol, BigDecimal nowPrice, BigDecimal increase) {
+    private RateChangeVo checkOneQuoteCanTrade(String symbol, BigDecimal nowPrice, BigDecimal increase) {
+        RateChangeVo rateChangeVo = new RateChangeVo();
         //交易对下降且不存在其他主区交易对
-        if (increase.compareTo(BigDecimal.ZERO) < 0 && !rateChangeVo.isHasOtherBase()) {
+        if (increase.compareTo(BigDecimal.ZERO) < 0) {
             MarketInfoVo info = huobiApi.getMarketInfo(DictEnum.MARKET_PERIOD_1MIN.getCode(), 6, symbol);
             BigDecimal otherMinPrice;
             BigDecimal otherMinIncrease;
@@ -265,7 +270,6 @@ public class HbMarketMonitorBiz {
         }
         return tranResult;
     }
-
 
     /**
      * HB 不同交易对之间涨跌幅比较

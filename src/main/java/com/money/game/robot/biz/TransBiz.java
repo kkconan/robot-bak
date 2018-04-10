@@ -92,13 +92,15 @@ public class TransBiz {
                 return false;
             }
             //下单操作
-            orderIds = hbToBuyOrder(rateChangeVo.getBuyerSymbol(), rateChangeVo.getBuyPrice(), rateChangeVo.getBaseCurrency(), symbolTradeConfig);
-            RateChangeEntity rateChangeEntity = rateChangeBiz.save(rateChangeVo);
-            //保存下单结果
-            for (String orderId : orderIds) {
-                orderBiz.saveHbOrder(orderId, rateChangeEntity.getOid(), null, symbolTradeConfig.getOid(), symbolTradeConfig.getUserId(), DictEnum.ORDER_TYPE_BUY_LIMIT.getCode(), DictEnum.ORDER_MODEL_REAL.getCode());
+            orderIds = hbToBuyOrder(rateChangeVo, symbolTradeConfig);
+            if (orderIds != null && !orderIds.isEmpty()) {
+                RateChangeEntity rateChangeEntity = rateChangeBiz.save(rateChangeVo);
+                //保存下单结果
+                for (String orderId : orderIds) {
+                    orderBiz.saveHbOrder(orderId, rateChangeEntity.getOid(), null, symbolTradeConfig.getOid(), symbolTradeConfig.getUserId(), DictEnum.ORDER_TYPE_BUY_LIMIT.getCode(), DictEnum.ORDER_MODEL_REAL.getCode());
+                }
+                result = true;
             }
-            result = true;
         }
         return result;
     }
@@ -197,14 +199,16 @@ public class TransBiz {
                 return false;
             }
             //下单操作
-            orderIds = zbToBuyOrder(rateChangeVo.getBuyerSymbol(), rateChangeVo.getBuyPrice(), rateChangeVo.getBaseCurrency(), symbolTradeConfig);
-            RateChangeEntity rateChangeEntity = rateChangeBiz.save(rateChangeVo);
-            //保存下单结果
-            for (String orderId : orderIds) {
-                orderBiz.saveZbOrder(orderId, rateChangeVo.getBuyerSymbol(), rateChangeEntity.getOid(), null, symbolTradeConfig.getOid(),
-                        symbolTradeConfig.getUserId(), DictEnum.ORDER_TYPE_BUY_LIMIT.getCode(), DictEnum.ORDER_MODEL_REAL.getCode());
+            orderIds = zbToBuyOrder(rateChangeVo, symbolTradeConfig);
+            if (orderIds != null && !orderIds.isEmpty()) {
+                RateChangeEntity rateChangeEntity = rateChangeBiz.save(rateChangeVo);
+                //保存下单结果
+                for (String orderId : orderIds) {
+                    orderBiz.saveZbOrder(orderId, rateChangeVo.getBuyerSymbol(), rateChangeEntity.getOid(), null, symbolTradeConfig.getOid(),
+                            symbolTradeConfig.getUserId(), DictEnum.ORDER_TYPE_BUY_LIMIT.getCode(), DictEnum.ORDER_MODEL_REAL.getCode());
+                }
+                result = true;
             }
-            result = true;
         }
         return result;
     }
@@ -383,31 +387,69 @@ public class TransBiz {
 
 
     /**
+     * 检查交易深度是否符合下单需求
+     */
+    private boolean checkSaleDept(RateChangeVo rateChangeVo, SymbolTradeConfigEntity symbolTradeConfig, List<List<BigDecimal>> bids, List<List<BigDecimal>> asks) {
+        //同一交易对下单不检查
+        if (rateChangeVo.getBuyerSymbol().equals(rateChangeVo.getSaleSymbol())) {
+            return true;
+        }
+        boolean result = false;
+        DepthDto dto = new DepthDto();
+        dto.setSymbol(rateChangeVo.getSaleSymbol());
+        dto.setUserId(symbolTradeConfig.getUserId());
+        //买一价
+        BigDecimal buyOnePrice = bids.get(0).get(0);
+        //卖一价
+        BigDecimal saleOnePrice = asks.get(0).get(0);
+        //buyOne >= salePrice*(1-askBlunder)
+        if (buyOnePrice.compareTo(rateChangeVo.getSalePrice().multiply(new BigDecimal(1).subtract(symbolTradeConfig.getAsksBlunder()))) >= 0) {
+            result = true;
+        }
+        //saleOnePirce >= salePrice*(1-askbunder)
+        else if (saleOnePrice.compareTo(rateChangeVo.getSalePrice().multiply(new BigDecimal(1).subtract(symbolTradeConfig.getAsksBlunder()))) >= 0) {
+            result = true;
+        }
+        log.info("检查交易深度是否符合下单需求,result={},buyOnePrice={},saleOnePrice={},salePrice={},asksBlunder={}", result, buyOnePrice, saleOnePrice, rateChangeVo.getSalePrice(), String.valueOf(symbolTradeConfig.getAsksBlunder()));
+        return result;
+    }
+
+    /**
      * HB交易下单
      */
-    private List<String> hbToBuyOrder(String symbol, BigDecimal buyPrice, String baseQuote, SymbolTradeConfigEntity symbolTradeConfig) {
-        log.info("hbCreateBuyOrder,symbols={},buyPrice={},baseCurrency={}", symbol, buyPrice, baseQuote);
-        DepthDto dto = new DepthDto();
-        dto.setSymbol(symbol);
-        dto.setUserId(symbolTradeConfig.getUserId());
-        //获取交易深度
-        Depth depth = marketBiz.HbDepth(dto);
-        //最新价格
+    private List<String> hbToBuyOrder(RateChangeVo rateChangeVo, SymbolTradeConfigEntity symbolTradeConfig) {
         //所有成交的订单id
         List<String> orderIds = new ArrayList<>();
+        DepthDto dto = new DepthDto();
+        dto.setSymbol(rateChangeVo.getSaleSymbol());
+        dto.setUserId(symbolTradeConfig.getUserId());
+        //获取卖单交易深度
+        Depth saleDepth = marketBiz.HbDepth(dto);
         //buy list
-        List<List<BigDecimal>> bids = depth.getBids();
-        //hbToSale list
-        List<List<BigDecimal>> asks = depth.getAsks();
-        //剩余需要购买的数量
-        BigDecimal amount = getHbBuyAmount(symbol, buyPrice, symbolTradeConfig, baseQuote);
-        //欲购买的下单信息
-        Map<BigDecimal, BigDecimal> map = checkDeptAndBeginCreate(symbol, buyPrice, amount, baseQuote, symbolTradeConfig, bids, asks);
-        for (BigDecimal key : map.keySet()) {
-            String orderId = hbCreateBuyOrder(symbol, key, map.get(key), symbolTradeConfig);
-            orderIds.add(orderId);
+        List<List<BigDecimal>> saleBids = saleDepth.getBids();
+        //sale list
+        List<List<BigDecimal>> saleAsks = saleDepth.getAsks();
+        //检查卖单深度是否符合要求
+        boolean result = checkSaleDept(rateChangeVo, symbolTradeConfig, saleBids, saleAsks);
+        if (result) {
+            dto.setSymbol(rateChangeVo.getBuyerSymbol());
+            //获取买单交易深度
+            Depth buyDepth = marketBiz.HbDepth(dto);
+            //buy list
+            List<List<BigDecimal>> bids = buyDepth.getBids();
+            //sale list
+            List<List<BigDecimal>> asks = buyDepth.getAsks();
+            //需要购买的数量
+            BigDecimal amount = getHbBuyAmount(rateChangeVo.getBuyerSymbol(), rateChangeVo.getBuyPrice(), symbolTradeConfig, rateChangeVo.getBaseCurrency());
+            //欲购买的下单信息
+            Map<BigDecimal, BigDecimal> map = checkDeptAndBeginCreate(rateChangeVo.getBuyerSymbol(), rateChangeVo.getBuyPrice(), amount, rateChangeVo.getBaseCurrency(), symbolTradeConfig, bids, asks);
+            for (BigDecimal key : map.keySet()) {
+                String orderId = hbCreateBuyOrder(rateChangeVo.getBuyerSymbol(), key, map.get(key), symbolTradeConfig);
+                orderIds.add(orderId);
 
+            }
         }
+
         log.info("orderIds={}", orderIds);
         return orderIds;
     }
@@ -448,6 +490,7 @@ public class TransBiz {
         List<List<BigDecimal>> bids = depth.getBids();
         //sale list
         List<List<BigDecimal>> asks = depth.getAsks();
+
 
         Map<BigDecimal, BigDecimal> map = checkDeptAndBeginSale(rateChangeEntity, amount, symbolTradeConfig, bids, asks);
         for (BigDecimal key : map.keySet()) {
@@ -569,25 +612,37 @@ public class TransBiz {
     /**
      * ZB交易下单
      */
-    private List<String> zbToBuyOrder(String symbol, BigDecimal buyPrice, String baseQuote, SymbolTradeConfigEntity symbolTradeConfig) {
-        log.info("zbToBuyOrder,symbols={},buyPrice={},baseCurrency={}", symbol, buyPrice, baseQuote);
+    private List<String> zbToBuyOrder(RateChangeVo rateChangeVo, SymbolTradeConfigEntity symbolTradeConfig) {
 
-        //获取交易深度
-        ZbOrderDepthVo depth = zbApi.orderDepth(symbol, 5);
-        //最新价格
         //所有成交的订单id
         List<String> orderIds = new ArrayList<>();
+        DepthDto dto = new DepthDto();
+        dto.setSymbol(rateChangeVo.getSaleSymbol());
+        dto.setUserId(symbolTradeConfig.getUserId());
+        //获取卖单交易深度
+        ZbOrderDepthVo saleDepth = zbApi.orderDepth(rateChangeVo.getSaleSymbol(), 2);
         //buy list
-        List<List<BigDecimal>> bids = depth.getBids();
-        //hbToSale list
-        List<List<BigDecimal>> asks = depth.getAsks();
+        List<List<BigDecimal>> saleBids = saleDepth.getBids();
+        //sale list
+        List<List<BigDecimal>> saleAsks = saleDepth.getAsks();
+        //检查卖单深度是否符合要求
+        boolean result = checkSaleDept(rateChangeVo, symbolTradeConfig, saleBids, saleAsks);
+        if (result) {
 
-        BigDecimal amount = getZbBuyAmount(symbol, buyPrice, symbolTradeConfig, baseQuote);
-        //欲购买的下单信息
-        Map<BigDecimal, BigDecimal> map = checkDeptAndBeginCreate(symbol, buyPrice, amount, baseQuote, symbolTradeConfig, bids, asks);
-        for (BigDecimal key : map.keySet()) {
-            String orderId = tradeBiz.zbCreateOrder(symbol, key, map.get(key), DictEnum.ZB_ORDER_TRADE_TYPE_BUY.getCode(), symbolTradeConfig.getUserId());
-            orderIds.add(orderId);
+            //获取交易深度
+            ZbOrderDepthVo depth = zbApi.orderDepth(rateChangeVo.getBuyerSymbol(), 5);
+            //buy list
+            List<List<BigDecimal>> buyBids = depth.getBids();
+            //hbToSale list
+            List<List<BigDecimal>> buyAsks = depth.getAsks();
+
+            BigDecimal amount = getZbBuyAmount(rateChangeVo.getBuyerSymbol(), rateChangeVo.getBuyPrice(), symbolTradeConfig, rateChangeVo.getBaseCurrency());
+            //欲购买的下单信息
+            Map<BigDecimal, BigDecimal> map = checkDeptAndBeginCreate(rateChangeVo.getBuyerSymbol(), rateChangeVo.getBuyPrice(), amount, rateChangeVo.getBaseCurrency(), symbolTradeConfig, buyBids, buyAsks);
+            for (BigDecimal key : map.keySet()) {
+                String orderId = tradeBiz.zbCreateOrder(rateChangeVo.getBuyerSymbol(), key, map.get(key), DictEnum.ZB_ORDER_TRADE_TYPE_BUY.getCode(), symbolTradeConfig.getUserId());
+                orderIds.add(orderId);
+            }
         }
         log.info("orderIds={}", orderIds);
         return orderIds;
@@ -707,7 +762,7 @@ public class TransBiz {
 
 
     /**
-     * 检查交易深度是否满足创建卖单条件
+     * 根据交易深度创建卖单
      */
     private Map<BigDecimal, BigDecimal> checkDeptAndBeginSale(RateChangeEntity rateChangeEntity, BigDecimal amount, SymbolTradeConfigEntity symbolTradeConfig, List<List<BigDecimal>> bids, List<List<BigDecimal>> asks) {
         log.info("checkDeptAndBeginSale,rateChangeVo={},amount={}", rateChangeEntity, amount);
