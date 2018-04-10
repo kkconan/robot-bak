@@ -8,9 +8,11 @@ import com.money.game.robot.entity.AccountEntity;
 import com.money.game.robot.huobi.api.ApiClient;
 import com.money.game.robot.huobi.response.*;
 import com.money.game.robot.service.AccountService;
+import com.money.game.robot.vo.BalanceVo;
 import com.money.game.robot.zb.api.ZbApi;
 import com.money.game.robot.zb.vo.ZbAccountDetailVo;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -29,6 +31,78 @@ public class AccountBiz {
 
     @Autowired
     private ZbApi zbApi;
+
+
+    /**
+     * 获取用户在不同市场主对的余额
+     *
+     * @return
+     */
+    public BalanceVo getUserBaseCurrencyBalance(String userId) {
+        BalanceVo vo = new BalanceVo();
+        HuobiBaseDto dto = new HuobiBaseDto();
+        dto.setUserId(userId);
+        setHuobiApiKey(dto);
+        if (StringUtils.isNotEmpty(dto.getApiSecret())) {
+            //hb账号余额
+            Accounts accounts = this.getHuobiSpotAccounts(dto);
+            //标记hb余额是否设置完成
+            int hbFinish = 0;
+            List<BalanceBean> balanceBeanList = this.getHuobiAccountBalance(dto, accounts);
+            for (BalanceBean balanceBean : balanceBeanList) {
+                //设置完成
+                if (hbFinish >= 6) {
+                    break;
+                }
+                if (DictEnum.HB_MARKET_BASE_USDT.getCode().equals(balanceBean.getCurrency()) && "trade".equals(balanceBean.getType())) {
+                    vo.setHbUsdtTradeBalance(new BigDecimal(balanceBean.getBalance()));
+                    hbFinish++;
+                } else if (DictEnum.HB_MARKET_BASE_USDT.getCode().equals(balanceBean.getCurrency()) && "frozen".equals(balanceBean.getType())) {
+                    vo.setHbUsdtFrozenBalance(new BigDecimal(balanceBean.getBalance()));
+                    hbFinish++;
+                } else if (DictEnum.HB_MARKET_BASE_BTC.getCode().equals(balanceBean.getCurrency()) && "trade".equals(balanceBean.getType())) {
+                    vo.setHbBtcTradeBalance(new BigDecimal(balanceBean.getBalance()));
+                    hbFinish++;
+                } else if (DictEnum.HB_MARKET_BASE_BTC.getCode().equals(balanceBean.getCurrency()) && "frozen".equals(balanceBean.getType())) {
+                    vo.setHbBtcFrozenBalance(new BigDecimal(balanceBean.getBalance()));
+                    hbFinish++;
+                } else if (DictEnum.HB_MARKET_BASE_ETH.getCode().equals(balanceBean.getCurrency()) && "trade".equals(balanceBean.getType())) {
+                    vo.setHbEthTradeBalance(new BigDecimal(balanceBean.getBalance()));
+                    hbFinish++;
+                } else if (DictEnum.HB_MARKET_BASE_ETH.getCode().equals(balanceBean.getCurrency()) && "frozen".equals(balanceBean.getType())) {
+                    vo.setHbEthFrozenBalance(new BigDecimal(balanceBean.getBalance()));
+                    hbFinish++;
+                }
+            }
+        }
+        BaseZbDto baseZbDto = new BaseZbDto();
+        this.setZbApiKey(baseZbDto, userId);
+        if (StringUtils.isNotEmpty(baseZbDto.getAccessKey())) {
+            //标记zb余额是否设置完成
+            int zbFinish = 0;
+            List<ZbAccountDetailVo> zbAccountDetailVoList = zbApi.getAccountInfo(baseZbDto);
+            for (ZbAccountDetailVo zbAccountVo : zbAccountDetailVoList) {
+                if (zbFinish >= 3) {
+                    break;
+                }
+                if (DictEnum.ZB_MARKET_BASE_USDT.getCode().equals(zbAccountVo.getKey())) {
+                    vo.setZbUsdtTradeBalance(zbAccountVo.getAvailable());
+                    vo.setZbUsdtFrozenBalance(zbAccountVo.getFreez());
+                    zbFinish++;
+                } else if (DictEnum.ZB_MARKET_BASE_BTC.getCode().equals(zbAccountVo.getKey())) {
+                    vo.setZbBtcTradeBalance(zbAccountVo.getAvailable());
+                    vo.setZbBtcFrozenBalance(zbAccountVo.getFreez());
+                    zbFinish++;
+                } else if (DictEnum.ZB_MARKET_BASE_QC.getCode().equals(zbAccountVo.getKey())) {
+                    vo.setZbQcTradeBalance(zbAccountVo.getAvailable());
+                    vo.setZbQcFrozenBalance(zbAccountVo.getFreez());
+                    zbFinish++;
+                }
+            }
+        }
+        log.info("账号余额,vo={}", vo);
+        return vo;
+    }
 
 
     /**
@@ -130,8 +204,10 @@ public class AccountBiz {
     public HuobiBaseDto setHuobiApiKey(HuobiBaseDto dto) {
         if (StringUtil.isEmpty(dto.getApiKey())) {
             AccountEntity accountEntity = accountService.findByUserIdAndType(dto.getUserId(), DictEnum.MARKET_TYPE_HB.getCode());
-            dto.setApiKey(accountEntity.getApiKey());
-            dto.setApiSecret(accountEntity.getApiSecret());
+            if (accountEntity != null) {
+                dto.setApiKey(accountEntity.getApiKey());
+                dto.setApiSecret(accountEntity.getApiSecret());
+            }
         }
         return dto;
     }
@@ -139,8 +215,10 @@ public class AccountBiz {
     public BaseZbDto setZbApiKey(BaseZbDto dto, String userId) {
         if (StringUtil.isEmpty(dto.getAccessKey())) {
             AccountEntity accountEntity = accountService.findByUserIdAndType(userId, DictEnum.MARKET_TYPE_ZB.getCode());
-            dto.setAccessKey(accountEntity.getApiKey());
-            dto.setSecretKey(accountEntity.getApiSecret());
+            if (accountEntity != null) {
+                dto.setAccessKey(accountEntity.getApiKey());
+                dto.setSecretKey(accountEntity.getApiSecret());
+            }
         }
         return dto;
     }

@@ -257,12 +257,11 @@ public class OrderBiz {
     }
 
     /**
-     * 获取未完成的zb卖单(已提交,部分成交,部分成交撤销)
+     * 获取未完成的zb卖单(已提交,部分成交)
      */
     public List<OrderEntity> findZbNoFilledSaleOrder() {
         List<String> states = new ArrayList<>();
         states.add(DictEnum.ZB_ORDER_DETAIL_STATE_0.getCode());
-        states.add(DictEnum.ZB_ORDER_DETAIL_STATE_2.getCode());
         states.add(DictEnum.ZB_ORDER_DETAIL_STATE_3.getCode());
         return orderService.findByState(states, DictEnum.ORDER_TYPE_SELL_LIMIT.getCode());
 

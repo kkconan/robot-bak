@@ -17,7 +17,6 @@ import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -59,19 +58,9 @@ public class ZbMarketMonitorBiz {
     private RedisTemplate<String, String> redis;
 
 
-    /**
-     *
-     */
-    @Async("zbMarketMonitor")
-    public void asyncDoMonitor(List<ZbSymbolInfoVo> list) {
-        for (ZbSymbolInfoVo zbSymbolInfoVo : list) {
-            zbMonitor(zbSymbolInfoVo.getCurrency());
-        }
-    }
-
     public void zbMonitor(String symbol) {
         ZbKineVo info = zbApi.getKline(symbol, DictEnum.MARKET_PERIOD_1MIN.getCode(), 6);
-        if (info != null && info.getData() != null && info.getData().size() > 0) {
+        if (info != null && info.getData() != null && info.getData().size() > 5) {
             List<ZbKineDetailVo> kineDetailVoList = info.getData();
             // 倒序排列,zb最新数据在最后面
             Collections.reverse(kineDetailVoList);
@@ -113,7 +102,7 @@ public class ZbMarketMonitorBiz {
                 try {
                     this.zbMonitor(zbSymbolInfoVo.getCurrency());
                 } catch (Exception e) {
-                    log.warn("e={}", e.getMessage());
+                    log.error("zbSymbolInfoVo={},e={}", zbSymbolInfoVo, e);
                 }
             }
             log.info("zb symbol monitor end...");

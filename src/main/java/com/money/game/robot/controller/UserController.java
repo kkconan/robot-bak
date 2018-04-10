@@ -2,10 +2,12 @@ package com.money.game.robot.controller;
 
 import com.money.game.basic.component.ext.web.BaseController;
 import com.money.game.core.constant.ResponseData;
+import com.money.game.robot.biz.AccountBiz;
 import com.money.game.robot.biz.UserBiz;
 import com.money.game.robot.dto.client.ModifyUserInfoDto;
 import com.money.game.robot.dto.client.UserLoginDto;
 import com.money.game.robot.dto.client.UserRegisterDto;
+import com.money.game.robot.vo.BalanceVo;
 import com.money.game.robot.vo.LoginVo;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiImplicitParam;
@@ -27,6 +29,9 @@ public class UserController extends BaseController {
 
     @Autowired
     private UserBiz userBiz;
+
+    @Autowired
+    private AccountBiz accountBiz;
 
     @RequestMapping(value = "/test/register", method = RequestMethod.POST)
 //    @ApiOperation(value = "注册", notes = "", httpMethod = "POST")
@@ -63,6 +68,15 @@ public class UserController extends BaseController {
     public ResponseData modify(@RequestBody @Valid ModifyUserInfoDto dto) {
         String userId = this.getLoginUser();
         return userBiz.modify(dto, userId);
+    }
+
+    @RequestMapping(value = "/getBalance", method = RequestMethod.GET)
+    @ApiOperation(value = "账户余额", notes = "", httpMethod = "GET")
+    @ResponseBody
+    public ResponseData getBalance() {
+        String userId = this.getLoginUser();
+        BalanceVo vo = accountBiz.getUserBaseCurrencyBalance(userId);
+        return ResponseData.success(vo);
     }
 
 }
