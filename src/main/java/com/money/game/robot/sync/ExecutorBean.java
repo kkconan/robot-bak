@@ -11,8 +11,8 @@ import java.util.concurrent.Executor;
 @EnableAsync
 public class ExecutorBean {
 
-    private int corePoolSize = 100;
-    private int maxPoolSize = 400;
+    private int corePoolSize = 240;
+    private int maxPoolSize = 500;
     private int queueCapacity = 1;
 
 

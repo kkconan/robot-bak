@@ -92,7 +92,7 @@ public class MonitorSchedule {
      */
     public void huoBiAllSymBolsMonitor() {
         List<SymBolsDetailVo> list = huobiApi.getSymbolsInfo();
-        List<List<SymBolsDetailVo>> allList = averageAssign(list, 50);
+        List<List<SymBolsDetailVo>> allList = averageAssign(list, 100);
         for (List<SymBolsDetailVo> subList : allList) {
             hbMarketMonitorBiz.asyncDoMonitor(subList);
         }
