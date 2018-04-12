@@ -1,0 +1,247 @@
+package com.money.game.robot.biz;
+
+import com.money.game.robot.constant.DictEnum;
+import com.money.game.robot.dto.huobi.DepthDto;
+import com.money.game.robot.dto.huobi.HuobiBaseDto;
+import com.money.game.robot.dto.zb.ZbOrderDetailDto;
+import com.money.game.robot.entity.AccountEntity;
+import com.money.game.robot.entity.OrderEntity;
+import com.money.game.robot.entity.ShuffleConfigEntity;
+import com.money.game.robot.entity.UserEntity;
+import com.money.game.robot.huobi.response.Depth;
+import com.money.game.robot.huobi.response.OrdersDetail;
+import com.money.game.robot.service.ShuffleConfigService;
+import com.money.game.robot.vo.huobi.DepthOneVo;
+import com.money.game.robot.zb.api.ZbApi;
+import com.money.game.robot.zb.vo.ZbOrderDepthVo;
+import com.money.game.robot.zb.vo.ZbOrderDetailVo;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.stereotype.Component;
+
+import java.math.BigDecimal;
+import java.util.List;
+
+/**
+ * @author conan
+ *         2018/4/11 10:51
+ **/
+@Component
+@Slf4j
+public class ShuffleBiz {
+
+    @Autowired
+    private MarketBiz marketBiz;
+
+    @Autowired
+    private ZbApi zbApi;
+
+    @Autowired
+    private TransBiz transBiz;
+
+    @Autowired
+    private OrderBiz orderBiz;
+
+    @Autowired
+    private TradeBiz tradeBiz;
+
+    @Autowired
+    private AccountBiz accountBiz;
+
+    @Autowired
+    private UserBiz userBiz;
+
+    @Autowired
+    private MailBiz mailBiz;
+
+    @Autowired
+    private ShuffleConfigService shuffleConfigService;
+
+
+    @Async("shuffleMonitor")
+    public void shuffleMonitor() {
+        log.info("shuffleMonitor begin");
+        while (true) {
+            List<UserEntity> userList = userBiz.findAllByNormal();
+            for (UserEntity userEntity : userList) {
+                List<ShuffleConfigEntity> shuffleList = shuffleConfigService.findByUserIdWithOpen(userEntity.getOid());
+                for (ShuffleConfigEntity shuffle : shuffleList) {
+                    try {
+                        checkDepth(shuffle);
+                    } catch (Exception e) {
+                        log.error("e={},shuffle={}", e, shuffle);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * 检查hb搬砖订单状态
+     */
+    public void checkHbShuffleOrder() {
+        List<OrderEntity> hbShuffleOrder = orderBiz.findHbShuffleNoFillOrder();
+        for (OrderEntity order : hbShuffleOrder) {
+            HuobiBaseDto dto = new HuobiBaseDto();
+            dto.setOrderId(order.getOrderId());
+            dto.setUserId(order.getUserId());
+            OrdersDetail ordersDetail = tradeBiz.getHbOrderDetail(dto);
+            //卖单已成交或撤销成交
+            if (DictEnum.ORDER_DETAIL_STATE_FILLED.getCode().equals(ordersDetail.getState()) || DictEnum.ORDER_DETAIL_STATE_PARTIAL_CANCELED.getCode().equals(ordersDetail.getState())) {
+                log.info("hb搬砖订单交易完成.orderId={}", order.getOrderId());
+                order.setState(ordersDetail.getState());
+                order.setFieldAmount(ordersDetail.getFieldAmount());
+                order.setFieldCashAmount(ordersDetail.getFieldCashAmount());
+                order.setFieldFees(ordersDetail.getFieldFees());
+                orderBiz.saveOrder(order);
+                UserEntity userEntity = userBiz.findById(order.getUserId());
+                //发送成交邮件通知
+                mailBiz.transToEmailNotify(order, userEntity);
+
+            }
+        }
+    }
+
+    /**
+     * * 检查zb搬砖订单状态
+     */
+    public void checkZbShuffleOrder() {
+        List<OrderEntity> orderList = orderBiz.findZbShuffleNoFillOrder();
+        for (OrderEntity order : orderList) {
+            ZbOrderDetailDto dto = new ZbOrderDetailDto();
+            dto.setOrderId(order.getOrderId());
+            dto.setCurrency(order.getSymbol());
+            AccountEntity accountEntity = accountBiz.getByUserIdAndType(order.getUserId(), DictEnum.MARKET_TYPE_ZB.getCode());
+            dto.setAccessKey(accountEntity.getApiKey());
+            dto.setSecretKey(accountEntity.getApiSecret());
+            ZbOrderDetailVo ordersDetail = zbApi.orderDetail(dto);
+            //卖单已成交或撤销成交
+            if (DictEnum.ZB_ORDER_DETAIL_STATE_2.getCode().equals(ordersDetail.getState())) {
+                log.info("zb搬砖订单交易完成.orderId={}", order.getOrderId());
+                order.setState(ordersDetail.getState());
+                order.setFieldAmount(ordersDetail.getFieldAmount());
+                order.setFieldCashAmount(ordersDetail.getFieldCashAmount());
+                orderBiz.saveOrder(order);
+                UserEntity userEntity = userBiz.findById(order.getUserId());
+                //发送成交邮件通知
+                mailBiz.transToEmailNotify(order, userEntity);
+            }
+        }
+    }
+
+    private void checkDepth(ShuffleConfigEntity shuffle) {
+        String hbSymbol = groupCurrency(shuffle.getBaseCurrency(), shuffle.getQuoteCurrency(), DictEnum.MARKET_TYPE_HB.getCode());
+        DepthOneVo hbDepth = hbGetDepth(hbSymbol, shuffle.getUserId());
+        if (hbDepth != null) {
+            String zbSymbol = groupCurrency(shuffle.getBaseCurrency(), shuffle.getQuoteCurrency(), DictEnum.MARKET_TYPE_ZB.getCode());
+            DepthOneVo zbDepth = zbGetDepth(zbSymbol, shuffle.getUserId());
+            if (zbDepth != null) {
+                //(saleOne*(1+rateValue) <= buyOne zb or hb
+                if (hbDepth.getSaleOne().multiply(new BigDecimal(1).add(shuffle.getRateValue())).compareTo(zbDepth.getBuyOne()) <= 0) {
+                    log.info("hb卖一比zb买一低,hbDepth={},zbDepth={},shuffle={}", hbDepth, zbDepth, shuffle);
+                    BigDecimal buyPrice = hbDepth.getSaleOne().add(shuffle.getBuyIncreasePrice());
+                    BigDecimal salePrice = zbDepth.getBuyOne().subtract(shuffle.getBuyIncreasePrice());
+                    //购买数量
+                    BigDecimal amount = buyAmount(shuffle.getTotalAmount(), buyPrice, shuffle.getUserId(), shuffle.getBaseCurrency(), DictEnum.MARKET_TYPE_HB.getCode());
+                    if (amount.compareTo(BigDecimal.ONE) < 0) {
+                        log.warn("余额不足,amount={}", amount);
+                    }
+                    this.createShuffleOrder(hbSymbol, zbSymbol, buyPrice, salePrice, amount, shuffle, DictEnum.MARKET_TYPE_HB.getCode());
+
+                } else if (zbDepth.getSaleOne().multiply(new BigDecimal(1).add(shuffle.getRateValue())).compareTo(hbDepth.getBuyOne()) <= 0) {
+                    log.info("zb卖一比hb买一低,hbDepth={},zbDepth={},shuffle={}", hbDepth, zbDepth, shuffle);
+                    BigDecimal buyPrice = zbDepth.getSaleOne().add(shuffle.getBuyIncreasePrice());
+                    BigDecimal salePrice = hbDepth.getBuyOne().subtract(shuffle.getBuyIncreasePrice());
+                    //购买数量
+                    BigDecimal amount = buyAmount(shuffle.getTotalAmount(), buyPrice, shuffle.getUserId(), shuffle.getBaseCurrency(), DictEnum.MARKET_TYPE_ZB.getCode());
+                    this.createShuffleOrder(hbSymbol, zbSymbol, buyPrice, salePrice, amount, shuffle, DictEnum.MARKET_TYPE_ZB.getCode());
+                }
+            }
+        }
+    }
+
+    private void createShuffleOrder(String hbSymbol, String zbSymbol, BigDecimal buyPrice, BigDecimal salePrice, BigDecimal amount, ShuffleConfigEntity shuffle, String buyMarketType) {
+        log.info("创建shuffle订单,hbSymbol={},zbSymbol={},buyPrice={},salePrice={},amount={},buyMarketType={}", hbSymbol, zbSymbol, buyPrice, salePrice, amount, buyMarketType);
+        if (DictEnum.MARKET_TYPE_HB.getCode().equals(buyMarketType)) {
+            //create hb buy
+            String hbOrderId = transBiz.hbCreateBuyOrder(hbSymbol, buyPrice, amount, shuffle.getUserId());
+            orderBiz.saveHbOrder(hbOrderId, null, null, shuffle.getOid(), shuffle.getUserId(), DictEnum.ORDER_TYPE_BUY_LIMIT.getCode(), DictEnum.ORDER_MODEL_SHUFFLE.getCode());
+            //create zb sell
+            String zbOrderId = transBiz.zbCreateSaleOrder(zbSymbol, salePrice, amount, shuffle.getQuoteCurrency(), shuffle.getUserId());
+            orderBiz.saveZbOrder(zbOrderId, zbSymbol, null, hbOrderId, shuffle.getOid(),
+                    shuffle.getUserId(), DictEnum.ORDER_TYPE_SELL_LIMIT.getCode(), DictEnum.ORDER_MODEL_SHUFFLE.getCode());
+        } else if (DictEnum.MARKET_TYPE_ZB.getCode().equals(buyMarketType)) {
+            //create zb buy
+            String zbOrderId = tradeBiz.zbCreateOrder(zbSymbol, buyPrice, amount, DictEnum.ZB_ORDER_TRADE_TYPE_BUY.getCode(), shuffle.getUserId());
+            orderBiz.saveZbOrder(zbOrderId, zbSymbol, null, null, shuffle.getOid(),
+                    shuffle.getUserId(), DictEnum.ORDER_TYPE_BUY_LIMIT.getCode(), DictEnum.ORDER_MODEL_SHUFFLE.getCode());
+            //create hb sell
+            String hbOrderId = transBiz.hbCreateSaleOrder(hbSymbol, salePrice, amount, shuffle.getQuoteCurrency(), shuffle.getUserId());
+            orderBiz.saveHbOrder(hbOrderId, null, zbOrderId, shuffle.getOid(), shuffle.getUserId(), DictEnum.ORDER_TYPE_SELL_LIMIT.getCode(), DictEnum.ORDER_MODEL_SHUFFLE.getCode());
+
+        }
+    }
+
+    private BigDecimal buyAmount(BigDecimal totalAmount, BigDecimal buyPrice, String userId, String quote, String buyMarketType) {
+        BigDecimal amount;
+        BigDecimal balance;
+        if (DictEnum.MARKET_TYPE_HB.getCode().equals(buyMarketType)) {
+            balance = accountBiz.getHuobiQuoteBalance(userId, quote);
+        } else {
+            balance = accountBiz.getZbBalance(userId, quote);
+        }
+        totalAmount = totalAmount.compareTo(balance) < 0 ? totalAmount : balance;
+        amount = totalAmount.divide(buyPrice, 2, BigDecimal.ROUND_DOWN);
+        return amount;
+    }
+
+    /**
+     * hb买一、卖一深度
+     */
+    private DepthOneVo hbGetDepth(String symbol, String userId) {
+        DepthOneVo vo = null;
+        DepthDto dto = new DepthDto();
+        dto.setSymbol(symbol);
+        dto.setUserId(userId);
+        //获取卖单交易深度
+        Depth depth = marketBiz.HbDepth(dto);
+        if (depth != null && depth.getBids() != null && depth.getAsks() != null) {
+            vo = getDepth(depth.getBids(), depth.getAsks());
+        }
+        return vo;
+    }
+
+    /**
+     * zb 买一、卖一深度
+     */
+    private DepthOneVo zbGetDepth(String symbol, String userId) {
+        DepthOneVo vo = null;
+        DepthDto dto = new DepthDto();
+        dto.setSymbol(symbol);
+        dto.setUserId(userId);
+        //获取卖单交易深度
+        ZbOrderDepthVo depth = zbApi.orderDepth(symbol, 2);
+        if (depth != null && depth.getBids() != null && depth.getAsks() != null) {
+            vo = getDepth(depth.getBids(), depth.getAsks());
+        }
+        return vo;
+    }
+
+    private DepthOneVo getDepth(List<List<BigDecimal>> bids, List<List<BigDecimal>> asks) {
+        DepthOneVo vo = new DepthOneVo();
+        vo.setBuyOne(bids.get(0).get(0));
+        vo.setSaleOne(asks.get(0).get(0));
+        return vo;
+    }
+
+    private String groupCurrency(String base, String quote, String marketType) {
+        String currency;
+        if (DictEnum.MARKET_TYPE_HB.getCode().equals(marketType)) {
+            currency = quote + base;
+        } else {
+            currency = quote + "_" + base;
+        }
+        return currency;
+    }
+}

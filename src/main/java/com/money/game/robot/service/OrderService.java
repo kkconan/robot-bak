@@ -22,9 +22,11 @@ public interface OrderService {
 
     List<OrderEntity> findByState(List<String> states, String type);
 
-    List<OrderEntity> findBySymbolAndType(String symbol, String orderType, String symbolConfigId,List<String> states);
+    List<OrderEntity> findBySymbolAndType(String symbol, String orderType, String symbolConfigId, List<String> states);
 
-    List<OrderEntity> findByParam(String userId, String model, String orderType, String symbol,String symbolTradeConfigId,String marketType, List<String> states);
+    List<OrderEntity> findByParam(String userId, String model, String orderType, String symbol, String symbolTradeConfigId, String marketType, List<String> states);
+
+    List<OrderEntity> findShuffleByMarket(String model,String marketType, List<String> states);
 
     List<OrderEntity> findByUserIdAndModel(String userId, String model);
 

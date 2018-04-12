@@ -34,7 +34,7 @@ public class TradeBizTest {
         dto.setPrice(new BigDecimal(0.00117328));
         dto.setSymbol("elfeth");
         dto.setOrderType("buy-limit");
-        String orderId = tradeBiz.createHbOrder(dto);
+        String orderId = tradeBiz.hbCreateOrder(dto);
         log.info("orderId={}", orderId);
     }
 

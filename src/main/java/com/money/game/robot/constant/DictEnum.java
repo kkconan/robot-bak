@@ -147,6 +147,7 @@ public enum DictEnum {
 
     ORDER_MODEL_REAL("real","实时"),
     ORDER_MODEL_LIMIT("limit","限价"),
+    ORDER_MODEL_SHUFFLE("shuffle","搬砖"),
 
     TRADE_CONFIG_THRESHOLD_TYPE_ONE_MIN("oneMin","1分钟"),
     TRADE_CONFIG_THRESHOLD_TYPE_FIVE_MIN("fiveMin","5分钟"),

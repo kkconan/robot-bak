@@ -210,7 +210,7 @@ public class OrderBiz {
     /**
      * 获取未完成的hb实时买单(部分成交,部分成交撤销，完全成交)
      */
-    public List<OrderEntity> findHbNoFilledBuyOrder() {
+    public List<OrderEntity> findHbRealNoFilledBuyOrder() {
         List<String> states = new ArrayList<>();
         states.add(DictEnum.ORDER_DETAIL_STATE_SUBMITTED.getCode());
         states.add(DictEnum.ORDER_DETAIL_STATE_PARTIAL_FILLED.getCode());
@@ -222,7 +222,7 @@ public class OrderBiz {
     /**
      * 获取未完成的hb实时卖单(已提交,部分成交,部分成交撤销)
      */
-    public List<OrderEntity> findHbNoFilledSaleOrder() {
+    public List<OrderEntity> findHbRealNoFilledSaleOrder() {
         List<String> states = new ArrayList<>();
         states.add(DictEnum.ORDER_DETAIL_STATE_SUBMITTING.getCode());
         states.add(DictEnum.ORDER_DETAIL_STATE_SUBMITTED.getCode());
@@ -312,6 +312,28 @@ public class OrderBiz {
             response = ResponseData.success();
         }
         return response;
+    }
+
+    /**
+     * 获取hb未完成的搬砖单
+     */
+    public List<OrderEntity> findHbShuffleNoFillOrder() {
+        List<String> states = new ArrayList<>();
+        states.add(DictEnum.ORDER_DETAIL_STATE_PRE_SUBMITTED.getCode());
+        states.add(DictEnum.ORDER_DETAIL_STATE_SUBMITTING.getCode());
+        states.add(DictEnum.ORDER_DETAIL_STATE_SUBMITTED.getCode());
+        states.add(DictEnum.ORDER_DETAIL_STATE_PARTIAL_FILLED.getCode());
+        return orderService.findShuffleByMarket(DictEnum.ORDER_MODEL_SHUFFLE.getCode(), DictEnum.MARKET_TYPE_HB.getCode(), states);
+    }
+
+    /**
+     * 获取zb未完成的搬砖单
+     */
+    public List<OrderEntity> findZbShuffleNoFillOrder() {
+        List<String> states = new ArrayList<>();
+        states.add(DictEnum.ZB_ORDER_DETAIL_STATE_0.getCode());
+        states.add(DictEnum.ZB_ORDER_DETAIL_STATE_3.getCode());
+        return orderService.findShuffleByMarket(DictEnum.ORDER_MODEL_SHUFFLE.getCode(), DictEnum.MARKET_TYPE_ZB.getCode(), states);
     }
 
 

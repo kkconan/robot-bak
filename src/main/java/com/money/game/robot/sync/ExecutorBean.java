@@ -40,6 +40,22 @@ public class ExecutorBean {
         return executor;
     }
 
+    @Bean
+    public Executor initScaleToRedisAndMonitor() {
+        ThreadPoolTaskExecutor executor = init();
+        executor.setThreadNamePrefix("initScaleToRedisAndMonitor-");
+        executor.initialize();
+        return executor;
+    }
+
+    @Bean
+    public Executor shuffleMonitor() {
+        ThreadPoolTaskExecutor executor = init();
+        executor.setThreadNamePrefix("shuffleMonitor-");
+        executor.initialize();
+        return executor;
+    }
+
     private ThreadPoolTaskExecutor init() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(corePoolSize);

@@ -1,11 +1,10 @@
 package com.money.game.robot.schedule;
 
 import com.money.game.robot.biz.HbMarketMonitorBiz;
+import com.money.game.robot.biz.ShuffleBiz;
 import com.money.game.robot.biz.TransBiz;
-import com.money.game.robot.biz.ZbMarketMonitorBiz;
 import com.money.game.robot.market.HuobiApi;
 import com.money.game.robot.vo.huobi.SymBolsDetailVo;
-import com.money.game.robot.zb.api.ZbApi;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -33,14 +32,12 @@ public class MonitorSchedule {
     @Autowired
     private TransBiz transBiz;
 
+    @Autowired
+    private ShuffleBiz shuffleBiz;
+
     @Value("${is.schedule:true}")
     private boolean isSchedule;
 
-    @Autowired
-    private ZbApi zbApi;
-
-    @Autowired
-    private ZbMarketMonitorBiz zbMarketMonitorBiz;
 
     /**
      * hb所有交易对实时监控
@@ -130,6 +127,18 @@ public class MonitorSchedule {
     public void checkZbRealOrderSaleFinish() {
         if (isSchedule) {
             transBiz.zbCheckSaleFinish();
+        }
+    }
+
+
+    /**
+     * 检查搬砖单是否已完成(切日志方法已check开头)
+     */
+    @Scheduled(cron = "${cron.option[check.shuffle.order.finish]:0 0/3 * * * ?}")
+    public void chcekShuffleOrderFinish() {
+        if (isSchedule) {
+            shuffleBiz.checkHbShuffleOrder();
+            shuffleBiz.checkZbShuffleOrder();
         }
     }
 

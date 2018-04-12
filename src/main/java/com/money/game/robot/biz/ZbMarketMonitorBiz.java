@@ -17,6 +17,7 @@ import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -83,6 +84,7 @@ public class ZbMarketMonitorBiz {
     /**
      * 初始化zb各交易对小数位并开启监控(项目启动时加载)
      */
+    @Async("initScaleToRedisAndMonitor")
     public void initScaleToRedisAndMonitor() {
         List<ZbSymbolInfoVo> list = zbApi.getSymbolInfo();
         for (ZbSymbolInfoVo vo : list) {

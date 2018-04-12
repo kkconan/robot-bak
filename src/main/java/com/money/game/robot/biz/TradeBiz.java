@@ -36,9 +36,6 @@ import java.util.Map;
 public class TradeBiz {
 
     @Autowired
-    private UserBiz userBiz;
-
-    @Autowired
     private AccountBiz accountBiz;
 
     @Autowired
@@ -51,16 +48,16 @@ public class TradeBiz {
      * create hb order
      */
 
-    public String createHbOrder(CreateOrderDto dto) {
+    public String hbCreateOrder(CreateOrderDto dto) {
         if (StringUtil.isEmpty(dto.getApiKey())) {
             AccountEntity accountEntity = accountBiz.getByUserIdAndType(dto.getUserId(), DictEnum.MARKET_TYPE_HB.getCode());
             dto.setApiKey(accountEntity.getApiKey());
             dto.setApiSecret(accountEntity.getApiSecret());
         }
-        ApiClient client = new ApiClient(dto.getApiKey(), dto.getApiSecret());
         CreateOrderRequest createOrderReq = new CreateOrderRequest();
+        ApiClient client = new ApiClient(dto.getApiKey(), dto.getApiSecret());
         createOrderReq.setAccountId(dto.getAccountId());
-        createOrderReq.setAmount(dto.getAmount().setScale(2, BigDecimal.ROUND_DOWN).toString());
+        createOrderReq.setAmount(dto.getAmount().setScale(4, BigDecimal.ROUND_DOWN).toString());
         createOrderReq.setPrice(dto.getPrice().setScale(4, BigDecimal.ROUND_DOWN).toString());
         if (dto.getSymbol().endsWith(DictEnum.HB_MARKET_BASE_BTC.getCode()) || dto.getSymbol().endsWith(DictEnum.HB_MARKET_BASE_ETH.getCode())) {
             createOrderReq.setPrice(dto.getPrice().setScale(8, BigDecimal.ROUND_DOWN).toString());
@@ -88,7 +85,7 @@ public class TradeBiz {
             }
             orderId = client.createOrder(createOrderReq);
         }
-        log.info("createHbOrder,dto={},createOrderReq={},orderId={}", dto, createOrderReq, orderId);
+        log.info("hbCreateOrder,dto={},createOrderReq={},orderId={}", dto, createOrderReq, orderId);
         return client.placeOrder(orderId);
     }
 

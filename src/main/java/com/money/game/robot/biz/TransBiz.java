@@ -111,7 +111,7 @@ public class TransBiz {
      */
     public void hbToSale() {
         List<String> saleOrdes;
-        List<OrderEntity> list = orderBiz.findHbNoFilledBuyOrder();
+        List<OrderEntity> list = orderBiz.findHbRealNoFilledBuyOrder();
         for (OrderEntity buyOrderEntity : list) {
             buyOrderEntity = orderBiz.updateHbOrderState(buyOrderEntity);
 
@@ -152,7 +152,7 @@ public class TransBiz {
      * 检查hb是否有完成的实时卖单
      */
     public void hbCheckSaleFinish() {
-        List<OrderEntity> saleOrderList = orderBiz.findHbNoFilledSaleOrder();
+        List<OrderEntity> saleOrderList = orderBiz.findHbRealNoFilledSaleOrder();
         for (OrderEntity saleOrder : saleOrderList) {
             HuobiBaseDto dto = new HuobiBaseDto();
             dto.setOrderId(saleOrder.getOrderId());
@@ -359,7 +359,7 @@ public class TransBiz {
 
         buyOrderDto.setAmount(amount);
         //创建限价买单
-        String buyOrderId = tradeBiz.createHbOrder(buyOrderDto);
+        String buyOrderId = tradeBiz.hbCreateOrder(buyOrderDto);
         orderBiz.saveHbOrder(buyOrderId, null, null, config.getOid(), accountEntity.getUserId(), DictEnum.ORDER_TYPE_BUY_LIMIT.getCode(), DictEnum.ORDER_MODEL_LIMIT.getCode());
         CreateOrderDto saleOrderDto = new CreateOrderDto();
         BeanUtils.copyProperties(buyOrderDto, saleOrderDto);
@@ -373,7 +373,7 @@ public class TransBiz {
         amount = amount.compareTo(balanceMax) <= 0 ? amount : balanceMax;
         saleOrderDto.setAmount(amount);
         //创建限价卖单
-        String saleOrderId = tradeBiz.createHbOrder(saleOrderDto);
+        String saleOrderId = tradeBiz.hbCreateOrder(saleOrderDto);
         orderBiz.saveHbOrder(saleOrderId, null, buyOrderId, config.getOid(), accountEntity.getUserId(), DictEnum.ORDER_TYPE_BUY_LIMIT.getCode(), DictEnum.ORDER_MODEL_LIMIT.getCode());
         log.info("创建限价单结束,symbols={},userId={},buyOrderId={},saleOrderId={}", config.getSymbol(), accountEntity.getUserId(), buyOrderId, saleOrderId);
     }
@@ -449,7 +449,7 @@ public class TransBiz {
             //欲购买的下单信息
             Map<BigDecimal, BigDecimal> map = checkDeptAndBeginCreate(rateChangeVo.getBuyerSymbol(), rateChangeVo.getBuyPrice(), amount, rateChangeVo.getBaseCurrency(), symbolTradeConfig, bids, asks);
             for (BigDecimal key : map.keySet()) {
-                String orderId = hbCreateBuyOrder(rateChangeVo.getBuyerSymbol(), key, map.get(key), symbolTradeConfig);
+                String orderId = hbCreateBuyOrder(rateChangeVo.getBuyerSymbol(), key, map.get(key), symbolTradeConfig.getUserId());
                 orderIds.add(orderId);
 
             }
@@ -462,25 +462,25 @@ public class TransBiz {
     /**
      * 限价买
      */
-    private String hbCreateBuyOrder(String symbol, BigDecimal price, BigDecimal amount, SymbolTradeConfigEntity symbolTradeConfig) {
+    public String hbCreateBuyOrder(String symbol, BigDecimal price, BigDecimal amount, String userId) {
         log.info("hbCreateBuyOrder,symbols={},price={},amount={}", symbol, price, amount);
         CreateOrderDto dto = new CreateOrderDto();
         dto.setSymbol(symbol);
         dto.setOrderType(CreateOrderRequest.OrderType.BUY_LIMIT);
 
         HuobiBaseDto baseDto = new HuobiBaseDto();
-        baseDto.setUserId(symbolTradeConfig.getUserId());
+        baseDto.setUserId(userId);
         Accounts accounts = accountBiz.getHuobiSpotAccounts(baseDto);
         dto.setAmount(amount);
         dto.setAccountId(String.valueOf(accounts.getId()));
         dto.setPrice(price);
-        dto.setUserId(symbolTradeConfig.getUserId());
-        return tradeBiz.createHbOrder(dto);
+        dto.setUserId(userId);
+        return tradeBiz.hbCreateOrder(dto);
     }
 
 
     /**
-     * 创建hb买单
+     * 创建hb卖单
      */
     private List<String> hbBeginSaleOrder(RateChangeEntity rateChangeEntity, BigDecimal amount, SymbolTradeConfigEntity symbolTradeConfig) {
         log.info("hbCreateSaleOrder,rateChangeVo={},amount={}", rateChangeEntity, amount);
@@ -657,7 +657,7 @@ public class TransBiz {
      * 检查交易深度是否满足创建买单条件
      */
     private Map<BigDecimal, BigDecimal> checkDeptAndBeginCreate(String symbol, BigDecimal buyPrice, BigDecimal amount, String baseQuote, SymbolTradeConfigEntity symbolTradeConfig, List<List<BigDecimal>> bids, List<List<BigDecimal>> asks) {
-        log.info("checkDeptAndBeginCreate,symbols={},buyPrice={},baseCurrency={}", symbol, buyPrice, baseQuote);
+        log.info("checkDeptAndBeginCreate,symbols={},buyPrice={},amount={},baseCurrency={}", symbol, buyPrice,amount, baseQuote);
         Map<BigDecimal, BigDecimal> buyMap = new HashMap<>();
         //判断卖单是否足够
         for (List<BigDecimal> ask : asks) {
@@ -725,8 +725,8 @@ public class TransBiz {
     /**
      * 限价卖
      */
-    private String zbCreateSaleOrder(String symbol, BigDecimal price, BigDecimal amount, String quoteCurrency, String userId) {
-        log.info("create order,symbols={},price={},amount={},quoteCurrency={},userId={}", symbol, price, amount, quoteCurrency, userId);
+    public String zbCreateSaleOrder(String symbol, BigDecimal price, BigDecimal amount, String quoteCurrency, String userId) {
+        log.info("zbCreateSaleOrder,symbols={},price={},amount={},quoteCurrency={},userId={}", symbol, price, amount, quoteCurrency, userId);
         //判断是否超过可使用的上限
         BigDecimal balanceMax = accountBiz.getZbBalance(userId, quoteCurrency);
         amount = balanceMax.compareTo(amount) < 0 ? balanceMax : amount;
@@ -761,7 +761,7 @@ public class TransBiz {
         }
         String subject = orderEntity.getSymbol() + " " + orderEntity.getType() + " success notify";
         String content = orderEntity.getSymbol() + " " + orderEntity.getType() + " success. price is " + orderEntity.getPrice().setScale(8, BigDecimal.ROUND_DOWN)
-                + ",amount is " + orderEntity.getAmount().setScale(8, BigDecimal.ROUND_DOWN) + " and totalToUsdt is " + orderEntity.getTotalToUsdt() + ".";
+                + ",amount is " + orderEntity.getAmount().setScale(8, BigDecimal.ROUND_DOWN) + " and totalToUsdt is " + orderEntity.getTotalToUsdt().setScale(8,BigDecimal.ROUND_DOWN) + ".";
         MailQQ.sendEmail(subject, content, userEntity.getNotifyEmail());
     }
 
@@ -823,8 +823,8 @@ public class TransBiz {
     /**
      * 限价卖
      */
-    private String hbCreateSaleOrder(String symbol, BigDecimal price, BigDecimal amount, String quoteCurrency, String userId) {
-        log.info("create order,symbols={},price={},amount={},quoteCurrency={},userId={}", symbol, price, amount, quoteCurrency, userId);
+    public String hbCreateSaleOrder(String symbol, BigDecimal price, BigDecimal amount, String quoteCurrency, String userId) {
+        log.info("hb create sale order,symbols={},price={},amount={},quoteCurrency={},userId={}", symbol, price, amount, quoteCurrency, userId);
         //判断是否超过可使用的上限
         CreateOrderDto dto = new CreateOrderDto();
         dto.setSymbol(symbol);
@@ -839,7 +839,7 @@ public class TransBiz {
         dto.setAccountId(String.valueOf(accounts.getId()));
         dto.setAmount(amount);
         dto.setUserId(userId);
-        return tradeBiz.createHbOrder(dto);
+        return tradeBiz.hbCreateOrder(dto);
     }
 
     /**
