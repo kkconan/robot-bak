@@ -146,6 +146,9 @@ public class ShuffleBiz {
                     BigDecimal amount = buyAmount(shuffle.getTotalAmount(), buyPrice, shuffle.getUserId(), shuffle.getBaseCurrency(), DictEnum.MARKET_TYPE_HB.getCode());
                     if (amount.compareTo(BigDecimal.ONE) < 0) {
                         log.warn("余额不足,amount={}", amount);
+                        UserEntity userEntity = userBiz.findById(shuffle.getUserId());
+                        mailBiz.balanceToEmailNotify(userEntity, shuffle.getBaseCurrency(), DictEnum.MARKET_TYPE_HB.getCode());
+                        return;
                     }
                     this.createShuffleOrder(hbSymbol, zbSymbol, buyPrice, salePrice, amount, shuffle, DictEnum.MARKET_TYPE_HB.getCode());
 
@@ -155,6 +158,12 @@ public class ShuffleBiz {
                     BigDecimal salePrice = hbDepth.getBuyOne().subtract(shuffle.getBuyIncreasePrice());
                     //购买数量
                     BigDecimal amount = buyAmount(shuffle.getTotalAmount(), buyPrice, shuffle.getUserId(), shuffle.getBaseCurrency(), DictEnum.MARKET_TYPE_ZB.getCode());
+                    if (amount.compareTo(BigDecimal.ONE) < 0) {
+                        log.warn("余额不足,amount={}", amount);
+                        UserEntity userEntity = userBiz.findById(shuffle.getUserId());
+                        mailBiz.balanceToEmailNotify(userEntity, shuffle.getBaseCurrency(), DictEnum.MARKET_TYPE_ZB.getCode());
+                        return;
+                    }
                     this.createShuffleOrder(hbSymbol, zbSymbol, buyPrice, salePrice, amount, shuffle, DictEnum.MARKET_TYPE_ZB.getCode());
                 }
             }
@@ -192,7 +201,7 @@ public class ShuffleBiz {
             balance = accountBiz.getZbBalance(userId, quote);
         }
         totalAmount = totalAmount.compareTo(balance) < 0 ? totalAmount : balance;
-        amount = totalAmount.divide(buyPrice, 2, BigDecimal.ROUND_DOWN);
+        amount = totalAmount.divide(buyPrice, 1, BigDecimal.ROUND_DOWN);
         return amount;
     }
 
