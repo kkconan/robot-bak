@@ -4,6 +4,7 @@ import com.money.game.basic.component.ext.web.BaseController;
 import com.money.game.core.constant.ResponseData;
 import com.money.game.robot.biz.LimitTradeConfgBiz;
 import com.money.game.robot.dto.client.LimitTradeConfigDto;
+import com.money.game.robot.dto.client.SymbolTradeConfigDto;
 import com.money.game.robot.dto.client.TradeConfigStatusDto;
 import com.money.game.robot.vo.LimitTradeConfigVo;
 import io.swagger.annotations.Api;
@@ -60,11 +61,11 @@ public class LimitConfigController extends BaseController {
 
     @RequestMapping(value = "/delete", method = RequestMethod.POST)
     @ApiOperation(value = "删除", notes = "", httpMethod = "POST")
-    @ApiImplicitParams({@ApiImplicitParam(name = "oid", value = "oid", required = true, paramType = "query", dataType = "String")})
+    @ApiImplicitParams({@ApiImplicitParam(name = "oid", value = "oid", required = true, paramType = "String", dataType = "String")})
     @ResponseBody
-    public ResponseData delete(String oid) {
+    public ResponseData delete(@RequestBody SymbolTradeConfigDto dto) {
         this.getLoginUser();
-        limitTradeConfgBiz.delete(oid);
+        limitTradeConfgBiz.delete(dto.getOid());
         return ResponseData.success();
     }
 

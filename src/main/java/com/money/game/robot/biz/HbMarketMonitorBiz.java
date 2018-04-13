@@ -58,7 +58,7 @@ public class HbMarketMonitorBiz {
     public void huoBiMonitor(String symbol) {
         MarketInfoVo info = huobiApi.getMarketInfo(DictEnum.MARKET_PERIOD_1MIN.getCode(), 6, symbol);
         if (info != null && info.getData().size() > 5) {
-            List<UserEntity> userList = userBiz.findAllByNormal();
+            List<UserEntity> userList = userBiz.findAllHbByNormal();
             for (UserEntity user : userList) {
                 MarketDetailVo nowVo = info.getData().get(0);
                 // 1min monitor

@@ -62,9 +62,9 @@ public class SymbolConfigController extends BaseController {
     @ApiOperation(value = "删除", notes = "", httpMethod = "POST")
     @ApiImplicitParams({@ApiImplicitParam(name = "oid", value = "oid", required = true, paramType = "query", dataType = "String")})
     @ResponseBody
-    public ResponseData delete(String oid) {
+    public ResponseData delete(@RequestBody TradeConfigStatusDto dto) {
         this.getLoginUser();
-        symbolTradeConfigBiz.delete(oid);
+        symbolTradeConfigBiz.delete(dto.getOid());
         return ResponseData.success();
     }
 

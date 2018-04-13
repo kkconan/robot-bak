@@ -65,7 +65,7 @@ public class ZbMarketMonitorBiz {
             List<ZbKineDetailVo> kineDetailVoList = info.getData();
             // 倒序排列,zb最新数据在最后面
             Collections.reverse(kineDetailVoList);
-            List<UserEntity> userList = userBiz.findAllByNormal();
+            List<UserEntity> userList = userBiz.findAllZbByNormal();
 
             ZbKineDetailVo nowVo = kineDetailVoList.get(0);
             for (UserEntity user : userList) {

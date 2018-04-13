@@ -17,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -118,19 +119,23 @@ public class AccountBiz {
 
     public List<AccountEntity> findByType(String type) {
         List<AccountEntity> list = accountService.findByTypeAndStatus(type, DictEnum.USER_STATUS_NORMAL.getCode());
+        List<AccountEntity> newList = new ArrayList<>();
         for (AccountEntity accountEntity : list) {
-            if (StringUtil.isEmpty(accountEntity.getAccountId()) && DictEnum.MARKET_TYPE_HB.getCode().equals(type)) {
-                HuobiBaseDto dto = new HuobiBaseDto();
-                dto.setApiKey(accountEntity.getApiKey());
-                dto.setApiSecret(accountEntity.getApiSecret());
-                Accounts accounts = this.getHuobiSpotAccounts(dto);
-                if (accounts != null) {
-                    accountEntity.setAccountId(String.valueOf(accounts.getId()));
-                    accountService.save(accountEntity);
+            if (StringUtils.isNotEmpty(accountEntity.getApiKey()) && StringUtils.isNotEmpty(accountEntity.getApiSecret())) {
+                if (StringUtil.isEmpty(accountEntity.getAccountId()) && DictEnum.MARKET_TYPE_HB.getCode().equals(type)) {
+                    HuobiBaseDto dto = new HuobiBaseDto();
+                    dto.setApiKey(accountEntity.getApiKey());
+                    dto.setApiSecret(accountEntity.getApiSecret());
+                    Accounts accounts = this.getHuobiSpotAccounts(dto);
+                    if (accounts != null) {
+                        accountEntity.setAccountId(String.valueOf(accounts.getId()));
+                        accountService.save(accountEntity);
+                    }
                 }
+                newList.add(accountEntity);
             }
         }
-        return list;
+        return newList;
     }
 
     /**

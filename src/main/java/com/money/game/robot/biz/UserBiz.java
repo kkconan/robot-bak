@@ -19,6 +19,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -34,8 +35,49 @@ public class UserBiz {
     @Autowired
     private AccountBiz accountBiz;
 
+    /**
+     * hb and zb api all set
+     *
+     * @return
+     */
     public List<UserEntity> findAllByNormal() {
-        return userService.findAllByStatus(DictEnum.USER_STATUS_NORMAL.getCode());
+        List<UserEntity> userEntityList = userService.findAllByStatus(DictEnum.USER_STATUS_NORMAL.getCode());
+        List<UserEntity> newList = new ArrayList<>();
+        for (UserEntity userEntity : userEntityList) {
+            AccountEntity accountEntity = accountBiz.getByUserIdAndType(userEntity.getOid(), DictEnum.MARKET_TYPE_HB.getCode());
+            if (accountEntity != null && StringUtils.isNotEmpty(accountEntity.getApiKey()) && StringUtils.isNotEmpty(accountEntity.getApiSecret())) {
+                accountEntity = accountBiz.getByUserIdAndType(userEntity.getOid(), DictEnum.MARKET_TYPE_ZB.getCode());
+                if (accountEntity != null && StringUtils.isNotEmpty(accountEntity.getApiKey()) && StringUtils.isNotEmpty(accountEntity.getApiSecret())) {
+                    newList.add(userEntity);
+                }
+                newList.add(userEntity);
+            }
+        }
+        return newList;
+    }
+
+    public List<UserEntity> findAllHbByNormal() {
+        List<UserEntity> userEntityList = userService.findAllByStatus(DictEnum.USER_STATUS_NORMAL.getCode());
+        List<UserEntity> newList = new ArrayList<>();
+        for (UserEntity userEntity : userEntityList) {
+            AccountEntity accountEntity = accountBiz.getByUserIdAndType(userEntity.getOid(), DictEnum.MARKET_TYPE_HB.getCode());
+            if (accountEntity != null && StringUtils.isNotEmpty(accountEntity.getApiKey()) && StringUtils.isNotEmpty(accountEntity.getApiSecret())) {
+                newList.add(userEntity);
+            }
+        }
+        return newList;
+    }
+
+    public List<UserEntity> findAllZbByNormal() {
+        List<UserEntity> userEntityList = userService.findAllByStatus(DictEnum.USER_STATUS_NORMAL.getCode());
+        List<UserEntity> newList = new ArrayList<>();
+        for (UserEntity userEntity : userEntityList) {
+            AccountEntity accountEntity = accountBiz.getByUserIdAndType(userEntity.getOid(), DictEnum.MARKET_TYPE_ZB.getCode());
+            if (accountEntity != null && StringUtils.isNotEmpty(accountEntity.getApiKey()) && StringUtils.isNotEmpty(accountEntity.getApiSecret())) {
+                newList.add(userEntity);
+            }
+        }
+        return newList;
     }
 
     public ResponseData getUserInfo(String userId) {
@@ -57,7 +99,8 @@ public class UserBiz {
 
     public ResponseData modify(ModifyUserInfoDto dto, String userId) {
         UserEntity user = userService.findOne(userId);
-        BeanUtils.copyProperties(dto, user);
+        user.setNotifyEmail(dto.getNotifyEmail());
+        user.setNotifyPhone(dto.getNotifyPhone());
         if (!StringUtil.isEmpty(dto.getPassword())) {
             user.setSalt(Digests.genSalt());
             user.setPassword(PwdUtil.encryptPassword(dto.getPassword(), user.getSalt()));

@@ -46,7 +46,7 @@ public class OrderController extends BaseController {
     @ApiOperation(value = "撤销订单", notes = "", httpMethod = "GET")
     @ApiImplicitParams({@ApiImplicitParam(name = "oid", value = "oid", required = true, paramType = "query", dataType = "String")})
     @ResponseBody
-    public ResponseData cancelOrder(String oid) {
+    public ResponseData cancelOrder(@RequestBody String oid) {
         this.getLoginUser();
         return orderBiz.cancelOrder(oid);
     }

@@ -93,7 +93,7 @@ public class MarketMonitorBizTest {
      */
     @Test
     public void sendEmailTest() throws Exception {
-        List<UserEntity> list = userBiz.findAllByNormal();
+        List<UserEntity> list = userBiz.findAllHbByNormal();
         log.info("list={}", list);
 
     }
