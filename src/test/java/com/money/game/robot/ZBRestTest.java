@@ -3,12 +3,14 @@ package com.money.game.robot;
 import com.money.game.robot.dto.zb.BaseZbDto;
 import com.money.game.robot.dto.zb.ZbCancelOrderDto;
 import com.money.game.robot.dto.zb.ZbOrderDetailDto;
+import com.money.game.robot.dto.zb.ZbWithDrawDto;
 import com.money.game.robot.zb.EncryDigestUtil;
 import com.money.game.robot.zb.HttpUtilManager;
 import com.money.game.robot.zb.MapSort;
 import com.money.game.robot.zb.api.ZbApi;
 import com.money.game.robot.zb.vo.ZbOrderDepthVo;
 import com.money.game.robot.zb.vo.ZbResponseVo;
+import com.money.game.robot.zb.vo.ZbWithDrowVo;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpException;
 import org.junit.Test;
@@ -21,6 +23,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.math.BigDecimal;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.HashMap;
@@ -98,8 +101,8 @@ public class ZBRestTest {
             dto.setOrderId(orderId);
             dto.setAccessKey("7c08f59f-1b32-4cd8-ab8e-cb32564f6e12");
             dto.setSecretKey("3ad4640f-d2f5-4fa1-bedb-9752e1e38284");
-            ZbResponseVo vo =zbApi.cancelOrder(dto);
-            System.err.println("vo="+vo);
+            ZbResponseVo vo = zbApi.cancelOrder(dto);
+            System.err.println("vo=" + vo);
         } catch (Exception ex) {
             ex.printStackTrace();
         }
@@ -278,26 +281,20 @@ public class ZBRestTest {
     /**
      * 提现操作
      */
-//	@Test
+    @Test
     public void withdraw() {
         try {
-            String addr = "143GwqgnjNi5DqGv4xzwqeGTi7BGxxxxxx";
-            String fees = "0.0003";
-            String currency = "etc";
-            String amount = "0.0004";
-            String itransfer = "0";
 
-            Map<String, String> params = new HashMap<String, String>();
-            params.put("amount", amount);
-            params.put("currency", currency);
-            params.put("fees", fees);
-            params.put("itransfer", itransfer);
-            params.put("method", "withdraw");
-            params.put("receiveAddr", addr);
-            params.put("safePwd", PAY_PASS);
-
-            String json = this.getJsonPost(params);
-            System.out.println("withdraw 结果: " + json);
+            ZbWithDrawDto dto = new ZbWithDrawDto();
+            dto.setReceiveAddr("huobi-pro_112300");
+            dto.setFees(new BigDecimal(3));
+            dto.setCurrency("bts");
+            dto.setAmount(new BigDecimal(10));
+            dto.setAccessKey("7c08f59f-1b32-4cd8-ab8e-cb32564f6e12");
+            dto.setSecretKey("3ad4640f-d2f5-4fa1-bedb-9752e1e38284");
+            dto.setSafePwd("824968");
+            ZbWithDrowVo vo = zbApi.withdraw(dto);
+            log.info("withdraw 结果: " + vo);
         } catch (Exception ex) {
             ex.printStackTrace();
         }

@@ -9,9 +9,13 @@ import lombok.Data;
 @Data
 public class ModifyUserInfoDto {
 
-    private String apiKey;
+    private String hbApiKey;
 
-    private String apiSecret;
+    private String hbApiSecret;
+
+    private String zbApiKey;
+
+    private String zbApiSecret;
 
     private String phone;
 

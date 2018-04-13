@@ -8,10 +8,6 @@ import lombok.Data;
  **/
 @Data
 public class UserVo {
-
-    private String apiKey;
-
-    private String apiSecret;
     /**
      * normal freeze
      */
@@ -28,4 +24,14 @@ public class UserVo {
      * 通知邮箱,可多个,通过逗号分隔
      */
     private String notifyEmail;
+
+
+    private String hbApiKey;
+
+    private String hbApiSecret;
+
+
+    private String zbApiKey;
+
+    private String zbApiSecret;
 }

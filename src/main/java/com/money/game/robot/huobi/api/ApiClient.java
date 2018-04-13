@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.money.game.robot.constant.ErrorEnum;
 import com.money.game.robot.huobi.request.CreateOrderRequest;
 import com.money.game.robot.huobi.request.DepthRequest;
+import com.money.game.robot.huobi.request.WithDrawRequest;
 import com.money.game.robot.huobi.response.*;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
@@ -354,10 +355,27 @@ public class ApiClient {
         return resp;
     }
 
-//  public IntrustDetailResponse getALlOrdersDetail(String orderId) {
-//    IntrustDetailResponse resp = get("/v1/order/orders/"+orderId, null,new TypeReference<IntrustDetailResponse>() {});
-//    return resp;
-//  }
+    /**
+     * POST 提现申请
+     */
+    public Long withdraw(WithDrawRequest withDrawRequest) {
+        ApiResponse<Long> resp = post("/v1/dw/withdraw/api/create", withDrawRequest, new TypeReference<ApiResponse<Long>>() {
+        });
+        return resp.checkAndReturn();
+    }
+
+    /**
+     * 充提记录
+     */
+    public List<DepositWithdrawResponse> depositWithdraw(String currency, String type) {
+        Map<String, String> map = new HashMap<>();
+        map.put("currency", currency);
+        map.put("type", type);
+
+        OrdersDetailResponse<List<DepositWithdrawResponse>> resp = post("/v1/query/deposit-withdraw", map, new TypeReference<OrdersDetailResponse<List<DepositWithdrawResponse>>>() {
+        });
+        return resp.getData();
+    }
 
 
     // send a GET request.

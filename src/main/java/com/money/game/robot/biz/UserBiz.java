@@ -8,11 +8,13 @@ import com.money.game.robot.constant.DictEnum;
 import com.money.game.robot.constant.ErrorEnum;
 import com.money.game.robot.dto.client.ModifyUserInfoDto;
 import com.money.game.robot.dto.client.UserRegisterDto;
+import com.money.game.robot.entity.AccountEntity;
 import com.money.game.robot.entity.UserEntity;
 import com.money.game.robot.exception.BizException;
 import com.money.game.robot.service.UserService;
 import com.money.game.robot.vo.LoginVo;
 import com.money.game.robot.vo.UserVo;
+import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -29,6 +31,9 @@ public class UserBiz {
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private AccountBiz accountBiz;
+
     public List<UserEntity> findAllByNormal() {
         return userService.findAllByStatus(DictEnum.USER_STATUS_NORMAL.getCode());
     }
@@ -37,6 +42,16 @@ public class UserBiz {
         UserEntity user = userService.findOne(userId);
         UserVo userVo = new UserVo();
         BeanUtils.copyProperties(user, userVo);
+        AccountEntity hbAccount = accountBiz.getByUserIdAndType(userId, DictEnum.MARKET_TYPE_HB.getCode());
+        if (hbAccount != null) {
+            userVo.setHbApiKey(hbAccount.getApiKey());
+            userVo.setHbApiSecret(hbAccount.getApiSecret());
+        }
+        AccountEntity zbAccount = accountBiz.getByUserIdAndType(userId, DictEnum.MARKET_TYPE_ZB.getCode());
+        if (zbAccount != null) {
+            userVo.setZbApiKey(zbAccount.getApiKey());
+            userVo.setZbApiSecret(zbAccount.getApiSecret());
+        }
         return ResponseData.success(userVo);
     }
 
@@ -46,6 +61,32 @@ public class UserBiz {
         if (!StringUtil.isEmpty(dto.getPassword())) {
             user.setSalt(Digests.genSalt());
             user.setPassword(PwdUtil.encryptPassword(dto.getPassword(), user.getSalt()));
+        }
+        if (StringUtils.isNotEmpty(dto.getHbApiKey()) && StringUtils.isNotEmpty(dto.getHbApiSecret())) {
+            AccountEntity accountEntity = accountBiz.getByUserIdAndType(userId, DictEnum.MARKET_TYPE_HB.getCode());
+            if (accountEntity == null) {
+                accountEntity = new AccountEntity();
+                accountEntity.setApiKey(dto.getHbApiKey());
+                accountEntity.setApiSecret(dto.getHbApiSecret());
+                accountEntity.setStatus(DictEnum.USER_STATUS_NORMAL.getCode());
+                accountEntity.setType(DictEnum.MARKET_TYPE_HB.getCode());
+                accountEntity.setUserId(userId);
+                accountBiz.save(accountEntity);
+            }
+
+        }
+        if (StringUtils.isNotEmpty(dto.getZbApiKey()) && StringUtils.isNotEmpty(dto.getZbApiSecret())) {
+            AccountEntity accountEntity = accountBiz.getByUserIdAndType(userId, DictEnum.MARKET_TYPE_ZB.getCode());
+            if (accountEntity == null) {
+                accountEntity = new AccountEntity();
+                accountEntity.setApiKey(dto.getZbApiKey());
+                accountEntity.setApiSecret(dto.getZbApiSecret());
+                accountEntity.setStatus(DictEnum.USER_STATUS_NORMAL.getCode());
+                accountEntity.setType(DictEnum.MARKET_TYPE_ZB.getCode());
+                accountEntity.setUserId(userId);
+                accountBiz.save(accountEntity);
+            }
+
         }
         userService.save(user);
         return ResponseData.success();

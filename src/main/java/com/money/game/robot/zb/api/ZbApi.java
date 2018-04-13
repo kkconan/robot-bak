@@ -11,10 +11,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.google.gson.Gson;
 import com.money.game.core.util.StrRedisUtil;
 import com.money.game.robot.constant.ErrorEnum;
-import com.money.game.robot.dto.zb.BaseZbDto;
-import com.money.game.robot.dto.zb.ZbCancelOrderDto;
-import com.money.game.robot.dto.zb.ZbCreateOrderDto;
-import com.money.game.robot.dto.zb.ZbOrderDetailDto;
+import com.money.game.robot.dto.zb.*;
 import com.money.game.robot.exception.BizException;
 import com.money.game.robot.zb.EncryDigestUtil;
 import com.money.game.robot.zb.HttpUtilManager;
@@ -32,6 +29,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.math.BigDecimal;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.*;
@@ -197,13 +195,31 @@ public class ZbApi {
     }
 
     /**
+     * 提现
+     */
+    public ZbWithDrowVo withdraw(ZbWithDrawDto dto) {
+        Map<String, String> params = new HashMap<String, String>();
+        params.put("amount", String.valueOf(dto.getAmount()));
+        params.put("currency", dto.getCurrency());
+        params.put("fees", dto.getFees().setScale(4, BigDecimal.ROUND_DOWN).toString());
+        params.put("itransfer", dto.getItransfer());
+        params.put("safePwd",dto.getSafePwd());
+        params.put("method", "withdraw");
+        params.put("receiveAddr", dto.getReceiveAddr());
+        return this.post(params, dto.getAccessKey(), dto.getSecretKey(), new TypeReference<ZbWithDrowVo>() {
+        });
+    }
+
+    /**
      * @return 返回指定类
      */
+
     private <T> T post(Map<String, String> params, String accessKey, String secretKey, TypeReference<T> ref) {
         try {
             String result = this.getJsonPost(params, accessKey, secretKey);
             return JsonUtil.readValue(result, ref);
         } catch (Exception e) {
+            log.error("e={}", e);
             throw new BizException(e.getMessage());
         }
     }

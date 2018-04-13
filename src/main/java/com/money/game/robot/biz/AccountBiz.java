@@ -112,6 +112,10 @@ public class AccountBiz {
         return accountService.findByUserIdAndType(userId, type);
     }
 
+    public AccountEntity save(AccountEntity entity) {
+        return accountService.save(entity);
+    }
+
     public List<AccountEntity> findByType(String type) {
         List<AccountEntity> list = accountService.findByTypeAndStatus(type, DictEnum.USER_STATUS_NORMAL.getCode());
         for (AccountEntity accountEntity : list) {

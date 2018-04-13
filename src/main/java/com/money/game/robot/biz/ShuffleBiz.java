@@ -17,7 +17,6 @@ import com.money.game.robot.zb.vo.ZbOrderDepthVo;
 import com.money.game.robot.zb.vo.ZbOrderDetailVo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -59,7 +58,7 @@ public class ShuffleBiz {
     private ShuffleConfigService shuffleConfigService;
 
 
-    @Async("shuffleMonitor")
+    //    @Async("shuffleMonitor")
     public void shuffleMonitor() {
         log.info("shuffleMonitor begin");
         while (true) {
@@ -144,13 +143,11 @@ public class ShuffleBiz {
                     BigDecimal salePrice = zbDepth.getBuyOne().subtract(shuffle.getBuyIncreasePrice());
                     //购买数量
                     BigDecimal amount = buyAmount(shuffle.getTotalAmount(), buyPrice, shuffle.getUserId(), shuffle.getBaseCurrency(), DictEnum.MARKET_TYPE_HB.getCode());
-                    if (amount.compareTo(BigDecimal.ONE) < 0) {
-                        log.warn("余额不足,amount={}", amount);
-                        UserEntity userEntity = userBiz.findById(shuffle.getUserId());
-                        mailBiz.balanceToEmailNotify(userEntity, shuffle.getBaseCurrency(), DictEnum.MARKET_TYPE_HB.getCode());
-                        return;
+                    //检验两个市场余额
+                    boolean result = this.checkBalance(shuffle.getUserId(), shuffle.getQuoteCurrency(), shuffle.getBaseCurrency(), shuffle.getTotalAmount(), amount, DictEnum.MARKET_TYPE_HB.getCode());
+                    if (result) {
+                        this.createShuffleOrder(hbSymbol, zbSymbol, buyPrice, salePrice, amount, shuffle, DictEnum.MARKET_TYPE_HB.getCode());
                     }
-                    this.createShuffleOrder(hbSymbol, zbSymbol, buyPrice, salePrice, amount, shuffle, DictEnum.MARKET_TYPE_HB.getCode());
 
                 } else if (zbDepth.getSaleOne().multiply(new BigDecimal(1).add(shuffle.getRateValue())).compareTo(hbDepth.getBuyOne()) <= 0) {
                     log.info("zb卖一比hb买一低,hbDepth={},zbDepth={},shuffle={}", hbDepth, zbDepth, shuffle);
@@ -158,13 +155,11 @@ public class ShuffleBiz {
                     BigDecimal salePrice = hbDepth.getBuyOne().subtract(shuffle.getBuyIncreasePrice());
                     //购买数量
                     BigDecimal amount = buyAmount(shuffle.getTotalAmount(), buyPrice, shuffle.getUserId(), shuffle.getBaseCurrency(), DictEnum.MARKET_TYPE_ZB.getCode());
-                    if (amount.compareTo(BigDecimal.ONE) < 0) {
-                        log.warn("余额不足,amount={}", amount);
-                        UserEntity userEntity = userBiz.findById(shuffle.getUserId());
-                        mailBiz.balanceToEmailNotify(userEntity, shuffle.getBaseCurrency(), DictEnum.MARKET_TYPE_ZB.getCode());
-                        return;
+                    //检验两个市场余额
+                    boolean result = this.checkBalance(shuffle.getUserId(), shuffle.getQuoteCurrency(), shuffle.getBaseCurrency(), shuffle.getTotalAmount(), amount, DictEnum.MARKET_TYPE_ZB.getCode());
+                    if (result) {
+                        this.createShuffleOrder(hbSymbol, zbSymbol, buyPrice, salePrice, amount, shuffle, DictEnum.MARKET_TYPE_ZB.getCode());
                     }
-                    this.createShuffleOrder(hbSymbol, zbSymbol, buyPrice, salePrice, amount, shuffle, DictEnum.MARKET_TYPE_ZB.getCode());
                 }
             }
         }
@@ -192,6 +187,60 @@ public class ShuffleBiz {
         }
     }
 
+    /**
+     * 校验余额
+     *
+     * @param userId        usreId
+     * @param quoteCurrency 业务对
+     * @param baseCurrency  基对
+     * @param totalAmount   总金额
+     * @param amount        购买数量
+     * @param buyMarketType 市场类型
+     */
+    private boolean checkBalance(String userId, String quoteCurrency, String baseCurrency, BigDecimal totalAmount, BigDecimal amount, String buyMarketType) {
+        boolean result = true;
+        BigDecimal hbMaxBalance;
+        BigDecimal zbMaxBalance;
+        //hb to buy check
+        if (DictEnum.MARKET_TYPE_HB.getCode().equals(buyMarketType)) {
+            hbMaxBalance = accountBiz.getHuobiQuoteBalance(userId, baseCurrency);
+            if (totalAmount.compareTo(hbMaxBalance) > 0) {
+                log.info("hb " + baseCurrency + " 余额不足,totalAmount={},maxBalance={}", totalAmount, hbMaxBalance);
+                UserEntity userEntity = userBiz.findById(userId);
+                mailBiz.balanceToEmailNotify(userEntity, baseCurrency, DictEnum.MARKET_TYPE_HB.getCode());
+                result = false;
+            } else {
+                zbMaxBalance = accountBiz.getZbBalance(userId, quoteCurrency);
+                if (amount.compareTo(zbMaxBalance) > 0) {
+                    log.info("zb " + quoteCurrency + " 余额不足,amount={},maxBalance={}", amount, hbMaxBalance);
+                    UserEntity userEntity = userBiz.findById(userId);
+                    mailBiz.balanceToEmailNotify(userEntity, baseCurrency, DictEnum.MARKET_TYPE_ZB.getCode());
+                    result = false;
+                }
+            }
+        } else if (DictEnum.MARKET_TYPE_ZB.getCode().equals(buyMarketType)) {
+            zbMaxBalance = accountBiz.getZbBalance(userId, baseCurrency);
+            if (totalAmount.compareTo(zbMaxBalance) > 0) {
+                log.info("zb " + baseCurrency + " 余额不足,totalAmount={},maxBalance={}", totalAmount, zbMaxBalance);
+                UserEntity userEntity = userBiz.findById(userId);
+                mailBiz.balanceToEmailNotify(userEntity, baseCurrency, DictEnum.MARKET_TYPE_ZB.getCode());
+                result = false;
+            } else {
+                hbMaxBalance = accountBiz.getHuobiQuoteBalance(userId, quoteCurrency);
+                if (amount.compareTo(hbMaxBalance) > 0) {
+                    log.info("hb " + quoteCurrency + " 余额不足,amount={},maxBalance={}", amount, hbMaxBalance);
+                    UserEntity userEntity = userBiz.findById(userId);
+                    mailBiz.balanceToEmailNotify(userEntity, baseCurrency, DictEnum.MARKET_TYPE_HB.getCode());
+                    result = false;
+                }
+            }
+        }
+        return result;
+    }
+
+    /**
+     * 买入数量
+     */
     private BigDecimal buyAmount(BigDecimal totalAmount, BigDecimal buyPrice, String userId, String quote, String buyMarketType) {
         BigDecimal amount;
         BigDecimal balance;
@@ -204,6 +253,7 @@ public class ShuffleBiz {
         amount = totalAmount.divide(buyPrice, 1, BigDecimal.ROUND_DOWN);
         return amount;
     }
+
 
     /**
      * hb买一、卖一深度
