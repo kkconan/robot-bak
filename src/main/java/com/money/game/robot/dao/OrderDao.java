@@ -1,10 +1,13 @@
 package com.money.game.robot.dao;
 
 import com.money.game.robot.entity.OrderEntity;
+import lombok.Data;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 
+import java.math.BigDecimal;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -29,6 +32,16 @@ public interface OrderDao extends JpaRepository<OrderEntity, String>, JpaSpecifi
 
     List<OrderEntity> findByUserIdAndModel(String userId, String model);
 
+    @Query(value = "SELECT sum(totalToUsdt) FROM T_ORDER where userId = ?1 " +
+            "and model=?2 and type = 'buy-limit' and (state = ?3 or state=?4) and createTime >= ?5 and createTime <= ?6 " +
+            "and orderId  in (SELECT buyOrderId FROM T_ORDER where userId = ?1 \n" +
+            "and model=?2 and type = 'sell-limit' and (state = ?3 or state=?4)) " , nativeQuery = true)
+    BigDecimal findByTypeBuyTotalAmount(String userId, String model,String hbState,String zbState, Date startTime,Date endTime);
+
+    @Query(value = "SELECT SUM(totalToUsdt) FROM T_ORDER where userId = ?1 " +
+            "and model=?2 and type = 'sell-limit' and (state = ?3 or state=?4) " +
+            "and createTime >= ?5 and createTime <= ?6 " , nativeQuery = true)
+    BigDecimal findByTypeSellTotalAmount(String userId, String model,String hbState,String zbState, Date startTime,Date endTime);
 
 }
 

@@ -17,6 +17,7 @@ import com.money.game.robot.zb.vo.ZbOrderDepthVo;
 import com.money.game.robot.zb.vo.ZbOrderDetailVo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -58,7 +59,7 @@ public class ShuffleBiz {
     private ShuffleConfigService shuffleConfigService;
 
 
-    //    @Async("shuffleMonitor")
+    @Async("shuffleMonitor")
     public void shuffleMonitor() {
         log.info("shuffleMonitor begin");
         while (true) {

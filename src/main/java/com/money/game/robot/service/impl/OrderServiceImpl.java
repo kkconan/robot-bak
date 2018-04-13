@@ -10,6 +10,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -66,5 +68,15 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public Page<OrderEntity> findAll(Specification<OrderEntity> spec, Pageable pageable) {
         return orderDao.findAll(spec, pageable);
+    }
+
+    @Override
+    public BigDecimal findByTypeBuyTotalAmount(String userId, String model, String hbState, String zbState, Date startTime, Date endTime) {
+        return orderDao.findByTypeBuyTotalAmount(userId, model, hbState, zbState, startTime, endTime);
+    }
+
+    @Override
+    public BigDecimal findByTypeSellTotalAmount(String userId, String model, String hbState, String zbState, Date startTime, Date endTime) {
+        return orderDao.findByTypeSellTotalAmount(userId, model, hbState, zbState, startTime, endTime);
     }
 }

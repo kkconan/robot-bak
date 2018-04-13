@@ -4,6 +4,8 @@ import com.money.game.basic.component.ext.web.BaseController;
 import com.money.game.core.constant.ResponseData;
 import com.money.game.robot.biz.OrderBiz;
 import com.money.game.robot.dto.client.OrderDto;
+import com.money.game.robot.dto.client.StatisticsDto;
+import com.money.game.robot.vo.StatisticsVo;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiImplicitParam;
 import io.swagger.annotations.ApiImplicitParams;
@@ -49,5 +51,15 @@ public class OrderController extends BaseController {
     public ResponseData cancelOrder(@RequestBody String oid) {
         this.getLoginUser();
         return orderBiz.cancelOrder(oid);
+    }
+
+    @RequestMapping(value = "/getTotalStatistics", method = RequestMethod.POST)
+    @ApiOperation(value = "交易统计信息", notes = "", httpMethod = "POST")
+    @ApiImplicitParams({@ApiImplicitParam(name = "dto", value = "统计查询信息", required = true, paramType = "body", dataType = "StatisticsDto")})
+    @ResponseBody
+    public ResponseData getTotalStatistics(@RequestBody StatisticsDto dto) {
+        String userId = this.getLoginUser();
+        StatisticsVo vo = orderBiz.getTotalStatistics(userId, dto.getStartTime(), dto.getEndTime());
+        return ResponseData.success(vo);
     }
 }

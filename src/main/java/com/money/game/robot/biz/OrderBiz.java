@@ -14,6 +14,7 @@ import com.money.game.robot.huobi.response.OrdersDetail;
 import com.money.game.robot.market.HuobiApi;
 import com.money.game.robot.service.OrderService;
 import com.money.game.robot.vo.OrderVo;
+import com.money.game.robot.vo.StatisticsVo;
 import com.money.game.robot.vo.huobi.MarketInfoVo;
 import com.money.game.robot.zb.api.ZbApi;
 import com.money.game.robot.zb.vo.ZbOrderDetailVo;
@@ -31,6 +32,7 @@ import org.springframework.stereotype.Component;
 import javax.persistence.criteria.Predicate;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -275,9 +277,39 @@ public class OrderBiz {
         states.add(DictEnum.ZB_ORDER_DETAIL_STATE_0.getCode());
         states.add(DictEnum.ZB_ORDER_DETAIL_STATE_3.getCode());
         return orderService.findByParam(userId, model, orderType, symbol, symbolTradeConfigId, DictEnum.MARKET_TYPE_ZB.getCode(), states);
-
     }
 
+    /**
+     * 获取统计信息
+     */
+    public StatisticsVo getTotalStatistics(String userId, Date startTime, Date endTime) {
+        if (startTime == null) {
+            startTime = DateUtils.parse("2018-04-01");
+        }
+        if (endTime == null) {
+            endTime = DateUtils.parse("2118-04-01");
+        }
+        //real buy total
+        BigDecimal realBuyTotal = orderService.findByTypeBuyTotalAmount(userId, DictEnum.ORDER_MODEL_REAL.getCode(), DictEnum.ORDER_DETAIL_STATE_SELL.getCode(), DictEnum.ZB_ORDER_DETAIL_STATE_4.getCode(), startTime, endTime);
+        //real sell total
+        BigDecimal realSellTotal = orderService.findByTypeSellTotalAmount(userId, DictEnum.ORDER_MODEL_REAL.getCode(), DictEnum.ORDER_DETAIL_STATE_FILLED.getCode(), DictEnum.ZB_ORDER_DETAIL_STATE_2.getCode(), startTime, endTime);
+        //limit buy total
+        BigDecimal limitBuyTotal = orderService.findByTypeBuyTotalAmount(userId, DictEnum.ORDER_MODEL_LIMIT.getCode(), DictEnum.ORDER_DETAIL_STATE_FILLED.getCode(), DictEnum.ZB_ORDER_DETAIL_STATE_2.getCode(), startTime, endTime);
+        //limit sell total
+        BigDecimal limitSellTotal = orderService.findByTypeSellTotalAmount(userId, DictEnum.ORDER_MODEL_LIMIT.getCode(), DictEnum.ORDER_DETAIL_STATE_FILLED.getCode(), DictEnum.ZB_ORDER_DETAIL_STATE_2.getCode(), startTime, endTime);
+        //shuffle buy total
+        BigDecimal shuffleBuyTotal = orderService.findByTypeBuyTotalAmount(userId, DictEnum.ORDER_MODEL_SHUFFLE.getCode(), DictEnum.ORDER_DETAIL_STATE_FILLED.getCode(), DictEnum.ZB_ORDER_DETAIL_STATE_2.getCode(), startTime, endTime);
+        //shuffle sell total
+        BigDecimal shuffleSellTotal = orderService.findByTypeSellTotalAmount(userId, DictEnum.ORDER_MODEL_SHUFFLE.getCode(), DictEnum.ORDER_DETAIL_STATE_FILLED.getCode(), DictEnum.ZB_ORDER_DETAIL_STATE_2.getCode(), startTime, endTime);
+        StatisticsVo vo = new StatisticsVo();
+        vo.setRealBuyTotal(realBuyTotal);
+        vo.setRealSellTotal(realSellTotal);
+        vo.setLimitBuyTotal(limitBuyTotal);
+        vo.setLimitSellTotal(limitSellTotal);
+        vo.setShuffleBuyTotal(shuffleBuyTotal);
+        vo.setShuffleSellTotal(shuffleSellTotal);
+        return vo;
+    }
 
     /**
      * 实时单列表

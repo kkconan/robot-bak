@@ -5,6 +5,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 
+import java.math.BigDecimal;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -31,4 +33,8 @@ public interface OrderService {
     List<OrderEntity> findByUserIdAndModel(String userId, String model);
 
     Page<OrderEntity> findAll(Specification<OrderEntity> spec, Pageable pageable);
+
+    BigDecimal findByTypeBuyTotalAmount(String userId, String model, String hbState, String zbState, Date startTime, Date endTime);
+
+    BigDecimal findByTypeSellTotalAmount(String userId, String model,String hbState,String zbState, Date startTime,Date endTime);
 }
