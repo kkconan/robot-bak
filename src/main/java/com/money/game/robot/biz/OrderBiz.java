@@ -197,9 +197,15 @@ public class OrderBiz {
         //订单状态或者成交数量有变动
         if (detailVo != null && (!detailVo.getState().equals(orderEntity.getState()) || detailVo.getFieldAmount().compareTo(orderEntity.getFieldAmount()) != 0)) {
             orderEntity.setFieldAmount(detailVo.getFieldAmount());
-            orderEntity.setState(detailVo.getState());
+            orderEntity.setFieldCashAmount(detailVo.getFieldCashAmount());
             BigDecimal totalToUsdt = getTotalToUsdt(orderEntity.getSymbol(), detailVo.getPrice(), detailVo.getFieldAmount());
             orderEntity.setTotalToUsdt(totalToUsdt);
+            orderEntity.setState(detailVo.getState());
+            //zb 部分成交时订单取消时更新状态为已成交，数量为部分成交的数量
+            if (DictEnum.ZB_ORDER_DETAIL_STATE_1.getCode().equals(detailVo.getState()) && detailVo.getFieldAmount().compareTo(BigDecimal.ZERO) > 0) {
+                orderEntity.setAmount(detailVo.getFieldAmount());
+                orderEntity.setState(DictEnum.ZB_ORDER_DETAIL_STATE_2.getCode());
+            }
             orderEntity = this.saveOrder(orderEntity);
         }
         return orderEntity;
