@@ -24,7 +24,17 @@ public class LimitBetaConfigServiceImpl implements LimitBetaConfigService {
     }
 
     @Override
+    public List<LimitBetaConfigEntity> findByUserId(String userId) {
+        return limitBetaConfigDao.findByUserId(userId);
+    }
+
+    @Override
     public LimitBetaConfigEntity save(LimitBetaConfigEntity entity) {
         return limitBetaConfigDao.save(entity);
+    }
+
+    @Override
+    public LimitBetaConfigEntity findById(String oid) {
+        return limitBetaConfigDao.findOne(oid);
     }
 }

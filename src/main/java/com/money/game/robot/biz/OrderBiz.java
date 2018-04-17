@@ -20,6 +20,7 @@ import com.money.game.robot.zb.api.ZbApi;
 import com.money.game.robot.zb.vo.ZbOrderDetailVo;
 import com.money.game.robot.zb.vo.ZbTickerVo;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -331,6 +332,15 @@ public class OrderBiz {
         return findByModel(dto, userId, DictEnum.ORDER_MODEL_LIMIT.getCode());
     }
 
+
+    /**
+     * beta限价单列表
+     */
+    public ResponseData findBetaLimitOrderList(OrderDto dto, String userId) {
+        return findByModel(dto, userId, DictEnum.ORDER_MODEL_LIMIT_BETA.getCode());
+    }
+
+
     /**
      * 根据订单表id撤销订单
      */
@@ -435,6 +445,9 @@ public class OrderBiz {
             List<Predicate> bigList = new ArrayList<>();
             bigList.add(cb.equal(root.get("userId").as(String.class), userId));
             bigList.add(cb.equal(root.get("model").as(String.class), model));
+            if (StringUtils.isNotEmpty(dto.getOrderId())) {
+                bigList.add(cb.or(cb.equal(root.get("orderId").as(String.class), dto.getOrderId()), cb.equal(root.get("buyOrderId").as(String.class), dto.getOrderId())));
+            }
             query.where(cb.and(bigList.toArray(new Predicate[bigList.size()])));
             query.orderBy(cb.desc(root.get("createTime")));
             // 条件查询

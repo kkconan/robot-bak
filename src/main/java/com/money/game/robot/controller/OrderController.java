@@ -44,6 +44,15 @@ public class OrderController extends BaseController {
         return orderBiz.findLimitOrderList(dto, userId);
     }
 
+    @RequestMapping(value = "/limitBetaOrderList", method = RequestMethod.POST)
+    @ApiOperation(value = "beta限价单列表", notes = "", httpMethod = "POST")
+    @ApiImplicitParams({@ApiImplicitParam(name = "dto", value = "beta限价单查询参数", required = true, paramType = "body", dataType = "OrderDto")})
+    @ResponseBody
+    public ResponseData limitBetaOrderList(@RequestBody OrderDto dto) {
+        String userId = this.getLoginUser();
+        return orderBiz.findBetaLimitOrderList(dto, userId);
+    }
+
     @RequestMapping(value = "/cancelOrder", method = RequestMethod.GET)
     @ApiOperation(value = "撤销订单", notes = "", httpMethod = "GET")
     @ApiImplicitParams({@ApiImplicitParam(name = "oid", value = "oid", required = true, paramType = "query", dataType = "String")})

@@ -13,4 +13,6 @@ import java.util.List;
 public interface LimitBetaConfigDao extends JpaRepository<LimitBetaConfigEntity, String>, JpaSpecificationExecutor<LimitBetaConfigEntity> {
 
     List<LimitBetaConfigEntity> findByUserIdAndMarketType(String userId, String marketType);
+
+    List<LimitBetaConfigEntity> findByUserId(String userId);
 }

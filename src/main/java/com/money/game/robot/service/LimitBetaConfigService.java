@@ -12,5 +12,9 @@ public interface LimitBetaConfigService {
 
     List<LimitBetaConfigEntity> findByUserIdAndMarketType(String userId, String marketType);
 
+    List<LimitBetaConfigEntity> findByUserId(String userId);
+
     LimitBetaConfigEntity save(LimitBetaConfigEntity entity);
+
+    LimitBetaConfigEntity findById(String oid);
 }

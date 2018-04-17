@@ -22,6 +22,16 @@ public class OrderVo {
      * 交易对
      */
     private String symbol;
+
+    /**
+     * 模块
+     */
+    private String model;
+
+    /**
+     * 市场
+     */
+    private String marketType;
     /**
      * 订单数量
      */

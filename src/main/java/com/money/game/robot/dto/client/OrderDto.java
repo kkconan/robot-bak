@@ -13,4 +13,6 @@ public class OrderDto {
 
     private Integer currentPage = 1;
 
+    private String orderId;
+
 }

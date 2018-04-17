@@ -987,7 +987,7 @@ public class TransBiz {
                 if (order == null) {
                     zbCreateBetaLimitOrder(beta);
                 } else {
-                    order = orderBiz.updateHbOrderState(order);
+                    order = orderBiz.updateZbOrderState(order);
                     //订单已完成
                     if (DictEnum.ZB_ORDER_DETAIL_STATE_2.getCode().equals(order.getState())) {
                         //买单完成,创建卖单
@@ -1015,7 +1015,7 @@ public class TransBiz {
                         }
                         //卖单完成,创建买单
                         else {
-                            hbCreateBetaLimitOrder(beta);
+                            zbCreateBetaLimitOrder(beta);
                         }
                         if (DictEnum.ZB_ORDER_DETAIL_STATE_2.getCode().equals(order.getState())) {
                             log.info("beta订单已完结,order={}", order);
