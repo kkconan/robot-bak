@@ -6,6 +6,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.annotation.Rollback;
 import org.springframework.test.context.junit4.SpringRunner;
 
 /**
@@ -44,6 +45,18 @@ public class TransBizTest {
     @Test
     public void zbTransModelLimitOrderTest() {
         transBiz.zbTransModelLimitOrder();
+    }
+
+    @Test
+    @Rollback(false)
+    public void hbCheckLimitBetaOrderTest() {
+        transBiz.hbCheckLimitBetaOrder();
+    }
+
+    @Test
+    @Rollback(false)
+    public void zbCheckLimitBetaOrderTest() {
+        transBiz.zbCheckLimitBetaOrder();
     }
 
 

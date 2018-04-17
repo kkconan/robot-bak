@@ -144,6 +144,26 @@ public class MonitorSchedule {
 
 
     /**
+     * 检查hb beta限价单(切日志方法已check开头)
+     */
+    @Scheduled(cron = "${cron.option[check.hb.limit.beta.order]:0 0/1 * * * ?}")
+    public void chcekHbLimitBetaOrder() {
+        if (isSchedule) {
+            transBiz.hbCheckLimitBetaOrder();
+        }
+    }
+
+    /**
+     * 检查zb beta限价单(切日志方法已check开头)
+     */
+    @Scheduled(cron = "${cron.option[check.zb.limit.beta.order]:30 0/1 * * * ?}")
+    public void chcekZbLimitBetaOrder() {
+        if (isSchedule) {
+            transBiz.zbCheckLimitBetaOrder();
+        }
+    }
+
+    /**
      * 将一个list均分成n个list,主要通过偏移量来实现的
      */
     private static <T> List<List<T>> averageAssign(List<T> source, int n) {

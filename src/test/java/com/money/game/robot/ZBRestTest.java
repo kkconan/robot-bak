@@ -41,8 +41,8 @@ public class ZBRestTest {
     // 正式
     public final String ACCESS_KEY = "7c08f59f-1b32-4cd8-ab8e-cb32564f6e12";
     public final String SECRET_KEY = "3ad4640f-d2f5-4fa1-bedb-9752e1e38284";
-    public final String URL_PREFIX = "https://trade.zb.com/api/";
-    public static String API_DOMAIN = "http://api.zb.com";
+    public final String URL_PREFIX = "https://trade.bitkk.com/api/";
+    public static String API_DOMAIN = "http://api.bitkk.com";
 
 
     public final String PAY_PASS = "xxxx";
@@ -56,10 +56,10 @@ public class ZBRestTest {
             // 需加密的请求参数， tradeType=0卖单
             Map<String, String> params = new HashMap<String, String>();
             params.put("method", "order");
-            params.put("price", "1.9001");
-            params.put("amount", "1.502");
+            params.put("price", "13.19");
+            params.put("amount", "4.630");
             params.put("tradeType", "1");
-            params.put("currency", "qtum_usdt");
+            params.put("currency", "sbtc_usdt");
 
             // 请求测试
             String json = this.getJsonPost(params);

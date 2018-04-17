@@ -375,6 +375,59 @@ public class OrderBiz {
     }
 
 
+    /**
+     * 获取hb未完成的一条beta限价单
+     */
+    public OrderEntity findHbBetaOrder(String userId, String symbol, String symbolTradeConfigId) {
+        OrderEntity orderEntity = null;
+        List<String> states = new ArrayList<>();
+        states.add(DictEnum.ORDER_DETAIL_STATE_PRE_SUBMITTED.getCode());
+        states.add(DictEnum.ORDER_DETAIL_STATE_SUBMITTING.getCode());
+        states.add(DictEnum.ORDER_DETAIL_STATE_SUBMITTED.getCode());
+        states.add(DictEnum.ORDER_DETAIL_STATE_PARTIAL_FILLED.getCode());
+        states.add(DictEnum.ORDER_DETAIL_STATE_FILLED.getCode());
+        List<OrderEntity> list = orderService.findByParam(userId, DictEnum.ORDER_MODEL_LIMIT_BETA.getCode(), DictEnum.ORDER_TYPE_BUY_LIMIT.getCode(), symbol, symbolTradeConfigId, DictEnum.MARKET_TYPE_HB.getCode(), states);
+        //买单不存在,查询未完成的卖单
+        if (list == null || list.isEmpty()) {
+            states.remove(DictEnum.ORDER_DETAIL_STATE_FILLED.getCode());
+            list = orderService.findByParam(userId, DictEnum.ORDER_MODEL_LIMIT_BETA.getCode(), DictEnum.ORDER_TYPE_SELL_LIMIT.getCode(), symbol, symbolTradeConfigId,
+                    DictEnum.MARKET_TYPE_HB.getCode(), states);
+            //卖单存在
+            if (list != null && !list.isEmpty()) {
+                orderEntity = list.get(0);
+            }
+        } else {
+            orderEntity = list.get(0);
+        }
+        return orderEntity;
+    }
+
+    /**
+     * 获取zb未完成的一条beta限价单
+     */
+    public OrderEntity findZbBetaOrder(String userId, String symbol, String symbolTradeConfigId) {
+        OrderEntity orderEntity = null;
+        List<String> states = new ArrayList<>();
+        states.add(DictEnum.ZB_ORDER_DETAIL_STATE_0.getCode());
+        states.add(DictEnum.ZB_ORDER_DETAIL_STATE_2.getCode());
+        states.add(DictEnum.ZB_ORDER_DETAIL_STATE_3.getCode());
+        List<OrderEntity> list = orderService.findByParam(userId, DictEnum.ORDER_MODEL_LIMIT_BETA.getCode(), DictEnum.ORDER_TYPE_BUY_LIMIT.getCode(), symbol, symbolTradeConfigId, DictEnum.MARKET_TYPE_ZB.getCode(), states);
+        //买单不存在
+        if (list == null || list.isEmpty()) {
+            states.remove(DictEnum.ZB_ORDER_DETAIL_STATE_2.getCode());
+            list = orderService.findByParam(userId, DictEnum.ORDER_MODEL_LIMIT_BETA.getCode(), DictEnum.ORDER_TYPE_SELL_LIMIT.getCode(), symbol, symbolTradeConfigId,
+                    DictEnum.MARKET_TYPE_ZB.getCode(), states);
+            //卖单存在
+            if (list != null && !list.isEmpty()) {
+                orderEntity = list.get(0);
+            }
+        } else {
+            orderEntity = list.get(0);
+        }
+        return orderEntity;
+    }
+
+
     private ResponseData findByModel(OrderDto dto, String userId, String model) {
         ResponseData responseData = ResponseData.success();
         Pageable pageable = new PageRequest(dto.getCurrentPage() - 1, dto.getPageSize(), new Sort(new Sort.Order(Sort.Direction.DESC, "createTime")));

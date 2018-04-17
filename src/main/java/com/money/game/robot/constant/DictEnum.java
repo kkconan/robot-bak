@@ -147,6 +147,7 @@ public enum DictEnum {
 
     ORDER_MODEL_REAL("real","实时"),
     ORDER_MODEL_LIMIT("limit","限价"),
+    ORDER_MODEL_LIMIT_BETA("limitBeta","限价单beta策略"),
     ORDER_MODEL_SHUFFLE("shuffle","搬砖"),
 
     TRADE_CONFIG_THRESHOLD_TYPE_ONE_MIN("oneMin","1分钟"),
@@ -174,7 +175,7 @@ public enum DictEnum {
     IS_DELETE_YES("yes","已删除"),
 
     STATUS_OPEN("open","启用"),
-    STATUS_CLOSE("close","停用"),
+    STATUS_STOP("stop","停用"),
 
 
     ;

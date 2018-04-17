@@ -38,7 +38,7 @@ public class SymbolTradeConfigBiz {
     public SymbolTradeConfigEntity findByUserIdAndThresholdTypeAndMarketType(String userId, String thresholdType, String marketType) {
 
         SymbolTradeConfigEntity entity = symbolTradeConfigService.findByUserIdAndThresholdTypeAndMarketType(userId, thresholdType, marketType);
-        if (DictEnum.IS_DELETE_YES.getCode().equals(entity.getIsDelete()) || DictEnum.STATUS_CLOSE.getCode().equals(entity.getStatus())) {
+        if (entity == null || DictEnum.IS_DELETE_YES.getCode().equals(entity.getIsDelete()) || DictEnum.STATUS_STOP.getCode().equals(entity.getStatus())) {
             return null;
         }
         return entity;

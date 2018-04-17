@@ -96,7 +96,7 @@ public class HbMarketMonitorBiz {
      * 检查是否可交易
      */
     private boolean checkToHbTrans(String symbol, BigDecimal nowPrice, BigDecimal increase, SymbolTradeConfigEntity symbolTradeConfig) {
-        log.info("checkToHbTrans,symbol={},increase={}", symbol, increase);
+        log.info("checkToHbTrans,symbol={},nowPrice={},increase={}", symbol, nowPrice, increase);
         RateChangeVo rateChangeVo;
         BigDecimal salePrice;
         //应用对
@@ -105,7 +105,7 @@ public class HbMarketMonitorBiz {
         boolean tranResult = false;
 
         //优先检查当前交易对是否是下降趋势,是则直接比较是否需要购买当前交易对
-        rateChangeVo = checkOneQuoteCanTrade(symbol, nowPrice, increase);
+        rateChangeVo = checkHbOneQuoteCanTrade(symbol, nowPrice, increase);
         if (StringUtils.isNotEmpty(rateChangeVo.getBuyerSymbol())) {
             //卖单价=买单价*(1-(-增长率))
             salePrice = rateChangeVo.getBuyPrice().multiply((new BigDecimal(1).subtract(increase)));
@@ -229,26 +229,33 @@ public class HbMarketMonitorBiz {
     /**
      * 只有单个交易对的下降趋势检查是否购买
      */
-    private RateChangeVo checkOneQuoteCanTrade(String symbol, BigDecimal nowPrice, BigDecimal increase) {
+    private RateChangeVo checkHbOneQuoteCanTrade(String symbol, BigDecimal nowPrice, BigDecimal increase) {
         RateChangeVo rateChangeVo = new RateChangeVo();
-        //交易对下降且不存在其他主区交易对
+        //交易对下降
         if (increase.compareTo(BigDecimal.ZERO) < 0) {
-            MarketInfoVo info = huobiApi.getMarketInfo(DictEnum.MARKET_PERIOD_1MIN.getCode(), 6, symbol);
+            MarketInfoVo info = huobiApi.getMarketInfo(DictEnum.MARKET_PERIOD_1MIN.getCode(), 16, symbol);
             BigDecimal otherMinPrice;
             BigDecimal otherMinIncrease;
             MarketDetailVo oneMinVo = info.getData().get(5);
             otherMinPrice = oneMinVo.getClose();
             //当前价格与5分钟之前的比较
             otherMinIncrease = (nowPrice.subtract(otherMinPrice)).divide(otherMinPrice, 9, BigDecimal.ROUND_HALF_UP);
-            //比较降低幅度是否符合购买条件,例如当前价格一分钟内跌幅-5%,但是与5分钟前比较,当前价格跌幅小与-5%,则有可能是几分钟之内拉高又迅速回落，这种情况不购买
-            if (otherMinIncrease.compareTo(increase) > 0) {
-                rateChangeVo.setBuyerSymbol(symbol);
-                rateChangeVo.setSaleSymbol(symbol);
-                rateChangeVo.setBuyPrice(nowPrice);
-                rateChangeVo.setRateValue(increase);
-                rateChangeVo.setMarketType(DictEnum.MARKET_TYPE_HB.getCode());
+            //比较降低幅度是否符合购买条件,例如当前价格一分钟内跌幅-5%,但是与5分钟前比较,当前价格跌幅小与-5%,则有可能是几分钟之内拉高又迅速回落，这种情况不购买,0.02表示允许2%的误差
+            if (otherMinIncrease.compareTo(increase.add(new BigDecimal(0.02))) <= 0) {
+                //5分钟符合再比较15分钟结果
+                oneMinVo = info.getData().get(15);
+                otherMinPrice = oneMinVo.getClose();
+                otherMinIncrease = (nowPrice.subtract(otherMinPrice)).divide(otherMinPrice, 9, BigDecimal.ROUND_HALF_UP);
+                log.info("5分钟比较符合,比较15分钟结果,otherMinPrice={},otherMinIncrease={}", otherMinPrice, otherMinIncrease);
+                if (otherMinIncrease.compareTo(increase.add(new BigDecimal(0.03))) <= 0) {
+                    rateChangeVo.setBuyerSymbol(symbol);
+                    rateChangeVo.setSaleSymbol(symbol);
+                    rateChangeVo.setBuyPrice(nowPrice);
+                    rateChangeVo.setRateValue(increase);
+                    rateChangeVo.setMarketType(DictEnum.MARKET_TYPE_HB.getCode());
+                }
             }
-            log.info("单个交易对下降趋势检查是否需要购买,rateChangeVo={}", rateChangeVo);
+            log.info("单个交易对下降趋势检查是否需要购买,rateChangeVo={},otherMinPrice={}otherMinIncrease={}", rateChangeVo, otherMinPrice, otherMinIncrease);
         }
         return rateChangeVo;
     }
@@ -258,7 +265,7 @@ public class HbMarketMonitorBiz {
         boolean tranResult = false;
         try {
             rateChangeVo.setQuoteCurrency(quoteCurrency);
-            //set sale price
+            //set sale realPrice
             rateChangeVo.setSalePrice(salePrice);
             //要购买的交易对主对
             String baseCurrency = marketRuleBiz.getHbBaseCurrency(rateChangeVo.getBuyerSymbol());

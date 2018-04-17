@@ -289,14 +289,21 @@ public class ZbMarketMonitorBiz {
             //当前价格与5分钟之前的比较
             otherMinIncrease = (nowPrice.subtract(otherMinPrice)).divide(otherMinPrice, 9, BigDecimal.ROUND_HALF_UP);
             //比较降低幅度是否符合购买条件,例如当前价格一分钟内跌幅-5%,但是与5分钟前比较,当前价格跌幅小与-5%,则有可能是几分钟之内拉高又迅速回落，这种情况不购买
-            if (otherMinIncrease.compareTo(increase) > 0) {
-                rateChangeVo.setBuyerSymbol(symbol);
-                rateChangeVo.setSaleSymbol(symbol);
-                rateChangeVo.setBuyPrice(nowPrice);
-                rateChangeVo.setRateValue(increase);
-                rateChangeVo.setMarketType(DictEnum.MARKET_TYPE_ZB.getCode());
+            if (otherMinIncrease.compareTo(increase.add(new BigDecimal(0.02))) <= 0) {
+                //5分钟符合再比较15分钟结果
+                oneMinVo = info.getData().get(15);
+                otherMinPrice = oneMinVo.getClose();
+                otherMinIncrease = (nowPrice.subtract(otherMinPrice)).divide(otherMinPrice, 9, BigDecimal.ROUND_HALF_UP);
+                log.info("5分钟比较符合,比较15分钟结果,otherMinPrice={},otherMinIncrease={}", otherMinPrice, otherMinIncrease);
+                if (otherMinIncrease.compareTo(increase.add(new BigDecimal(0.03))) <= 0) {
+                    rateChangeVo.setBuyerSymbol(symbol);
+                    rateChangeVo.setSaleSymbol(symbol);
+                    rateChangeVo.setBuyPrice(nowPrice);
+                    rateChangeVo.setRateValue(increase);
+                    rateChangeVo.setMarketType(DictEnum.MARKET_TYPE_ZB.getCode());
+                }
             }
-            log.info("单个交易对下降趋势检查是否需要购买,rateChangeVo={}", rateChangeVo);
+            log.info("单个交易对下降趋势检查是否需要购买,rateChangeVo={},otherMinPrice={},otherMinIncrease={}", rateChangeVo, otherMinPrice, otherMinIncrease);
         }
         return rateChangeVo;
     }
@@ -306,7 +313,7 @@ public class ZbMarketMonitorBiz {
         boolean tranResult = false;
         try {
             rateChangeVo.setQuoteCurrency(quoteCurrency);
-            //set sale price
+            //set sale realPrice
             rateChangeVo.setSalePrice(salePrice);
             //要购买的交易对主对
             String baseCurrency = marketRuleBiz.getZbBaseCurrency(rateChangeVo.getBuyerSymbol());

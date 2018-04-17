@@ -53,6 +53,7 @@ public class TradeBiz {
             AccountEntity accountEntity = accountBiz.getByUserIdAndType(dto.getUserId(), DictEnum.MARKET_TYPE_HB.getCode());
             dto.setApiKey(accountEntity.getApiKey());
             dto.setApiSecret(accountEntity.getApiSecret());
+            dto.setAccountId(accountEntity.getAccountId());
         }
         CreateOrderRequest createOrderReq = new CreateOrderRequest();
         ApiClient client = new ApiClient(dto.getApiKey(), dto.getApiSecret());
@@ -72,7 +73,7 @@ public class TradeBiz {
         } catch (ApiException e) {
             log.info("dto={},errMsg={}", dto, e.getMessage());
             Integer scale = 8;
-            //order price precision error, scale: `2`
+            //order realPrice precision error, scale: `2`
             String[] message = e.getMessage().split("scale:");
             if (message.length >= 2) {
                 scale = Integer.valueOf(message[1].replaceAll("`", "").trim());
@@ -164,6 +165,7 @@ public class TradeBiz {
      * 创建zb订单
      */
     public String zbCreateOrder(String symbol, BigDecimal price, BigDecimal amount, String tradeType, String userId) {
+        log.info("zbCreateOrder,symbol={},price={},amount={},tradeType={},userId={}", symbol, price, amount, tradeType, userId);
         AccountEntity account = accountBiz.getByUserIdAndType(userId, DictEnum.MARKET_TYPE_ZB.getCode());
         if (StringUtil.isEmpty(account.getApiKey()) || StringUtil.isEmpty(account.getApiSecret())) {
             throw new BizException(ErrorEnum.USER_API_NOT_FOUND);
