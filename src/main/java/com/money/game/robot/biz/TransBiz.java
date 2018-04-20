@@ -116,37 +116,40 @@ public class TransBiz {
         List<String> saleOrdes;
         List<OrderEntity> list = orderBiz.findHbRealNoFilledBuyOrder();
         for (OrderEntity buyOrderEntity : list) {
-            buyOrderEntity = orderBiz.updateHbOrderState(buyOrderEntity);
-
-            SymbolTradeConfigEntity symbolTradeConfig = symbolTradeConfigBiz.findById(buyOrderEntity.getSymbolTradeConfigId());
-            //完全成交或者部分成交撤销,售出成交部分
-            if (DictEnum.ORDER_DETAIL_STATE_FILLED.getCode().equals(buyOrderEntity.getState()) || DictEnum.ORDER_DETAIL_STATE_PARTIAL_CANCELED.getCode().equals(buyOrderEntity.getState())) {
-                log.info("买单已成交,可以挂单售出.orderEntity={}", buyOrderEntity);
-                RateChangeEntity rateChangeEntity = rateChangeService.findOne(buyOrderEntity.getRateChangeId());
-                saleOrdes = hbBeginSaleOrder(rateChangeEntity, buyOrderEntity.getFieldAmount(), symbolTradeConfig);
-                for (String orderId : saleOrdes) {
-                    //保存卖单
-                    orderBiz.saveHbOrder(orderId, rateChangeEntity.getOid(), buyOrderEntity.getOrderId(), symbolTradeConfig.getOid(),
-                            symbolTradeConfig.getUserId(), DictEnum.ORDER_TYPE_SELL_LIMIT.getCode(), DictEnum.ORDER_MODEL_REAL.getCode());
+            try {
+                buyOrderEntity = orderBiz.updateHbOrderState(buyOrderEntity);
+                SymbolTradeConfigEntity symbolTradeConfig = symbolTradeConfigBiz.findById(buyOrderEntity.getSymbolTradeConfigId());
+                //完全成交或者部分成交撤销,售出成交部分
+                if (DictEnum.ORDER_DETAIL_STATE_FILLED.getCode().equals(buyOrderEntity.getState()) || DictEnum.ORDER_DETAIL_STATE_PARTIAL_CANCELED.getCode().equals(buyOrderEntity.getState())) {
+                    log.info("买单已成交,可以挂单售出.orderEntity={}", buyOrderEntity);
+                    RateChangeEntity rateChangeEntity = rateChangeService.findOne(buyOrderEntity.getRateChangeId());
+                    saleOrdes = hbBeginSaleOrder(rateChangeEntity, buyOrderEntity.getFieldAmount(), symbolTradeConfig);
+                    for (String orderId : saleOrdes) {
+                        //保存卖单
+                        orderBiz.saveHbOrder(orderId, rateChangeEntity.getOid(), buyOrderEntity.getOrderId(), symbolTradeConfig.getOid(),
+                                symbolTradeConfig.getUserId(), DictEnum.ORDER_TYPE_SELL_LIMIT.getCode(), DictEnum.ORDER_MODEL_REAL.getCode());
+                    }
+                    //更新原买单状态
+                    buyOrderEntity.setState(DictEnum.ORDER_DETAIL_STATE_SELL.getCode());
+                    orderBiz.saveOrder(buyOrderEntity);
+                    //发送成交邮件通知
+                    transToEmailNotify(buyOrderEntity);
                 }
-                //更新原买单状态
-                buyOrderEntity.setState(DictEnum.ORDER_DETAIL_STATE_SELL.getCode());
-                orderBiz.saveOrder(buyOrderEntity);
-                //发送成交邮件通知
-                transToEmailNotify(buyOrderEntity);
-            }
-            //部分成交
-            else if (DictEnum.ORDER_DETAIL_STATE_PARTIAL_FILLED.getCode().equals(buyOrderEntity.getState()) || DictEnum.ORDER_DETAIL_STATE_SUBMITTED.getCode().equals(buyOrderEntity.getState())) {
-                //买单超时则撤销
-                Integer buyOrderWaitTime = (symbolTradeConfig != null && symbolTradeConfig.getBuyWaitTime() != null) ? symbolTradeConfig.getBuyWaitTime() : 10;
-                if (DateUtils.addMinute(buyOrderEntity.getCreateTime(), buyOrderWaitTime).before(DateUtils.getCurrDateMmss())) {
-                    log.info("买单超时撤销,buyOrderEntity={}", buyOrderEntity);
-                    HuobiBaseDto dto = new HuobiBaseDto();
-                    dto.setOrderId(buyOrderEntity.getOrderId());
-                    dto.setUserId(buyOrderEntity.getUserId());
-                    tradeBiz.submitCancel(dto);
-                    orderBiz.updateHbOrderState(buyOrderEntity);
+                //部分成交
+                else if (DictEnum.ORDER_DETAIL_STATE_PARTIAL_FILLED.getCode().equals(buyOrderEntity.getState()) || DictEnum.ORDER_DETAIL_STATE_SUBMITTED.getCode().equals(buyOrderEntity.getState())) {
+                    //买单超时则撤销
+                    Integer buyOrderWaitTime = (symbolTradeConfig != null && symbolTradeConfig.getBuyWaitTime() != null) ? symbolTradeConfig.getBuyWaitTime() : 10;
+                    if (DateUtils.addMinute(buyOrderEntity.getCreateTime(), buyOrderWaitTime).before(DateUtils.getCurrDateMmss())) {
+                        log.info("买单超时撤销,buyOrderEntity={}", buyOrderEntity);
+                        HuobiBaseDto dto = new HuobiBaseDto();
+                        dto.setOrderId(buyOrderEntity.getOrderId());
+                        dto.setUserId(buyOrderEntity.getUserId());
+                        tradeBiz.submitCancel(dto);
+                        orderBiz.updateHbOrderState(buyOrderEntity);
+                    }
                 }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
     }
@@ -157,21 +160,25 @@ public class TransBiz {
     public void hbCheckSaleFinish() {
         List<OrderEntity> saleOrderList = orderBiz.findHbRealNoFilledSaleOrder();
         for (OrderEntity saleOrder : saleOrderList) {
-            HuobiBaseDto dto = new HuobiBaseDto();
-            dto.setOrderId(saleOrder.getOrderId());
-            dto.setUserId(saleOrder.getUserId());
-            OrdersDetail ordersDetail = tradeBiz.getHbOrderDetail(dto);
-            //卖单已成交或撤销成交
-            if (DictEnum.ORDER_DETAIL_STATE_FILLED.getCode().equals(ordersDetail.getState()) || DictEnum.ORDER_DETAIL_STATE_PARTIAL_CANCELED.getCode().equals(ordersDetail.getState())) {
-                log.info("卖单已成交,交易完成.saleOrderId={}", saleOrder.getOrderId());
-                saleOrder.setState(ordersDetail.getState());
-                saleOrder.setFieldAmount(ordersDetail.getFieldAmount());
-                saleOrder.setFieldCashAmount(ordersDetail.getFieldCashAmount());
-                saleOrder.setFieldFees(ordersDetail.getFieldFees());
-                orderBiz.saveOrder(saleOrder);
-                //发送成交邮件通知
-                transToEmailNotify(saleOrder);
+            try {
+                HuobiBaseDto dto = new HuobiBaseDto();
+                dto.setOrderId(saleOrder.getOrderId());
+                dto.setUserId(saleOrder.getUserId());
+                OrdersDetail ordersDetail = tradeBiz.getHbOrderDetail(dto);
+                //卖单已成交或撤销成交
+                if (DictEnum.ORDER_DETAIL_STATE_FILLED.getCode().equals(ordersDetail.getState()) || DictEnum.ORDER_DETAIL_STATE_PARTIAL_CANCELED.getCode().equals(ordersDetail.getState())) {
+                    log.info("卖单已成交,交易完成.saleOrderId={}", saleOrder.getOrderId());
+                    saleOrder.setState(ordersDetail.getState());
+                    saleOrder.setFieldAmount(ordersDetail.getFieldAmount());
+                    saleOrder.setFieldCashAmount(ordersDetail.getFieldCashAmount());
+                    saleOrder.setFieldFees(ordersDetail.getFieldFees());
+                    orderBiz.saveOrder(saleOrder);
+                    //发送成交邮件通知
+                    transToEmailNotify(saleOrder);
 
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
     }
@@ -226,46 +233,51 @@ public class TransBiz {
         List<String> saleOrdes;
         List<OrderEntity> list = orderBiz.findZbNoFilledBuyOrder();
         for (OrderEntity buyOrderEntity : list) {
-            buyOrderEntity = orderBiz.updateZbOrderState(buyOrderEntity);
+            try {
+                buyOrderEntity = orderBiz.updateZbOrderState(buyOrderEntity);
 
-            SymbolTradeConfigEntity symbolTradeConfig = symbolTradeConfigBiz.findById(buyOrderEntity.getSymbolTradeConfigId());
-            //完全成交,售出成交部分
-            if (DictEnum.ZB_ORDER_DETAIL_STATE_2.getCode().equals(buyOrderEntity.getState())) {
-                log.info("买单已成交,可以挂单售出.orderEntity={}", buyOrderEntity);
-                RateChangeEntity rateChangeEntity = rateChangeService.findOne(buyOrderEntity.getRateChangeId());
-                saleOrdes = zbBeginSaleOrder(rateChangeEntity, buyOrderEntity.getFieldAmount(), symbolTradeConfig);
-                for (String orderId : saleOrdes) {
-                    //保存卖单
-                    orderBiz.saveZbOrder(orderId, rateChangeEntity.getSaleSymbol(), rateChangeEntity.getOid(), buyOrderEntity.getOrderId(), symbolTradeConfig.getOid(),
-                            symbolTradeConfig.getUserId(), DictEnum.ORDER_TYPE_SELL_LIMIT.getCode(), DictEnum.ORDER_MODEL_REAL.getCode());
+                SymbolTradeConfigEntity symbolTradeConfig = symbolTradeConfigBiz.findById(buyOrderEntity.getSymbolTradeConfigId());
+                //完全成交,售出成交部分
+                if (DictEnum.ZB_ORDER_DETAIL_STATE_2.getCode().equals(buyOrderEntity.getState())) {
+                    log.info("买单已成交,可以挂单售出.orderEntity={}", buyOrderEntity);
+                    RateChangeEntity rateChangeEntity = rateChangeService.findOne(buyOrderEntity.getRateChangeId());
+                    saleOrdes = zbBeginSaleOrder(rateChangeEntity, buyOrderEntity.getFieldAmount(), symbolTradeConfig);
+                    for (String orderId : saleOrdes) {
+                        //保存卖单
+                        orderBiz.saveZbOrder(orderId, rateChangeEntity.getSaleSymbol(), rateChangeEntity.getOid(), buyOrderEntity.getOrderId(), symbolTradeConfig.getOid(),
+                                symbolTradeConfig.getUserId(), DictEnum.ORDER_TYPE_SELL_LIMIT.getCode(), DictEnum.ORDER_MODEL_REAL.getCode());
+                    }
+                    //更新原买单状态
+                    buyOrderEntity.setState(DictEnum.ZB_ORDER_DETAIL_STATE_4.getCode());
+                    orderBiz.saveOrder(buyOrderEntity);
+                    //发送成交邮件通知
+                    transToEmailNotify(buyOrderEntity);
                 }
-                //更新原买单状态
-                buyOrderEntity.setState(DictEnum.ZB_ORDER_DETAIL_STATE_4.getCode());
-                orderBiz.saveOrder(buyOrderEntity);
-                //发送成交邮件通知
-                transToEmailNotify(buyOrderEntity);
-            }
-            //未成交
-            else if (DictEnum.ZB_ORDER_DETAIL_STATE_3.getCode().equals(buyOrderEntity.getState()) || DictEnum.ZB_ORDER_DETAIL_STATE_0.getCode().equals(buyOrderEntity.getState())) {
-                //买单超时则撤销
-                Integer buyOrderWaitTime = (symbolTradeConfig != null && symbolTradeConfig.getBuyWaitTime() != null) ? symbolTradeConfig.getBuyWaitTime() : 10;
-                if (DateUtils.addMinute(buyOrderEntity.getCreateTime(), buyOrderWaitTime).before(DateUtils.getCurrDateMmss())) {
-                    log.info("买单超时撤销,buyOrderEntity={}", buyOrderEntity);
-                    ZbCancelOrderDto dto = new ZbCancelOrderDto();
-                    dto.setOrderId(buyOrderEntity.getOrderId());
-                    dto.setCurrency(buyOrderEntity.getSymbol());
-                    AccountEntity accountEntity = accountBiz.getByUserIdAndType(buyOrderEntity.getUserId(), DictEnum.MARKET_TYPE_ZB.getCode());
-                    dto.setAccessKey(accountEntity.getApiKey());
-                    dto.setSecretKey(accountEntity.getApiSecret());
-                    ZbResponseVo vo = zbApi.cancelOrder(dto);
-                    if ("1000".equals(vo.getCode())) {
-                        log.info("撤单成功");
-                        orderBiz.updateZbOrderState(buyOrderEntity);
-                    } else {
-                        log.info("撤单失败,vo={}", vo);
+                //未成交
+                else if (DictEnum.ZB_ORDER_DETAIL_STATE_3.getCode().equals(buyOrderEntity.getState()) || DictEnum.ZB_ORDER_DETAIL_STATE_0.getCode().equals(buyOrderEntity.getState())) {
+                    //买单超时则撤销
+                    Integer buyOrderWaitTime = (symbolTradeConfig != null && symbolTradeConfig.getBuyWaitTime() != null) ? symbolTradeConfig.getBuyWaitTime() : 10;
+                    if (DateUtils.addMinute(buyOrderEntity.getCreateTime(), buyOrderWaitTime).before(DateUtils.getCurrDateMmss())) {
+                        log.info("买单超时撤销,buyOrderEntity={}", buyOrderEntity);
+                        ZbCancelOrderDto dto = new ZbCancelOrderDto();
+                        dto.setOrderId(buyOrderEntity.getOrderId());
+                        dto.setCurrency(buyOrderEntity.getSymbol());
+                        AccountEntity accountEntity = accountBiz.getByUserIdAndType(buyOrderEntity.getUserId(), DictEnum.MARKET_TYPE_ZB.getCode());
+                        dto.setAccessKey(accountEntity.getApiKey());
+                        dto.setSecretKey(accountEntity.getApiSecret());
+                        ZbResponseVo vo = zbApi.cancelOrder(dto);
+                        if ("1000".equals(vo.getCode())) {
+                            log.info("撤单成功");
+                            orderBiz.updateZbOrderState(buyOrderEntity);
+                        } else {
+                            log.info("撤单失败,vo={}", vo);
+                        }
                     }
                 }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
+
         }
     }
 
@@ -275,23 +287,27 @@ public class TransBiz {
     public void zbCheckSaleFinish() {
         List<OrderEntity> saleOrderList = orderBiz.findZbNoFilledSaleOrder();
         for (OrderEntity saleOrder : saleOrderList) {
-            ZbOrderDetailDto dto = new ZbOrderDetailDto();
-            dto.setOrderId(saleOrder.getOrderId());
-            dto.setCurrency(saleOrder.getSymbol());
-            BaseZbDto baseZbDto = new BaseZbDto();
-            accountBiz.setZbApiKey(baseZbDto, saleOrder.getUserId());
-            dto.setAccessKey(baseZbDto.getAccessKey());
-            dto.setSecretKey(baseZbDto.getSecretKey());
-            ZbOrderDetailVo ordersDetail = zbApi.orderDetail(dto);
-            //卖单已成交或撤销成交
-            if (DictEnum.ZB_ORDER_DETAIL_STATE_2.getCode().equals(ordersDetail.getState())) {
-                log.info("卖单已成交,交易完成.saleOrderId={}", saleOrder.getOrderId());
-                saleOrder.setState(ordersDetail.getState());
-                saleOrder.setFieldAmount(ordersDetail.getFieldAmount());
-                saleOrder.setFieldCashAmount(ordersDetail.getFieldCashAmount());
-                orderBiz.saveOrder(saleOrder);
-                //发送成交邮件通知
-                transToEmailNotify(saleOrder);
+            try {
+                ZbOrderDetailDto dto = new ZbOrderDetailDto();
+                dto.setOrderId(saleOrder.getOrderId());
+                dto.setCurrency(saleOrder.getSymbol());
+                BaseZbDto baseZbDto = new BaseZbDto();
+                accountBiz.setZbApiKey(baseZbDto, saleOrder.getUserId());
+                dto.setAccessKey(baseZbDto.getAccessKey());
+                dto.setSecretKey(baseZbDto.getSecretKey());
+                ZbOrderDetailVo ordersDetail = zbApi.orderDetail(dto);
+                //卖单已成交或撤销成交
+                if (DictEnum.ZB_ORDER_DETAIL_STATE_2.getCode().equals(ordersDetail.getState())) {
+                    log.info("卖单已成交,交易完成.saleOrderId={}", saleOrder.getOrderId());
+                    saleOrder.setState(ordersDetail.getState());
+                    saleOrder.setFieldAmount(ordersDetail.getFieldAmount());
+                    saleOrder.setFieldCashAmount(ordersDetail.getFieldCashAmount());
+                    orderBiz.saveOrder(saleOrder);
+                    //发送成交邮件通知
+                    transToEmailNotify(saleOrder);
+                }
+            }catch (Exception e){
+                e.printStackTrace();
             }
         }
     }
@@ -793,8 +809,8 @@ public class TransBiz {
                     salePrice = salePrice.subtract(symbolTradeConfig.getBuyIncreasePrice());
                     BigDecimal saleAmount = bid.get(1);
                     //比较要卖的数量是否超过买一
-                    remainAmount = remainAmount.compareTo(saleAmount) < 0 ? remainAmount : saleAmount;
-                    map.put(salePrice, remainAmount);
+                    saleAmount = remainAmount.compareTo(saleAmount) < 0 ? remainAmount : saleAmount;
+                    map.put(salePrice, saleAmount);
                     log.info("买单价售出,salePrice={},remainAmount={},saleAmount={}", salePrice, remainAmount, saleAmount);
                     remainAmount = remainAmount.subtract(saleAmount);
                 } else {

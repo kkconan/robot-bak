@@ -37,4 +37,10 @@ public interface OrderService {
     BigDecimal findByTypeBuyTotalAmount(String userId, String model, String hbState, String zbState, Date startTime, Date endTime);
 
     BigDecimal findByTypeSellTotalAmount(String userId, String model,String hbState,String zbState, Date startTime,Date endTime);
+
+    BigDecimal findRealBuyTotalAmount(String userId, String model,String hbState,String zbState, Date startTime,Date endTime);
+
+    BigDecimal findLimitBuyTotalAmount(String userId, String model,String hbState,String zbState, Date startTime,Date endTime);
+
+    BigDecimal findLimitSellTotalAmount(String userId, String model,String hbState,String zbState, Date startTime,Date endTime);
 }

@@ -297,13 +297,13 @@ public class OrderBiz {
             endTime = DateUtils.parse("2118-04-01");
         }
         //real buy total
-        BigDecimal realBuyTotal = orderService.findByTypeBuyTotalAmount(userId, DictEnum.ORDER_MODEL_REAL.getCode(), DictEnum.ORDER_DETAIL_STATE_SELL.getCode(), DictEnum.ZB_ORDER_DETAIL_STATE_4.getCode(), startTime, endTime);
+        BigDecimal realBuyTotal = orderService.findRealBuyTotalAmount(userId, DictEnum.ORDER_MODEL_REAL.getCode(), DictEnum.ORDER_DETAIL_STATE_FILLED.getCode(), DictEnum.ZB_ORDER_DETAIL_STATE_2.getCode(), startTime, endTime);
         //real sell total
         BigDecimal realSellTotal = orderService.findByTypeSellTotalAmount(userId, DictEnum.ORDER_MODEL_REAL.getCode(), DictEnum.ORDER_DETAIL_STATE_FILLED.getCode(), DictEnum.ZB_ORDER_DETAIL_STATE_2.getCode(), startTime, endTime);
         //limit buy total
-        BigDecimal limitBuyTotal = orderService.findByTypeBuyTotalAmount(userId, DictEnum.ORDER_MODEL_LIMIT.getCode(), DictEnum.ORDER_DETAIL_STATE_FILLED.getCode(), DictEnum.ZB_ORDER_DETAIL_STATE_2.getCode(), startTime, endTime);
+        BigDecimal limitBuyTotal = orderService.findLimitBuyTotalAmount(userId, DictEnum.ORDER_MODEL_LIMIT.getCode(), DictEnum.ORDER_DETAIL_STATE_FILLED.getCode(), DictEnum.ZB_ORDER_DETAIL_STATE_2.getCode(), startTime, endTime);
         //limit sell total
-        BigDecimal limitSellTotal = orderService.findByTypeSellTotalAmount(userId, DictEnum.ORDER_MODEL_LIMIT.getCode(), DictEnum.ORDER_DETAIL_STATE_FILLED.getCode(), DictEnum.ZB_ORDER_DETAIL_STATE_2.getCode(), startTime, endTime);
+        BigDecimal limitSellTotal = orderService.findLimitSellTotalAmount(userId, DictEnum.ORDER_MODEL_LIMIT.getCode(), DictEnum.ORDER_DETAIL_STATE_FILLED.getCode(), DictEnum.ZB_ORDER_DETAIL_STATE_2.getCode(), startTime, endTime);
         //shuffle buy total
         BigDecimal shuffleBuyTotal = orderService.findByTypeBuyTotalAmount(userId, DictEnum.ORDER_MODEL_SHUFFLE.getCode(), DictEnum.ORDER_DETAIL_STATE_FILLED.getCode(), DictEnum.ZB_ORDER_DETAIL_STATE_2.getCode(), startTime, endTime);
         //shuffle sell total
