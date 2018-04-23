@@ -41,8 +41,8 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public List<OrderEntity> findByState(List<String> states, String type) {
-        return orderDao.findByState(states, type);
+    public List<OrderEntity> findByState(List<String> states, String type,String marketType) {
+        return orderDao.findByState(states, type,marketType);
     }
 
     @Override

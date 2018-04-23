@@ -9,6 +9,7 @@ import com.money.game.robot.zb.HttpUtilManager;
 import com.money.game.robot.zb.MapSort;
 import com.money.game.robot.zb.api.ZbApi;
 import com.money.game.robot.zb.vo.ZbOrderDepthVo;
+import com.money.game.robot.zb.vo.ZbOrderDetailVo;
 import com.money.game.robot.zb.vo.ZbResponseVo;
 import com.money.game.robot.zb.vo.ZbWithDrowVo;
 import lombok.extern.slf4j.Slf4j;
@@ -75,14 +76,15 @@ public class ZBRestTest {
      */
     @Test
     public void testGetOrder() {
-        String orderId = "20180408856915";
+        String orderId = "20180419922292";
         try {
             ZbOrderDetailDto dto = new ZbOrderDetailDto();
-            dto.setCurrency("1st_btc");
+            dto.setCurrency("bcw_btc");
             dto.setOrderId(orderId);
             dto.setAccessKey("7c08f59f-1b32-4cd8-ab8e-cb32564f6e12");
             dto.setSecretKey("3ad4640f-d2f5-4fa1-bedb-9752e1e38284");
-            zbApi.orderDetail(dto);
+            ZbOrderDetailVo vo = zbApi.orderDetail(dto);
+            log.info("vo={}",vo);
         } catch (Exception ex) {
             ex.printStackTrace();
         }
@@ -203,6 +205,9 @@ public class ZBRestTest {
      */
     @Test
     public void testGetAccountInfo() {
+        BaseZbDto dto = new BaseZbDto();
+        dto.setAccessKey("7c08f59f-1b32-4cd8-ab8e-cb32564f6e12");
+        dto.setSecretKey("3ad4640f-d2f5-4fa1-bedb-9752e1e38284");
         zbApi.getAccountInfo(new BaseZbDto());
     }
 

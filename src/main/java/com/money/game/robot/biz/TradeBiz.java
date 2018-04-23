@@ -181,7 +181,7 @@ public class TradeBiz {
         dto.setTradeType(tradeType);
         ZbCreateOrderVo vo = zbApi.createOrder(dto);
         if (!"1000".equals(vo.getCode())) {
-            log.error("订单创建失败,errno={},errMsg={},dto={}", vo.getCode(), vo.getMessage(), dto);
+            log.error("订单创建失败,errno={},errMsg={},dto={},apiKey={},secretKey={}", vo.getCode(), vo.getMessage(), dto, dto.getAccessKey(), dto.getSecretKey());
             throw new BizException(ErrorEnum.CREATE_ORDER_FAIL);
         }
         return vo.getId();

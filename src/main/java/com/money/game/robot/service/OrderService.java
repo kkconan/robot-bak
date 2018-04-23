@@ -22,7 +22,7 @@ public interface OrderService {
 
     OrderEntity save(OrderEntity entity);
 
-    List<OrderEntity> findByState(List<String> states, String type);
+    List<OrderEntity> findByState(List<String> states, String type,String marketType);
 
     List<OrderEntity> findBySymbolAndType(String symbol, String orderType, String symbolConfigId, List<String> states);
 

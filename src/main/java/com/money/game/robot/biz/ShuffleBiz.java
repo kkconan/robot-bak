@@ -68,6 +68,7 @@ public class ShuffleBiz {
                 List<ShuffleConfigEntity> shuffleList = shuffleConfigService.findByUserIdWithOpen(userEntity.getOid());
                 for (ShuffleConfigEntity shuffle : shuffleList) {
                     try {
+                        Thread.sleep(5000);
                         checkDepth(shuffle);
                     } catch (Exception e) {
                         log.error("e={},shuffle={}", e, shuffle);

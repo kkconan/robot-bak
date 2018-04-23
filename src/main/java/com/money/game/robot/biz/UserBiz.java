@@ -100,7 +100,7 @@ public class UserBiz {
     public ResponseData modify(ModifyUserInfoDto dto, String userId) {
         UserEntity user = userService.findOne(userId);
         if(StringUtils.isNotEmpty(dto.getNotifyEmail())){
-            user.setNotifyEmail(dto.getNotifyEmail());
+                user.setNotifyEmail(dto.getNotifyEmail());
         }
         if(StringUtils.isNotEmpty(dto.getNotifyPhone())){
             user.setNotifyPhone(dto.getNotifyPhone());

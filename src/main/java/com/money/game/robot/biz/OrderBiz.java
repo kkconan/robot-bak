@@ -225,7 +225,7 @@ public class OrderBiz {
         states.add(DictEnum.ORDER_DETAIL_STATE_PARTIAL_FILLED.getCode());
         states.add(DictEnum.ORDER_DETAIL_STATE_PARTIAL_CANCELED.getCode());
         states.add(DictEnum.ORDER_DETAIL_STATE_FILLED.getCode());
-        return orderService.findByState(states, DictEnum.ORDER_TYPE_BUY_LIMIT.getCode());
+        return orderService.findByState(states, DictEnum.ORDER_TYPE_BUY_LIMIT.getCode(),DictEnum.MARKET_TYPE_HB.getCode());
     }
 
     /**
@@ -236,7 +236,7 @@ public class OrderBiz {
         states.add(DictEnum.ORDER_DETAIL_STATE_SUBMITTING.getCode());
         states.add(DictEnum.ORDER_DETAIL_STATE_SUBMITTED.getCode());
         states.add(DictEnum.ORDER_DETAIL_STATE_PARTIAL_FILLED.getCode());
-        return orderService.findByState(states, DictEnum.ORDER_TYPE_SELL_LIMIT.getCode());
+        return orderService.findByState(states, DictEnum.ORDER_TYPE_SELL_LIMIT.getCode(),DictEnum.MARKET_TYPE_HB.getCode());
 
     }
 
@@ -262,7 +262,7 @@ public class OrderBiz {
         states.add(DictEnum.ZB_ORDER_DETAIL_STATE_0.getCode());
         states.add(DictEnum.ZB_ORDER_DETAIL_STATE_2.getCode());
         states.add(DictEnum.ZB_ORDER_DETAIL_STATE_3.getCode());
-        return orderService.findByState(states, DictEnum.ORDER_TYPE_BUY_LIMIT.getCode());
+        return orderService.findByState(states, DictEnum.ORDER_TYPE_BUY_LIMIT.getCode(),DictEnum.MARKET_TYPE_ZB.getCode());
     }
 
     /**
@@ -272,12 +272,12 @@ public class OrderBiz {
         List<String> states = new ArrayList<>();
         states.add(DictEnum.ZB_ORDER_DETAIL_STATE_0.getCode());
         states.add(DictEnum.ZB_ORDER_DETAIL_STATE_3.getCode());
-        return orderService.findByState(states, DictEnum.ORDER_TYPE_SELL_LIMIT.getCode());
+        return orderService.findByState(states, DictEnum.ORDER_TYPE_SELL_LIMIT.getCode(),DictEnum.MARKET_TYPE_ZB.getCode());
 
     }
 
     /**
-     * 获取hb限价单
+     * 获取zb限价单
      */
     public List<OrderEntity> findZbByUserIdAndModel(String userId, String model, String orderType, String symbol, String symbolTradeConfigId) {
         List<String> states = new ArrayList<>();

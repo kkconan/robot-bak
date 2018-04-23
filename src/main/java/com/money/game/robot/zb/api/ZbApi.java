@@ -53,6 +53,9 @@ public class ZbApi {
 
     private static final String KLINE_KEY = "kline_key";
 
+    @Value("${zb.stop.to.request:false}")
+    private boolean stopToRequest;
+
     /**
      * 获取K线行情(每秒只能请求一次)
      */
@@ -64,14 +67,14 @@ public class ZbApi {
         String klineKey = StrRedisUtil.get(redis, KLINE_KEY);
         if (StringUtils.isNotEmpty(klineKey)) {
             try {
-                Thread.sleep(1100);
+                Thread.sleep(1500);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
         }
         String callback = get(url);
         JSONObject json = JSONObject.parseObject(callback);
-        StrRedisUtil.setEx(redis, KLINE_KEY, 1, KLINE_KEY);
+        StrRedisUtil.setEx(redis, KLINE_KEY, 2, KLINE_KEY);
         if (json == null || json.get("data") == null) {
             log.info("获取详情失败,url={},json={},currency={}", url, json, currency);
             return null;
@@ -132,7 +135,7 @@ public class ZbApi {
     /**
      * 取消下单
      */
-    public ZbResponseVo cancelOrder(ZbCancelOrderDto dto) {
+    public ZbResponseVo     cancelOrder(ZbCancelOrderDto dto) {
         Map<String, String> params = new HashMap<>();
         params.put("method", "cancelOrder");
         params.put("id", dto.getOrderId());
@@ -151,7 +154,12 @@ public class ZbApi {
         params.put("currency", dto.getCurrency());
         String json = this.getJsonPost(params, dto.getAccessKey(), dto.getSecretKey());
         Gson gson = new Gson();
-        return gson.fromJson(json, ZbOrderDetailVo.class);
+        if (json != null && json.contains("attackIP")) {
+            log.error("json={},dto={}", json,dto);
+            return null;
+        } else {
+            return gson.fromJson(json, ZbOrderDetailVo.class);
+        }
     }
 
 
@@ -203,7 +211,7 @@ public class ZbApi {
         params.put("currency", dto.getCurrency());
         params.put("fees", dto.getFees().setScale(4, BigDecimal.ROUND_DOWN).toString());
         params.put("itransfer", dto.getItransfer());
-        params.put("safePwd",dto.getSafePwd());
+        params.put("safePwd", dto.getSafePwd());
         params.put("method", "withdraw");
         params.put("receiveAddr", dto.getReceiveAddr());
         return this.post(params, dto.getAccessKey(), dto.getSecretKey(), new TypeReference<ZbWithDrowVo>() {
@@ -239,7 +247,12 @@ public class ZbApi {
         params.put("reqTime", System.currentTimeMillis() + "");
         String json = "";
         try {
-            json = HttpUtilManager.getInstance().requestHttpPost(tradeHost, method, params);
+            if (!stopToRequest) {
+                json = HttpUtilManager.getInstance().requestHttpPost(tradeHost, method, params);
+            } else {
+                log.warn("暂停对zb的访问");
+                json = null;
+            }
         } catch (HttpException | IOException e) {
             log.error("获取交易json异常", e);
         }
@@ -265,22 +278,28 @@ public class ZbApi {
         StringBuilder sbf = new StringBuilder();
         String userAgent = "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/29.0.1547.66 Safari/537.36";// 模拟浏览器
         try {
-            URL url = new URL(urlStr);
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            connection.setRequestMethod("GET");
-            connection.setReadTimeout(30000);
-            connection.setConnectTimeout(30000);
-            connection.setRequestProperty("User-agent", userAgent);
-            connection.connect();
-            InputStream is = connection.getInputStream();
-            reader = new BufferedReader(new InputStreamReader(is, "UTF-8"));
-            String strRead;
-            while ((strRead = reader.readLine()) != null) {
-                sbf.append(strRead);
-                sbf.append("\r\n");
+            if (!stopToRequest) {
+                URL url = new URL(urlStr);
+                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("GET");
+                connection.setReadTimeout(30000);
+                connection.setConnectTimeout(30000);
+                connection.setRequestProperty("User-agent", userAgent);
+                connection.connect();
+                InputStream is = connection.getInputStream();
+                reader = new BufferedReader(new InputStreamReader(is, "UTF-8"));
+                String strRead;
+                while ((strRead = reader.readLine()) != null) {
+                    sbf.append(strRead);
+                    sbf.append("\r\n");
+                }
+                reader.close();
+                result = sbf.toString();
+            } else {
+                log.warn("暂停对zb的访问");
+                result = null;
             }
-            reader.close();
-            result = sbf.toString();
+
             return result;
         } catch (Exception e) {
             log.error("e={}", e);

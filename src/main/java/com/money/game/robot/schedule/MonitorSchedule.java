@@ -42,7 +42,7 @@ public class MonitorSchedule {
     /**
      * hb所有交易对实时监控
      */
-    @Scheduled(cron = "${cron.option[hb.symBols]:55 0/3 * * * ?}")
+    @Scheduled(cron = "${cron.option[huoBi.symbols]:55 0/3 * * * ?}")
     public void huoBiSymBolsSchedule() {
         if (isSchedule) {
             log.info("huobi all symbol monitor start...");
