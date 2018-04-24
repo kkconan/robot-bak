@@ -24,7 +24,7 @@ public class AccountBizTest {
 
     @Test
     public void getUserBaseCurrencyBalanceTest() {
-        BalanceVo vo = accountBiz.getUserBaseCurrencyBalance("2c94a4ab624281b90162428266740001");
+        BalanceVo vo = accountBiz.getUserBaseCurrencyBalance("2c94a4ab624281b90162428266741111");
         log.info("vo={}", vo);
     }
 

@@ -18,6 +18,8 @@ public interface OrderDao extends JpaRepository<OrderEntity, String>, JpaSpecifi
 
     OrderEntity findByOrderId(String orderId);
 
+    OrderEntity findByBuyOrderId(String buyOrderId);
+
     @Query(value = "select * from T_ORDER  where state in (?1) and type = ?2  and marketType=?3 and model = 'real'", nativeQuery = true)
     List<OrderEntity> findByState(List<String> states, String orderType,String marketType);
 

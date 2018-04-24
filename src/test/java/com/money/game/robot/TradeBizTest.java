@@ -52,7 +52,7 @@ public class TradeBizTest {
         HuobiBaseDto dto = new HuobiBaseDto();
         dto.setOrderId("3148680170");
         dto.setUserId("2c94a4ab624281b90162428266740001");
-        tradeBiz.submitCancel(dto);
+        tradeBiz.hbCancelOrder(dto);
 
     }
 }

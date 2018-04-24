@@ -138,7 +138,7 @@ public enum DictEnum {
     ZB_ORDER_DETAIL_STATE_0("0","待成交"),
     ZB_ORDER_DETAIL_STATE_1("1","取消"),
     ZB_ORDER_DETAIL_STATE_2("2","交易完成"),
-    ZB_ORDER_DETAIL_STATE_3("3","部分成交"),
+    ZB_ORDER_DETAIL_STATE_3("3","待成交"),
     ZB_ORDER_DETAIL_STATE_4("4","已挂单售卖"),
 
 

@@ -146,7 +146,7 @@ public class MonitorSchedule {
     /**
      * 检查hb beta限价单(切日志方法已check开头)
      */
-    @Scheduled(cron = "${cron.option[check.hb.limit.beta.order]:0 0/1 * * * ?}")
+    @Scheduled(cron = "${cron.option[check.hb.limit.beta.order]:0 0/2 * * * ?}")
     public void chcekHbLimitBetaOrder() {
         if (isSchedule) {
             transBiz.hbCheckLimitBetaOrder();
@@ -156,7 +156,7 @@ public class MonitorSchedule {
     /**
      * 检查zb beta限价单(切日志方法已check开头)
      */
-    @Scheduled(cron = "${cron.option[check.zb.limit.beta.order]:30 0/1 * * * ?}")
+    @Scheduled(cron = "${cron.option[check.zb.limit.beta.order]:30 0/2 * * * ?}")
     public void chcekZbLimitBetaOrder() {
         if (isSchedule) {
             transBiz.zbCheckLimitBetaOrder();

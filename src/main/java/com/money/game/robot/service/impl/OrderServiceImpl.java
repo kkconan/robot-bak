@@ -41,8 +41,8 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public List<OrderEntity> findByState(List<String> states, String type,String marketType) {
-        return orderDao.findByState(states, type,marketType);
+    public List<OrderEntity> findByState(List<String> states, String type, String marketType) {
+        return orderDao.findByState(states, type, marketType);
     }
 
     @Override
@@ -82,16 +82,21 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public BigDecimal findRealBuyTotalAmount(String userId, String model, String hbState, String zbState, Date startTime, Date endTime) {
-        return orderDao.findRealBuyTotalAmount(userId,model,hbState,zbState,startTime,endTime);
+        return orderDao.findRealBuyTotalAmount(userId, model, hbState, zbState, startTime, endTime);
     }
 
     @Override
     public BigDecimal findLimitBuyTotalAmount(String userId, String model, String hbState, String zbState, Date startTime, Date endTime) {
-        return orderDao.findLimitBuyTotalAmount(userId,model,hbState,zbState,startTime,endTime);
+        return orderDao.findLimitBuyTotalAmount(userId, model, hbState, zbState, startTime, endTime);
     }
 
     @Override
     public BigDecimal findLimitSellTotalAmount(String userId, String model, String hbState, String zbState, Date startTime, Date endTime) {
-        return orderDao.findLimitSellTotalAmount(userId,model,hbState,zbState,startTime,endTime);
+        return orderDao.findLimitSellTotalAmount(userId, model, hbState, zbState, startTime, endTime);
+    }
+
+    @Override
+    public OrderEntity findByBuyOrderId(String buyOrderId) {
+        return orderDao.findByBuyOrderId(buyOrderId);
     }
 }

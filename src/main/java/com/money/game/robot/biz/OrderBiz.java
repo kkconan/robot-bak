@@ -225,7 +225,7 @@ public class OrderBiz {
         states.add(DictEnum.ORDER_DETAIL_STATE_PARTIAL_FILLED.getCode());
         states.add(DictEnum.ORDER_DETAIL_STATE_PARTIAL_CANCELED.getCode());
         states.add(DictEnum.ORDER_DETAIL_STATE_FILLED.getCode());
-        return orderService.findByState(states, DictEnum.ORDER_TYPE_BUY_LIMIT.getCode(),DictEnum.MARKET_TYPE_HB.getCode());
+        return orderService.findByState(states, DictEnum.ORDER_TYPE_BUY_LIMIT.getCode(), DictEnum.MARKET_TYPE_HB.getCode());
     }
 
     /**
@@ -236,7 +236,7 @@ public class OrderBiz {
         states.add(DictEnum.ORDER_DETAIL_STATE_SUBMITTING.getCode());
         states.add(DictEnum.ORDER_DETAIL_STATE_SUBMITTED.getCode());
         states.add(DictEnum.ORDER_DETAIL_STATE_PARTIAL_FILLED.getCode());
-        return orderService.findByState(states, DictEnum.ORDER_TYPE_SELL_LIMIT.getCode(),DictEnum.MARKET_TYPE_HB.getCode());
+        return orderService.findByState(states, DictEnum.ORDER_TYPE_SELL_LIMIT.getCode(), DictEnum.MARKET_TYPE_HB.getCode());
 
     }
 
@@ -262,7 +262,7 @@ public class OrderBiz {
         states.add(DictEnum.ZB_ORDER_DETAIL_STATE_0.getCode());
         states.add(DictEnum.ZB_ORDER_DETAIL_STATE_2.getCode());
         states.add(DictEnum.ZB_ORDER_DETAIL_STATE_3.getCode());
-        return orderService.findByState(states, DictEnum.ORDER_TYPE_BUY_LIMIT.getCode(),DictEnum.MARKET_TYPE_ZB.getCode());
+        return orderService.findByState(states, DictEnum.ORDER_TYPE_BUY_LIMIT.getCode(), DictEnum.MARKET_TYPE_ZB.getCode());
     }
 
     /**
@@ -272,7 +272,7 @@ public class OrderBiz {
         List<String> states = new ArrayList<>();
         states.add(DictEnum.ZB_ORDER_DETAIL_STATE_0.getCode());
         states.add(DictEnum.ZB_ORDER_DETAIL_STATE_3.getCode());
-        return orderService.findByState(states, DictEnum.ORDER_TYPE_SELL_LIMIT.getCode(),DictEnum.MARKET_TYPE_ZB.getCode());
+        return orderService.findByState(states, DictEnum.ORDER_TYPE_SELL_LIMIT.getCode(), DictEnum.MARKET_TYPE_ZB.getCode());
 
     }
 
@@ -353,7 +353,7 @@ public class OrderBiz {
         HuobiBaseDto dto = new HuobiBaseDto();
         dto.setOrderId(entity.getOrderId());
         dto.setUserId(entity.getUserId());
-        tradeBiz.submitCancel(dto);
+        tradeBiz.hbCancelOrder(dto);
         entity = this.updateHbOrderState(entity);
         //撤销成功
         if (DictEnum.ORDER_DETAIL_STATE_CANCELED.getCode().equals(entity.getState()) || DictEnum.ORDER_DETAIL_STATE_PARTIAL_CANCELED.getCode().equals(entity.getState())) {
@@ -435,6 +435,13 @@ public class OrderBiz {
             orderEntity = list.get(0);
         }
         return orderEntity;
+    }
+
+    /**
+     * 根据买单订单id查询卖单记录
+     */
+    public OrderEntity findByBuyOrderId(String buyOrderId) {
+        return orderService.findByBuyOrderId(buyOrderId);
     }
 
 

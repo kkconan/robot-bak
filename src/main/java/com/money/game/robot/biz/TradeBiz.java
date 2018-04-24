@@ -8,6 +8,7 @@ import com.money.game.robot.dto.huobi.BatchCancelDto;
 import com.money.game.robot.dto.huobi.CreateOrderDto;
 import com.money.game.robot.dto.huobi.HuobiBaseDto;
 import com.money.game.robot.dto.huobi.IntrustOrderDto;
+import com.money.game.robot.dto.zb.ZbCancelOrderDto;
 import com.money.game.robot.dto.zb.ZbCreateOrderDto;
 import com.money.game.robot.entity.AccountEntity;
 import com.money.game.robot.exception.BizException;
@@ -17,6 +18,7 @@ import com.money.game.robot.huobi.request.CreateOrderRequest;
 import com.money.game.robot.huobi.response.*;
 import com.money.game.robot.zb.api.ZbApi;
 import com.money.game.robot.zb.vo.ZbCreateOrderVo;
+import com.money.game.robot.zb.vo.ZbResponseVo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -91,9 +93,9 @@ public class TradeBiz {
     }
 
     /**
-     * cancel order
+     * hb cancel order
      */
-    public void submitCancel(HuobiBaseDto dto) {
+    public void hbCancelOrder(HuobiBaseDto dto) {
         accountBiz.setHuobiApiKey(dto);
         ApiClient client = new ApiClient(dto.getApiKey(), dto.getApiSecret());
         SubmitcancelResponse response = client.submitcancel(dto.getOrderId());
@@ -187,4 +189,19 @@ public class TradeBiz {
         return vo.getId();
     }
 
+
+    public ZbResponseVo zbCancelOrder(String orderId, String symbol, String userId) {
+        ZbCancelOrderDto dto = new ZbCancelOrderDto();
+        dto.setOrderId(orderId);
+        dto.setCurrency(symbol);
+        AccountEntity accountEntity = accountBiz.getByUserIdAndType(userId, DictEnum.MARKET_TYPE_ZB.getCode());
+        dto.setAccessKey(accountEntity.getApiKey());
+        dto.setSecretKey(accountEntity.getApiSecret());
+        ZbResponseVo vo = zbApi.cancelOrder(dto);
+        if (!"1000".equals(vo.getCode())) {
+            log.info("撤单失败,vo={}", vo);
+            throw new BizException(ErrorEnum.CREATE_ORDER_FAIL);
+        }
+        return vo;
+    }
 }

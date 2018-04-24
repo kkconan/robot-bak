@@ -43,4 +43,6 @@ public interface OrderService {
     BigDecimal findLimitBuyTotalAmount(String userId, String model,String hbState,String zbState, Date startTime,Date endTime);
 
     BigDecimal findLimitSellTotalAmount(String userId, String model,String hbState,String zbState, Date startTime,Date endTime);
+
+    OrderEntity findByBuyOrderId(String buyOrderId);
 }

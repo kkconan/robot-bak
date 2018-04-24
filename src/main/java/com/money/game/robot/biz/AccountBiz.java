@@ -151,6 +151,7 @@ public class AccountBiz {
         if (list != null && !list.isEmpty()) {
             return list.get(0);
         }
+        log.info("hb 账号不存在,dto={}",dto);
         return null;
     }
 

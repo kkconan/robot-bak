@@ -71,7 +71,7 @@ public class ShuffleBiz {
                         Thread.sleep(5000);
                         checkDepth(shuffle);
                     } catch (Exception e) {
-                        log.error("e={},shuffle={}", e, shuffle);
+                        log.error("shuffle=={},e={}", shuffle, e);
                     }
                 }
             }
