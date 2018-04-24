@@ -137,7 +137,7 @@ public class MarketRuleBiz {
      * @param rateValue 两个主对之间可操作的汇率差
      */
     public BigDecimal getMultiplySalePrice(BigDecimal buyPrice, BigDecimal baseCurrencyPrice, BigDecimal rateValue) {
-        BigDecimal salePrice = buyPrice.multiply(baseCurrencyPrice).multiply((new BigDecimal(1).add(rateValue)));
+        BigDecimal salePrice = buyPrice.multiply(baseCurrencyPrice).multiply((new BigDecimal(1).add(new BigDecimal(Math.abs(rateValue.doubleValue())))));
         log.info("getMultiplySalePrice,buyPrice={},baseCurrencyPrice={},rateValue={},salePrice={}", buyPrice, baseCurrencyPrice, rateValue, salePrice);
         return salePrice;
     }
@@ -150,7 +150,7 @@ public class MarketRuleBiz {
      * @param rateValue 两个主对之间可操作的汇率差
      */
     public BigDecimal getDivideSalePrice(BigDecimal buyPrice, BigDecimal baseCurrencyPrice, BigDecimal rateValue) {
-        BigDecimal salePrice = buyPrice.divide(baseCurrencyPrice, 8, BigDecimal.ROUND_FLOOR).multiply((new BigDecimal(1).add(rateValue)));
+        BigDecimal salePrice = buyPrice.divide(baseCurrencyPrice, 8, BigDecimal.ROUND_FLOOR).multiply((new BigDecimal(1).add(new BigDecimal(Math.abs(rateValue.doubleValue())))));
         log.info("getMultiplySalePrice,buyPrice={},baseCurrencyPrice={},rateValue={},salePrice={}", buyPrice, baseCurrencyPrice, rateValue, salePrice);
         return salePrice;
     }
