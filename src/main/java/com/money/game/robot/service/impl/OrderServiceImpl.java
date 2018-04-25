@@ -56,8 +56,13 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public List<OrderEntity> findShuffleByMarket(String model, String marketType, List<String> states) {
-        return orderDao.findShuffleByMarket(model, marketType, states);
+    public List<OrderEntity> findByMarket(String model, String marketType, List<String> states) {
+        return orderDao.findByMarket(model, marketType, states);
+    }
+
+    @Override
+    public List<OrderEntity> findByTypeAndState(String type, List<String> states) {
+        return orderDao.findByTypeAndState(type, states);
     }
 
     @Override

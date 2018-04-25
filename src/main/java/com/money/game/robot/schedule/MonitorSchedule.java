@@ -164,6 +164,19 @@ public class MonitorSchedule {
     }
 
     /**
+     * 检查超时限价单(切日志方法已check开头)
+     */
+    @Scheduled(cron = "${cron.option[check.time.out.order]:0 0 0/1 * * ?}")
+    public void checkTimeOutOrder() {
+        if (isSchedule) {
+            log.info("check time out order start...");
+            transBiz.checkTimeOutOrder();
+            log.info("check time out order end...");
+        }
+    }
+
+
+    /**
      * 将一个list均分成n个list,主要通过偏移量来实现的
      */
     private static <T> List<List<T>> averageAssign(List<T> source, int n) {

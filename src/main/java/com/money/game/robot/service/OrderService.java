@@ -28,7 +28,9 @@ public interface OrderService {
 
     List<OrderEntity> findByParam(String userId, String model, String orderType, String symbol, String symbolTradeConfigId, String marketType, List<String> states);
 
-    List<OrderEntity> findShuffleByMarket(String model,String marketType, List<String> states);
+    List<OrderEntity> findByMarket(String model, String marketType, List<String> states);
+
+    List<OrderEntity> findByTypeAndState(String type,List<String> states);
 
     List<OrderEntity> findByUserIdAndModel(String userId, String model);
 

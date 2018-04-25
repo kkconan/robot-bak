@@ -38,6 +38,10 @@ public class ZbMarketMonitorBiz {
     @Value("${need.sms:false}")
     private boolean needSms;
 
+    @Value("${zb.monitor.real.symbol:false}")
+    private boolean zbMonitorRealSymbol;
+
+
     @Autowired
     private ZbApi zbApi;
     @Autowired
@@ -98,7 +102,7 @@ public class ZbMarketMonitorBiz {
      * 监控交易对,由于zb行情接口每秒只能请求一次,无法多线程，直接项目启动时监控
      */
     private void zbAllSymBolsMonitor(List<ZbSymbolInfoVo> list) {
-        while (true) {
+        while (zbMonitorRealSymbol) {
             log.info("zb symbol monitor start...");
             for (ZbSymbolInfoVo zbSymbolInfoVo : list) {
                 try {

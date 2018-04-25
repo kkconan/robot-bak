@@ -126,6 +126,10 @@ public class OrderBiz {
                 BigDecimal totalToUsdt = getTotalToUsdt(orderEntity.getSymbol(), ordersDetail.getPrice(), ordersDetail.getFieldAmount());
                 orderEntity.setTotalToUsdt(totalToUsdt);
             }
+            orderEntity.setState(ordersDetail.getState());
+            orderEntity.setFieldAmount(ordersDetail.getFieldAmount());
+            orderEntity.setFieldCashAmount(ordersDetail.getFieldCashAmount());
+            orderEntity.setFieldFees(ordersDetail.getFieldFees());
             orderEntity = this.saveOrder(orderEntity);
         }
         return orderEntity;
@@ -371,7 +375,7 @@ public class OrderBiz {
         states.add(DictEnum.ORDER_DETAIL_STATE_SUBMITTING.getCode());
         states.add(DictEnum.ORDER_DETAIL_STATE_SUBMITTED.getCode());
         states.add(DictEnum.ORDER_DETAIL_STATE_PARTIAL_FILLED.getCode());
-        return orderService.findShuffleByMarket(DictEnum.ORDER_MODEL_SHUFFLE.getCode(), DictEnum.MARKET_TYPE_HB.getCode(), states);
+        return orderService.findByMarket(DictEnum.ORDER_MODEL_SHUFFLE.getCode(), DictEnum.MARKET_TYPE_HB.getCode(), states);
     }
 
     /**
@@ -381,7 +385,7 @@ public class OrderBiz {
         List<String> states = new ArrayList<>();
         states.add(DictEnum.ZB_ORDER_DETAIL_STATE_0.getCode());
         states.add(DictEnum.ZB_ORDER_DETAIL_STATE_3.getCode());
-        return orderService.findShuffleByMarket(DictEnum.ORDER_MODEL_SHUFFLE.getCode(), DictEnum.MARKET_TYPE_ZB.getCode(), states);
+        return orderService.findByMarket(DictEnum.ORDER_MODEL_SHUFFLE.getCode(), DictEnum.MARKET_TYPE_ZB.getCode(), states);
     }
 
 
@@ -442,6 +446,17 @@ public class OrderBiz {
      */
     public OrderEntity findByBuyOrderId(String buyOrderId) {
         return orderService.findByBuyOrderId(buyOrderId);
+    }
+
+
+    /**
+     * 查询limit/betaLimit 所有未完成的买单
+     */
+    public List<OrderEntity> findNoFillLimit() {
+        List<String> states = new ArrayList<>();
+        states.add(DictEnum.ORDER_DETAIL_STATE_SUBMITTED.getCode());
+        states.add(DictEnum.ZB_ORDER_DETAIL_STATE_3.getCode());
+        return orderService.findByTypeAndState(DictEnum.ORDER_TYPE_BUY_LIMIT.getCode(), states);
     }
 
 

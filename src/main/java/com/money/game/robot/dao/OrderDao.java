@@ -30,7 +30,10 @@ public interface OrderDao extends JpaRepository<OrderEntity, String>, JpaSpecifi
     List<OrderEntity> findByParam(String userId, String model, String orderType, String symbol, String symbolTradeConfigId, String marketType, List<String> states);
 
     @Query(value = "select * from T_ORDER  where  model = ?1 and marketType=?2 and state in (?3)", nativeQuery = true)
-    List<OrderEntity> findShuffleByMarket(String model, String marketType, List<String> states);
+    List<OrderEntity> findByMarket(String model, String marketType, List<String> states);
+
+    @Query(value = "select * from T_ORDER  where  type = ?1 and state in (?2) and (model = 'limit' or model='limitBeta') ", nativeQuery = true)
+    List<OrderEntity> findByTypeAndState(String type, List<String> states);
 
     List<OrderEntity> findByUserIdAndModel(String userId, String model);
 

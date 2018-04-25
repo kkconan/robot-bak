@@ -76,10 +76,10 @@ public class ZBRestTest {
      */
     @Test
     public void testGetOrder() {
-        String orderId = "20180419922292";
+        String orderId = "201804143045494";
         try {
             ZbOrderDetailDto dto = new ZbOrderDetailDto();
-            dto.setCurrency("bcw_btc");
+            dto.setCurrency("topc_btc");
             dto.setOrderId(orderId);
             dto.setAccessKey("7c08f59f-1b32-4cd8-ab8e-cb32564f6e12");
             dto.setSecretKey("3ad4640f-d2f5-4fa1-bedb-9752e1e38284");
