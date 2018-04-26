@@ -3,6 +3,7 @@ package com.money.game.robot.dao;
 import com.money.game.robot.entity.LimitTradeConfigEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
 
@@ -12,6 +13,8 @@ import java.util.List;
  **/
 public interface LimitTrdeConfigDao extends JpaRepository<LimitTradeConfigEntity, String>, JpaSpecificationExecutor<LimitTradeConfigEntity> {
 
+
+    @Query(value = "SELECT * FROM T_LIMIT_TRADE_CONFIG where userId = ?1 order by status ASC,createTime desc", nativeQuery = true)
     List<LimitTradeConfigEntity> findAllByUserId(String userId);
 
     List<LimitTradeConfigEntity> findAllByUserIdAndMarketType(String userId, String marketType);

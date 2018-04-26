@@ -210,6 +210,9 @@ public class OrderBiz {
             if (DictEnum.ZB_ORDER_DETAIL_STATE_1.getCode().equals(detailVo.getState()) && detailVo.getFieldAmount().compareTo(BigDecimal.ZERO) > 0) {
                 orderEntity.setAmount(detailVo.getFieldAmount());
                 orderEntity.setState(DictEnum.ZB_ORDER_DETAIL_STATE_2.getCode());
+            }else if(DictEnum.ZB_ORDER_DETAIL_STATE_1.getCode().equals(detailVo.getState())){
+                //更新为撤销状态
+                orderEntity.setState(DictEnum.ZB_ORDER_DETAIL_STATE_1.getCode());
             }
             orderEntity = this.saveOrder(orderEntity);
         }
@@ -481,6 +484,15 @@ public class OrderBiz {
             for (OrderEntity entity : pageList) {
                 OrderVo vo = new OrderVo();
                 BeanUtils.copyProperties(entity, vo);
+                if(entity.getState().equals(DictEnum.ZB_ORDER_DETAIL_STATE_0.getCode()) || entity.getState().equals(DictEnum.ZB_ORDER_DETAIL_STATE_3.getCode())){
+                    vo.setState(DictEnum.ORDER_DETAIL_STATE_SUBMITTED.getCode());
+                }else if(entity.getState().equals(DictEnum.ZB_ORDER_DETAIL_STATE_1.getCode())){
+                    vo.setState(DictEnum.ORDER_DETAIL_STATE_CANCELED.getCode());
+                }else if(entity.getState().equals(DictEnum.ZB_ORDER_DETAIL_STATE_2.getCode())){
+                    vo.setState(DictEnum.ORDER_DETAIL_STATE_FILLED.getCode());
+                }else if(entity.getState().equals(DictEnum.ZB_ORDER_DETAIL_STATE_4.getCode())){
+                    vo.setState(DictEnum.ORDER_DETAIL_STATE_SELL.getCode());
+                }
                 voList.add(vo);
             }
             responseData = ResponseData.success(voList, dto.getCurrentPage(), dto.getPageSize(), pageList.getTotalElements());

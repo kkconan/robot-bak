@@ -9,7 +9,7 @@ import lombok.Data;
 @Data
 public class OrderDto {
 
-    private Integer pageSize = 10;
+    private Integer pageSize = 100;
 
     private Integer currentPage = 1;
 

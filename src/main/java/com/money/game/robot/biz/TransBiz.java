@@ -144,7 +144,7 @@ public class TransBiz {
                     }
                 }
             } catch (Exception e) {
-                log.error("e={}", e);
+                log.error("buyOrderEntity={},e={}", buyOrderEntity,e);
             }
         }
     }
@@ -168,7 +168,7 @@ public class TransBiz {
 
                 }
             } catch (Exception e) {
-                log.error("e={}", e);
+                log.error("saleOrder={},e={}", saleOrder,e);
             }
         }
     }
@@ -282,7 +282,7 @@ public class TransBiz {
                     transToEmailNotify(saleOrder);
                 }
             } catch (Exception e) {
-                log.error("e={}", e);
+                log.error("saleOrder={},e={}", saleOrder, e);
             }
         }
     }
@@ -372,7 +372,7 @@ public class TransBiz {
             orderBiz.saveHbOrder(saleOrderId, null, buyOrderId, config.getOid(), accountEntity.getUserId(), DictEnum.ORDER_TYPE_BUY_LIMIT.getCode(), DictEnum.ORDER_MODEL_LIMIT.getCode());
             log.info("创建限价单结束,symbols={},userId={},buyOrderId={},saleOrderId={}", config.getSymbol(), accountEntity.getUserId(), buyOrderId, saleOrderId);
         } catch (Exception e) {
-            log.error("限价单处理失败e={}", e);
+            log.error("限价单处理失败,config={},e={}", config,e);
         }
     }
 
@@ -600,7 +600,7 @@ public class TransBiz {
             orderBiz.saveZbOrder(saleOrderId, config.getSymbol(), null, buyOrderId, config.getOid(), config.getUserId(), DictEnum.ORDER_TYPE_SELL_LIMIT.getCode(), DictEnum.ORDER_MODEL_LIMIT.getCode());
             log.info("创建限价单结束,symbols={},userId={},buyOrderId={},saleOrderId={}", config.getSymbol(), accountEntity.getUserId(), buyOrderId, saleOrderId);
         } catch (Exception e) {
-            log.error("限价单处理失败,e={}", e);
+            log.error("限价单处理失败,config={},e={}",config, e);
         }
     }
 
