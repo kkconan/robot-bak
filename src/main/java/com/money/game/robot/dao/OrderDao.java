@@ -21,7 +21,7 @@ public interface OrderDao extends JpaRepository<OrderEntity, String>, JpaSpecifi
     OrderEntity findByBuyOrderId(String buyOrderId);
 
     @Query(value = "select * from T_ORDER  where state in (?1) and type = ?2  and marketType=?3 and model = 'real'", nativeQuery = true)
-    List<OrderEntity> findByState(List<String> states, String orderType,String marketType);
+    List<OrderEntity> findByState(List<String> states, String orderType, String marketType);
 
     @Query(value = "select * from T_ORDER  where symbol =?1  and type = ?2 and symbolTradeConfigId=?3 and state in (?4) and model = 'real'", nativeQuery = true)
     List<OrderEntity> findBySymbolAndType(String symbol, String orderType, String symbolConfigId, List<String> states);
@@ -60,16 +60,33 @@ public interface OrderDao extends JpaRepository<OrderEntity, String>, JpaSpecifi
             "and orderId in \n" +
             "(SELECT buyOrderId FROM T_ORDER where userId = ?1 " +
             "and model=?2 and type = 'sell-limit' and (state = ?3 or state=?4) \n" +
-            "and updateTime >= ?5 and updateTime <= ?6)", nativeQuery = true)
+            "and createTime >= ?5 and createTime <= ?6)", nativeQuery = true)
     BigDecimal findLimitBuyTotalAmount(String userId, String model, String hbState, String zbState, Date startTime, Date endTime);
 
     @Query(value = "SELECT sum(totalToUsdt) FROM T_ORDER where userId = ?1 \n" +
             "and model=?2 and type = 'sell-limit' and (state = ?3 or state=?4) \n" +
-            "and updateTime >= ?5 and updateTime <= ?6 and buyOrderId in \n" +
+            "and createTime >= ?5 and createTime <= ?6 and buyOrderId in \n" +
             "(SELECT orderId FROM T_ORDER where userId = ?1 \n" +
             "and model=?2 and type = 'buy-limit' and (state = ?3 or state=?4) \n" +
             "and updateTime >= ?5 and updateTime <= ?6)", nativeQuery = true)
     BigDecimal findLimitSellTotalAmount(String userId, String model, String hbState, String zbState, Date startTime, Date endTime);
+
+    @Query(value = "SELECT sum(totalToUsdt) FROM T_ORDER where userId = ?1 " +
+            "and model=?2 and type = 'buy-limit' and (state = 'sell' or state=4) " +
+            "and updateTime >= ?5 and updateTime <= ?6 " +
+            "and orderId in " +
+            "(SELECT buyOrderId FROM T_ORDER where userId = ?1 " +
+            "and model=?2 and type = 'sell-limit' and (state = ?3 or state= ?4) " +
+            "and createTime >= ?5 and createTime <= ?6)", nativeQuery = true)
+    BigDecimal findLimitBetaBuyTotalAmount(String userId, String model, String hbState, String zbState, Date startTime, Date endTime);
+
+    @Query(value = "SELECT sum(totalToUsdt) FROM T_ORDER where userId = ?1 " +
+            "and model=?2 and type = 'sell-limit' and (state = ?3 or state=?4) " +
+            "and createTime >= ?5 and createTime <= ?6 and buyOrderId in " +
+            "(SELECT orderId FROM T_ORDER where userId = ?1 \n" +
+            "and model=?2 and type = 'buy-limit' and (state = 'sell' or state=4 ) \n" +
+            "and updateTime >= ?5 and updateTime <= ?6)", nativeQuery = true)
+    BigDecimal findLimitBetaSellTotalAmount(String userId, String model, String hbState, String zbState, Date startTime, Date endTime);
 }
 
 

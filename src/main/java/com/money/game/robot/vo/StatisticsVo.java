@@ -15,9 +15,13 @@ public class StatisticsVo {
 
     private BigDecimal realSellTotal;
 
-    private BigDecimal limitBuyTotal;
+    private BigDecimal limitAlphaBuyTotal;
 
-    private BigDecimal limitSellTotal;
+    private BigDecimal limitAlphaSellTotal;
+
+    private BigDecimal limitBetaBuyTotal;
+
+    private BigDecimal limitBetaSellTotal;
 
     private BigDecimal shuffleBuyTotal;
 

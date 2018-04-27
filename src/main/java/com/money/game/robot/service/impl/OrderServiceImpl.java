@@ -101,6 +101,16 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    public BigDecimal findLimitBetaBuyTotalAmount(String userId, String model, String hbState, String zbState, Date startTime, Date endTime) {
+        return orderDao.findLimitBetaBuyTotalAmount(userId,model,hbState,zbState,startTime,endTime);
+    }
+
+    @Override
+    public BigDecimal findLimitBetaSellTotalAmount(String userId, String model, String hbState, String zbState, Date startTime, Date endTime) {
+        return orderDao.findLimitBetaSellTotalAmount(userId,model,hbState,zbState,startTime,endTime);
+    }
+
+    @Override
     public OrderEntity findByBuyOrderId(String buyOrderId) {
         return orderDao.findByBuyOrderId(buyOrderId);
     }

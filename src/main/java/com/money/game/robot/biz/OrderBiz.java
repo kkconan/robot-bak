@@ -210,7 +210,7 @@ public class OrderBiz {
             if (DictEnum.ZB_ORDER_DETAIL_STATE_1.getCode().equals(detailVo.getState()) && detailVo.getFieldAmount().compareTo(BigDecimal.ZERO) > 0) {
                 orderEntity.setAmount(detailVo.getFieldAmount());
                 orderEntity.setState(DictEnum.ZB_ORDER_DETAIL_STATE_2.getCode());
-            }else if(DictEnum.ZB_ORDER_DETAIL_STATE_1.getCode().equals(detailVo.getState())){
+            } else if (DictEnum.ZB_ORDER_DETAIL_STATE_1.getCode().equals(detailVo.getState())) {
                 //更新为撤销状态
                 orderEntity.setState(DictEnum.ZB_ORDER_DETAIL_STATE_1.getCode());
             }
@@ -311,6 +311,11 @@ public class OrderBiz {
         BigDecimal limitBuyTotal = orderService.findLimitBuyTotalAmount(userId, DictEnum.ORDER_MODEL_LIMIT.getCode(), DictEnum.ORDER_DETAIL_STATE_FILLED.getCode(), DictEnum.ZB_ORDER_DETAIL_STATE_2.getCode(), startTime, endTime);
         //limit sell total
         BigDecimal limitSellTotal = orderService.findLimitSellTotalAmount(userId, DictEnum.ORDER_MODEL_LIMIT.getCode(), DictEnum.ORDER_DETAIL_STATE_FILLED.getCode(), DictEnum.ZB_ORDER_DETAIL_STATE_2.getCode(), startTime, endTime);
+
+        //limit beta buy total
+        BigDecimal limitBetaBuyTotal = orderService.findLimitBetaBuyTotalAmount(userId, DictEnum.ORDER_MODEL_LIMIT_BETA.getCode(), DictEnum.ORDER_DETAIL_STATE_FILLED.getCode(), DictEnum.ZB_ORDER_DETAIL_STATE_2.getCode(), startTime, endTime);
+        //limit beta sell total
+        BigDecimal limitBetaSellTotal = orderService.findLimitBetaSellTotalAmount(userId, DictEnum.ORDER_MODEL_LIMIT_BETA.getCode(), DictEnum.ORDER_DETAIL_STATE_FILLED.getCode(), DictEnum.ZB_ORDER_DETAIL_STATE_2.getCode(), startTime, endTime);
         //shuffle buy total
         BigDecimal shuffleBuyTotal = orderService.findByTypeBuyTotalAmount(userId, DictEnum.ORDER_MODEL_SHUFFLE.getCode(), DictEnum.ORDER_DETAIL_STATE_FILLED.getCode(), DictEnum.ZB_ORDER_DETAIL_STATE_2.getCode(), startTime, endTime);
         //shuffle sell total
@@ -318,8 +323,10 @@ public class OrderBiz {
         StatisticsVo vo = new StatisticsVo();
         vo.setRealBuyTotal(realBuyTotal);
         vo.setRealSellTotal(realSellTotal);
-        vo.setLimitBuyTotal(limitBuyTotal);
-        vo.setLimitSellTotal(limitSellTotal);
+        vo.setLimitAlphaBuyTotal(limitBuyTotal);
+        vo.setLimitAlphaSellTotal(limitSellTotal);
+        vo.setLimitBetaBuyTotal(limitBetaBuyTotal);
+        vo.setLimitBetaSellTotal(limitBetaSellTotal);
         vo.setShuffleBuyTotal(shuffleBuyTotal);
         vo.setShuffleSellTotal(shuffleSellTotal);
         return vo;
@@ -484,13 +491,13 @@ public class OrderBiz {
             for (OrderEntity entity : pageList) {
                 OrderVo vo = new OrderVo();
                 BeanUtils.copyProperties(entity, vo);
-                if(entity.getState().equals(DictEnum.ZB_ORDER_DETAIL_STATE_0.getCode()) || entity.getState().equals(DictEnum.ZB_ORDER_DETAIL_STATE_3.getCode())){
+                if (entity.getState().equals(DictEnum.ZB_ORDER_DETAIL_STATE_0.getCode()) || entity.getState().equals(DictEnum.ZB_ORDER_DETAIL_STATE_3.getCode())) {
                     vo.setState(DictEnum.ORDER_DETAIL_STATE_SUBMITTED.getCode());
-                }else if(entity.getState().equals(DictEnum.ZB_ORDER_DETAIL_STATE_1.getCode())){
+                } else if (entity.getState().equals(DictEnum.ZB_ORDER_DETAIL_STATE_1.getCode())) {
                     vo.setState(DictEnum.ORDER_DETAIL_STATE_CANCELED.getCode());
-                }else if(entity.getState().equals(DictEnum.ZB_ORDER_DETAIL_STATE_2.getCode())){
+                } else if (entity.getState().equals(DictEnum.ZB_ORDER_DETAIL_STATE_2.getCode())) {
                     vo.setState(DictEnum.ORDER_DETAIL_STATE_FILLED.getCode());
-                }else if(entity.getState().equals(DictEnum.ZB_ORDER_DETAIL_STATE_4.getCode())){
+                } else if (entity.getState().equals(DictEnum.ZB_ORDER_DETAIL_STATE_4.getCode())) {
                     vo.setState(DictEnum.ORDER_DETAIL_STATE_SELL.getCode());
                 }
                 voList.add(vo);

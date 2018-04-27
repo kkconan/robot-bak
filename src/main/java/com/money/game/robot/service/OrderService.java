@@ -22,7 +22,7 @@ public interface OrderService {
 
     OrderEntity save(OrderEntity entity);
 
-    List<OrderEntity> findByState(List<String> states, String type,String marketType);
+    List<OrderEntity> findByState(List<String> states, String type, String marketType);
 
     List<OrderEntity> findBySymbolAndType(String symbol, String orderType, String symbolConfigId, List<String> states);
 
@@ -30,7 +30,7 @@ public interface OrderService {
 
     List<OrderEntity> findByMarket(String model, String marketType, List<String> states);
 
-    List<OrderEntity> findByTypeAndState(String type,List<String> states);
+    List<OrderEntity> findByTypeAndState(String type, List<String> states);
 
     List<OrderEntity> findByUserIdAndModel(String userId, String model);
 
@@ -38,13 +38,17 @@ public interface OrderService {
 
     BigDecimal findByTypeBuyTotalAmount(String userId, String model, String hbState, String zbState, Date startTime, Date endTime);
 
-    BigDecimal findByTypeSellTotalAmount(String userId, String model,String hbState,String zbState, Date startTime,Date endTime);
+    BigDecimal findByTypeSellTotalAmount(String userId, String model, String hbState, String zbState, Date startTime, Date endTime);
 
-    BigDecimal findRealBuyTotalAmount(String userId, String model,String hbState,String zbState, Date startTime,Date endTime);
+    BigDecimal findRealBuyTotalAmount(String userId, String model, String hbState, String zbState, Date startTime, Date endTime);
 
-    BigDecimal findLimitBuyTotalAmount(String userId, String model,String hbState,String zbState, Date startTime,Date endTime);
+    BigDecimal findLimitBuyTotalAmount(String userId, String model, String hbState, String zbState, Date startTime, Date endTime);
 
-    BigDecimal findLimitSellTotalAmount(String userId, String model,String hbState,String zbState, Date startTime,Date endTime);
+    BigDecimal findLimitSellTotalAmount(String userId, String model, String hbState, String zbState, Date startTime, Date endTime);
+
+    BigDecimal findLimitBetaBuyTotalAmount(String userId, String model, String hbState, String zbState, Date startTime, Date endTime);
+
+    BigDecimal findLimitBetaSellTotalAmount(String userId, String model, String hbState, String zbState, Date startTime, Date endTime);
 
     OrderEntity findByBuyOrderId(String buyOrderId);
 }
