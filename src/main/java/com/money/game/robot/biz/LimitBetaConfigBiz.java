@@ -47,7 +47,7 @@ public class LimitBetaConfigBiz {
         List<LimitBetaConfigVo> resultList = new ArrayList<>();
         for (LimitBetaConfigEntity entity : list) {
             LimitBetaConfigVo vo = new LimitBetaConfigVo();
-            if (!DictEnum.STATUS_STOP.getCode().equals(entity.getStatus())) {
+            if (DictEnum.IS_DELETE_NO.getCode().equals(entity.getIsDelete())) {
                 BeanUtils.copyProperties(entity, vo);
                 resultList.add(vo);
             }

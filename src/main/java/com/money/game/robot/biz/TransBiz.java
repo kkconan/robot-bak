@@ -910,6 +910,7 @@ public class TransBiz {
                         if (DictEnum.filledOrderStates.contains(order.getState())) {
                             //买单完成,创建卖单
                             if (DictEnum.ORDER_TYPE_BUY_LIMIT.getCode().equals(order.getType())) {
+                                log.info("beta买单结束");
                                 CreateOrderDto saleOrderDto = new CreateOrderDto();
                                 saleOrderDto.setSymbol(beta.getSymbol());
                                 saleOrderDto.setOrderType(DictEnum.ORDER_TYPE_SELL_LIMIT.getCode());
@@ -932,9 +933,10 @@ public class TransBiz {
                             }
                             //卖单完成,创建买单
                             else {
+                                log.info("beta卖单结束");
                                 hbCreateBetaLimitOrder(beta);
                             }
-                            if (DictEnum.ORDER_DETAIL_STATE_FILLED.getCode().equals(order.getState())) {
+                            if (DictEnum.ORDER_DETAIL_STATE_FILLED.getCode().equals(order.getState()) || DictEnum.ORDER_DETAIL_STATE_SELL.getCode().equals(order.getState())) {
                                 log.info("beta订单已完结,order={}", order);
                                 transToEmailNotify(order);
                             }
@@ -1073,6 +1075,7 @@ public class TransBiz {
                         if (DictEnum.ZB_ORDER_DETAIL_STATE_2.getCode().equals(order.getState())) {
                             //买单完成,创建卖单
                             if (DictEnum.ORDER_TYPE_BUY_LIMIT.getCode().equals(order.getType())) {
+                                log.info("beta买单结束");
                                 BigDecimal salePrice = beta.getRealPrice().multiply(new BigDecimal(1).add(beta.getFluctuate()));
                                 String quoteCurrency = marketRuleBiz.getZbQuoteCurrency(beta.getSymbol());
                                 //业务对余额
@@ -1090,9 +1093,10 @@ public class TransBiz {
                             }
                             //卖单完成,创建买单
                             else {
+                                log.info("beta卖单结束");
                                 zbCreateBetaLimitOrder(beta);
                             }
-                            if (DictEnum.ZB_ORDER_DETAIL_STATE_2.getCode().equals(order.getState())) {
+                            if (DictEnum.ZB_ORDER_DETAIL_STATE_4.getCode().equals(order.getState()) || DictEnum.ZB_ORDER_DETAIL_STATE_2.getCode().equals(order.getState())) {
                                 log.info("beta订单已完结,order={}", order);
                                 transToEmailNotify(order);
                             }

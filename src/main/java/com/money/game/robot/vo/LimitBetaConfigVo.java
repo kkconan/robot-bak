@@ -13,6 +13,8 @@ import java.sql.Timestamp;
 @Data
 public class LimitBetaConfigVo implements Serializable {
 
+    private String oid;
+
     private String userId;
 
     private String symbol;

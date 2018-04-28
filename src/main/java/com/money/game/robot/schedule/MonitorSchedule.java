@@ -39,6 +39,14 @@ public class MonitorSchedule {
     private boolean isSchedule;
 
 
+    @Value("${hb.one.monitor.count:5}")
+    private Integer hbOneMonitorCount;
+
+
+    @Value("${hb.one.monitor.sleep:2}")
+    private Integer hbOneMonitorSleep;
+
+
     /**
      * hb所有交易对实时监控
      */
@@ -89,9 +97,14 @@ public class MonitorSchedule {
      */
     public void huoBiAllSymBolsMonitor() {
         List<SymBolsDetailVo> list = huobiApi.getSymbolsInfo();
-        List<List<SymBolsDetailVo>> allList = averageAssign(list, 100);
+        List<List<SymBolsDetailVo>> allList = averageAssign(list, hbOneMonitorCount);
         for (List<SymBolsDetailVo> subList : allList) {
-            hbMarketMonitorBiz.asyncDoMonitor(subList);
+            try {
+                Thread.sleep(hbOneMonitorSleep*1000);
+                hbMarketMonitorBiz.asyncDoMonitor(subList);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
 
     }

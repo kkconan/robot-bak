@@ -1,5 +1,6 @@
 package com.money.game.robot.sync;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableAsync;
@@ -11,8 +12,10 @@ import java.util.concurrent.Executor;
 @EnableAsync
 public class ExecutorBean {
 
-    private int corePoolSize = 240;
-    private int maxPoolSize = 500;
+    @Value("${core.pool.size:120}")
+    private int corePoolSize;
+    @Value("${max.pool.size:200}")
+    private int maxPoolSize;
     private int queueCapacity = 1;
 
 

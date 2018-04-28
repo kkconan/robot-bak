@@ -41,7 +41,7 @@ public class TradeBizTest {
     @Test
     public void orderDetailTest() {
         HuobiBaseDto dto = new HuobiBaseDto();
-        dto.setOrderId("3462059649");
+        dto.setOrderId("3797155374");
         dto.setUserId("2c94a4ab624281b90162428266740001");
         OrdersDetail detail = tradeBiz.getHbOrderDetail(dto);
         log.info("detail={}", detail);

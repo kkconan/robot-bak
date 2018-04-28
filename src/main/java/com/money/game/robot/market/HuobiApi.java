@@ -114,7 +114,8 @@ public class HuobiApi {
                 log.error("symbol is not null");
                 return null;
             }
-            url = apiHost + marketApiUrl + "?period=" + period + "&size=" + size + "&symbol=" + symbol;
+            //增加AccessKeyId 据hb工作人员所说可以解决429 too many request 的问题
+            url = apiHost + marketApiUrl + "?period=" + period + "&size=" + size + "&symbol=" + symbol +"&AccessKeyId=3d008259-3cc04933-0a10846b-07ac1";
             HttpGet httpGet = new HttpGet(url);
             RequestConfig requestConfig = RequestConfig.custom().setSocketTimeout(60000).setConnectTimeout(60000).build();//设置请求和传输超时时间
             httpGet.setConfig(requestConfig);

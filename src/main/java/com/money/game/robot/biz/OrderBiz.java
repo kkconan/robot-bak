@@ -367,11 +367,14 @@ public class OrderBiz {
         HuobiBaseDto dto = new HuobiBaseDto();
         dto.setOrderId(entity.getOrderId());
         dto.setUserId(entity.getUserId());
-        tradeBiz.hbCancelOrder(dto);
-        entity = this.updateHbOrderState(entity);
-        //撤销成功
-        if (DictEnum.ORDER_DETAIL_STATE_CANCELED.getCode().equals(entity.getState()) || DictEnum.ORDER_DETAIL_STATE_PARTIAL_CANCELED.getCode().equals(entity.getState())) {
-            response = ResponseData.success();
+        //暂时只撤销hb订单,zb逻辑待添加
+        if(DictEnum.MARKET_TYPE_HB.getCode().equals(entity.getMarketType())) {
+            tradeBiz.hbCancelOrder(dto);
+            entity = this.updateHbOrderState(entity);
+            //撤销成功
+            if (DictEnum.ORDER_DETAIL_STATE_CANCELED.getCode().equals(entity.getState()) || DictEnum.ORDER_DETAIL_STATE_PARTIAL_CANCELED.getCode().equals(entity.getState())) {
+                response = ResponseData.success();
+            }
         }
         return response;
     }
