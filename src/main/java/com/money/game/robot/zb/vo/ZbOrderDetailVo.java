@@ -131,4 +131,19 @@ public class ZbOrderDetailVo implements Serializable {
     public void setType(String type) {
         this.type = type;
     }
+
+    @Override
+    public String toString() {
+        return "ZbOrderDetailVo{" +
+                "symbol='" + symbol + '\'' +
+                ", id='" + id + '\'' +
+                ", price=" + price +
+                ", state='" + state + '\'' +
+                ", amount=" + amount +
+                ", fieldAmount=" + fieldAmount +
+                ", tradeDate=" + tradeDate +
+                ", fieldCashAmount=" + fieldCashAmount +
+                ", type='" + type + '\'' +
+                '}';
+    }
 }

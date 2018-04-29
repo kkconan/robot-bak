@@ -8,6 +8,7 @@ import com.money.game.robot.dto.huobi.DepthDto;
 import com.money.game.robot.dto.huobi.HuobiBaseDto;
 import com.money.game.robot.dto.zb.ZbCancelOrderDto;
 import com.money.game.robot.entity.*;
+import com.money.game.robot.exception.BizException;
 import com.money.game.robot.huobi.request.CreateOrderRequest;
 import com.money.game.robot.huobi.response.Accounts;
 import com.money.game.robot.huobi.response.Depth;
@@ -23,6 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -75,6 +77,15 @@ public class TransBiz {
     @Autowired
     private LimitBetaConfigBiz limitBetaConfigBiz;
 
+    @Autowired
+    private LimitGammaConfigBiz limitGammaConfigBiz;
+
+    @Autowired
+    private MailBiz mailBiz;
+
+
+    @Value("${time.out.minute:3600}")
+    private int timeOutMinute;
 
     /**
      * hbToBuy
@@ -144,7 +155,7 @@ public class TransBiz {
                     }
                 }
             } catch (Exception e) {
-                log.error("buyOrderEntity={},e={}", buyOrderEntity,e);
+                log.error("buyOrderEntity={},e={}", buyOrderEntity, e);
             }
         }
     }
@@ -168,7 +179,7 @@ public class TransBiz {
 
                 }
             } catch (Exception e) {
-                log.error("saleOrder={},e={}", saleOrder,e);
+                log.error("saleOrder={},e={}", saleOrder, e);
             }
         }
     }
@@ -372,7 +383,7 @@ public class TransBiz {
             orderBiz.saveHbOrder(saleOrderId, null, buyOrderId, config.getOid(), accountEntity.getUserId(), DictEnum.ORDER_TYPE_BUY_LIMIT.getCode(), DictEnum.ORDER_MODEL_LIMIT.getCode());
             log.info("创建限价单结束,symbols={},userId={},buyOrderId={},saleOrderId={}", config.getSymbol(), accountEntity.getUserId(), buyOrderId, saleOrderId);
         } catch (Exception e) {
-            log.error("限价单处理失败,config={},e={}", config,e);
+            log.error("限价单处理失败,config={},e={}", config, e);
         }
     }
 
@@ -600,7 +611,7 @@ public class TransBiz {
             orderBiz.saveZbOrder(saleOrderId, config.getSymbol(), null, buyOrderId, config.getOid(), config.getUserId(), DictEnum.ORDER_TYPE_SELL_LIMIT.getCode(), DictEnum.ORDER_MODEL_LIMIT.getCode());
             log.info("创建限价单结束,symbols={},userId={},buyOrderId={},saleOrderId={}", config.getSymbol(), accountEntity.getUserId(), buyOrderId, saleOrderId);
         } catch (Exception e) {
-            log.error("限价单处理失败,config={},e={}",config, e);
+            log.error("限价单处理失败,config={},e={}", config, e);
         }
     }
 
@@ -898,12 +909,12 @@ public class TransBiz {
             List<LimitBetaConfigEntity> betaList = limitBetaConfigBiz.findByUserIdAndMarketType(user.getOid(), DictEnum.MARKET_TYPE_HB.getCode());
             for (LimitBetaConfigEntity beta : betaList) {
                 try {
-                    OrderEntity order = orderBiz.findHbBetaOrder(user.getOid(), beta.getSymbol(), beta.getOid());
+                    OrderEntity order = orderBiz.findHbBetaOrGammaOrder(user.getOid(), beta.getSymbol(), beta.getOid(), DictEnum.ORDER_MODEL_LIMIT_BETA.getCode());
                     BigDecimal amount;
                     BigDecimal balanceMax;
                     //不存在beta订单
                     if (order == null) {
-                        hbCreateBetaLimitOrder(beta);
+                        hbCreateBetaLimitBuyOrder(beta);
                     } else {
                         order = orderBiz.updateHbOrderState(order);
                         //订单已完成
@@ -934,7 +945,7 @@ public class TransBiz {
                             //卖单完成,创建买单
                             else {
                                 log.info("beta卖单结束");
-                                hbCreateBetaLimitOrder(beta);
+                                hbCreateBetaLimitBuyOrder(beta);
                             }
                             if (DictEnum.ORDER_DETAIL_STATE_FILLED.getCode().equals(order.getState()) || DictEnum.ORDER_DETAIL_STATE_SELL.getCode().equals(order.getState())) {
                                 log.info("beta订单已完结,order={}", order);
@@ -951,7 +962,10 @@ public class TransBiz {
         }
     }
 
-    private void hbCreateBetaLimitOrder(LimitBetaConfigEntity beta) {
+    /**
+     * 单笔策略beta限价买单
+     */
+    private void hbCreateBetaLimitBuyOrder(LimitBetaConfigEntity beta) {
         CreateOrderDto buyOrderDto = new CreateOrderDto();
         buyOrderDto.setSymbol(beta.getSymbol());
         MarketDetailVo marketDetailVo = huobiApi.getOneMarketDetail(beta.getSymbol());
@@ -980,6 +994,39 @@ public class TransBiz {
     }
 
     /**
+     * 单笔策略限价卖单
+     */
+    private void hbCreateLimitSellOrder(LimitGammaConfigEntity gamma) {
+        log.info("创建gamma卖单,gamma={}", gamma);
+        CreateOrderDto saleOrderDto = new CreateOrderDto();
+        MarketDetailVo marketDetailVo = huobiApi.getOneMarketDetail(gamma.getSymbol());
+        if (marketDetailVo == null) {
+            throw new BizException("获取行情失败");
+        }
+        BigDecimal salePrice = (new BigDecimal(1).add(gamma.getFluctuate())).multiply(marketDetailVo.getClose());
+        saleOrderDto.setSymbol(gamma.getSymbol());
+        saleOrderDto.setOrderType(DictEnum.ORDER_TYPE_SELL_LIMIT.getCode());
+        saleOrderDto.setPrice(salePrice);
+        saleOrderDto.setUserId(gamma.getUserId());
+        String quoteCurrency = marketRuleBiz.getHbQuoteCurrency(gamma.getSymbol());
+        //业务对余额
+        BigDecimal balanceMax = accountBiz.getHuobiQuoteBalance(gamma.getUserId(), quoteCurrency);
+        BigDecimal amount = gamma.getTotalAmount().divide(salePrice, 2, BigDecimal.ROUND_DOWN);
+        //验证余额
+        if (amount.compareTo(balanceMax) > 0) {
+            log.info("余额不足,售卖数量不足,amount={},balanceMax={}", amount, balanceMax);
+            mailBiz.balanceToEmailNotify(gamma.getUserId(), quoteCurrency, DictEnum.MARKET_TYPE_HB.getCode());
+            amount = balanceMax;
+        }
+        saleOrderDto.setAmount(amount);
+        //创建限价卖单
+        String saleOrderId = tradeBiz.hbCreateOrder(saleOrderDto);
+        orderBiz.saveHbOrder(saleOrderId, null, null, gamma.getOid(), gamma.getUserId(), DictEnum.ORDER_TYPE_SELL_LIMIT.getCode(), DictEnum.ORDER_MODEL_LIMIT_GAMMA.getCode());
+        gamma.setRealPrice(marketDetailVo.getClose());
+        limitGammaConfigBiz.save(gamma);
+    }
+
+    /**
      * 检查超时订单
      */
     public void checkTimeOutOrder() {
@@ -994,59 +1041,80 @@ public class TransBiz {
      */
     private void cancelTimeOutOrder(OrderEntity orderEntity) {
         try {
-            //买单超过24小时未成交
-            if (orderEntity.getType().equals(DictEnum.ORDER_TYPE_BUY_LIMIT.getCode()) && DateUtils.addDay(orderEntity.getCreateTime(), 1).before(DateUtils.getCurrDateMmss())) {
-                //beta 单
-                if (orderEntity.getModel().equals(DictEnum.ORDER_MODEL_LIMIT_BETA.getCode())) {
-                    //hb 未成交
-                    if (orderEntity.getState().equals(DictEnum.ORDER_DETAIL_STATE_SUBMITTED.getCode())) {
-                        log.info("hb beta限价单超时未成交,撤销订单,orderId={}", orderEntity.getOrderId());
-                        HuobiBaseDto dto = new HuobiBaseDto();
-                        dto.setOrderId(orderEntity.getOrderId());
-                        dto.setUserId(orderEntity.getUserId());
-                        tradeBiz.hbCancelOrder(dto);
-                        orderBiz.updateHbOrderState(orderEntity);
-                    }
-                    //zb 未成交
-                    else if (orderEntity.getState().equals(DictEnum.ZB_ORDER_DETAIL_STATE_3.getCode())) {
-                        log.info("zb beta限价单超时未成交,撤销订单,orderId={}", orderEntity.getOrderId());
-                        tradeBiz.zbCancelOrder(orderEntity.getOrderId(), orderEntity.getSymbol(), orderEntity.getUserId());
-                        orderBiz.updateZbOrderState(orderEntity);
-                    }
-                }
-                //alpha 单
-                else if (orderEntity.getModel().equals(DictEnum.ORDER_MODEL_LIMIT.getCode())) {
-                    OrderEntity sellOrder = orderBiz.findByBuyOrderId(orderEntity.getOrderId());
-                    //卖单未成交
-                    if (sellOrder != null && sellOrder.getState().equals(DictEnum.ORDER_DETAIL_STATE_SUBMITTED.getCode())) {
-                        //hb
+            if (DateUtils.addMinute(orderEntity.getCreateTime(), timeOutMinute).before(DateUtils.getCurrDateMmss())) {
+                //买单超过指定未成交
+                if (orderEntity.getType().equals(DictEnum.ORDER_TYPE_BUY_LIMIT.getCode())) {
+                    //beta 单
+                    if (orderEntity.getModel().equals(DictEnum.ORDER_MODEL_LIMIT_BETA.getCode())) {
+                        //hb 未成交
                         if (orderEntity.getState().equals(DictEnum.ORDER_DETAIL_STATE_SUBMITTED.getCode())) {
-                            log.info("hb alpha限价买单和卖单均超时未成交,撤销订单,orderId={}", orderEntity.getOrderId());
-                            //撤销买单
+                            log.info("hb beta限价单超时未成交,撤销订单,orderId={}", orderEntity.getOrderId());
                             HuobiBaseDto dto = new HuobiBaseDto();
                             dto.setOrderId(orderEntity.getOrderId());
                             dto.setUserId(orderEntity.getUserId());
                             tradeBiz.hbCancelOrder(dto);
                             orderBiz.updateHbOrderState(orderEntity);
-                            //撤销卖单
-                            dto.setOrderId(sellOrder.getOrderId());
-                            dto.setUserId(sellOrder.getUserId());
-                            tradeBiz.hbCancelOrder(dto);
-                            orderBiz.updateHbOrderState(sellOrder);
                         }
-                        //zb
+                        //zb 未成交
                         else if (orderEntity.getState().equals(DictEnum.ZB_ORDER_DETAIL_STATE_3.getCode())) {
-                            log.info("zb alpha限价买单和卖单均超时未成交,撤销订单,orderId={}", orderEntity.getOrderId());
-                            //撤销买单
+                            log.info("zb beta限价单超时未成交,撤销订单,orderId={}", orderEntity.getOrderId());
                             tradeBiz.zbCancelOrder(orderEntity.getOrderId(), orderEntity.getSymbol(), orderEntity.getUserId());
                             orderBiz.updateZbOrderState(orderEntity);
-                            //撤销卖单
-                            tradeBiz.zbCancelOrder(sellOrder.getOrderId(), sellOrder.getSymbol(), sellOrder.getUserId());
-                            orderBiz.updateZbOrderState(sellOrder);
+                        }
+                    }
+                    //alpha 单
+                    else if (orderEntity.getModel().equals(DictEnum.ORDER_MODEL_LIMIT.getCode())) {
+                        OrderEntity sellOrder = orderBiz.findByBuyOrderId(orderEntity.getOrderId());
+                        //卖单未成交
+                        if (sellOrder != null && sellOrder.getState().equals(DictEnum.ORDER_DETAIL_STATE_SUBMITTED.getCode())) {
+                            //hb
+                            if (orderEntity.getState().equals(DictEnum.ORDER_DETAIL_STATE_SUBMITTED.getCode())) {
+                                log.info("hb alpha限价买单和卖单均超时未成交,撤销订单,orderId={}", orderEntity.getOrderId());
+                                //撤销买单
+                                HuobiBaseDto dto = new HuobiBaseDto();
+                                dto.setOrderId(orderEntity.getOrderId());
+                                dto.setUserId(orderEntity.getUserId());
+                                tradeBiz.hbCancelOrder(dto);
+                                orderBiz.updateHbOrderState(orderEntity);
+                                //撤销卖单
+                                dto.setOrderId(sellOrder.getOrderId());
+                                dto.setUserId(sellOrder.getUserId());
+                                tradeBiz.hbCancelOrder(dto);
+                                orderBiz.updateHbOrderState(sellOrder);
+                            }
+                            //zb
+                            else if (orderEntity.getState().equals(DictEnum.ZB_ORDER_DETAIL_STATE_3.getCode())) {
+                                log.info("zb alpha限价买单和卖单均超时未成交,撤销订单,orderId={}", orderEntity.getOrderId());
+                                //撤销买单
+                                tradeBiz.zbCancelOrder(orderEntity.getOrderId(), orderEntity.getSymbol(), orderEntity.getUserId());
+                                orderBiz.updateZbOrderState(orderEntity);
+                                //撤销卖单
+                                tradeBiz.zbCancelOrder(sellOrder.getOrderId(), sellOrder.getSymbol(), sellOrder.getUserId());
+                                orderBiz.updateZbOrderState(sellOrder);
+                            }
+                        }
+                    }
+                }else {
+                    //卖单未成交
+                    //gamma 单
+                    if (orderEntity.getModel().equals(DictEnum.ORDER_MODEL_LIMIT_GAMMA.getCode())) {
+                        //hb 未成交
+                        if (orderEntity.getState().equals(DictEnum.ORDER_DETAIL_STATE_SUBMITTED.getCode())) {
+                            log.info("hb gamma限价单超时未成交,撤销订单,orderId={}", orderEntity.getOrderId());
+                            HuobiBaseDto dto = new HuobiBaseDto();
+                            dto.setOrderId(orderEntity.getOrderId());
+                            dto.setUserId(orderEntity.getUserId());
+                            tradeBiz.hbCancelOrder(dto);
+                            orderBiz.updateHbOrderState(orderEntity);
+                        }
+                        //zb 未成交
+                        else if (orderEntity.getState().equals(DictEnum.ZB_ORDER_DETAIL_STATE_3.getCode())) {
+                            log.info("zb beta限价单超时未成交,撤销订单,orderId={}", orderEntity.getOrderId());
+                            tradeBiz.zbCancelOrder(orderEntity.getOrderId(), orderEntity.getSymbol(), orderEntity.getUserId());
+                            orderBiz.updateZbOrderState(orderEntity);
                         }
                     }
                 }
-
             }
         } catch (Exception e) {
             log.error("限价单超时撤销失败,orderEntity={}", orderEntity);
@@ -1141,5 +1209,75 @@ public class TransBiz {
         orderBiz.saveZbOrder(buyOrderId, beta.getSymbol(), null, null, beta.getOid(), beta.getUserId(), DictEnum.ORDER_TYPE_BUY_LIMIT.getCode(), DictEnum.ORDER_MODEL_LIMIT_BETA.getCode());
         beta.setRealPrice(zbTickerVo.getLast());
         limitBetaConfigBiz.save(beta);
+    }
+
+
+    /**
+     * hb beta 订单检查
+     */
+    public void hbCheckLimitGammaOrder() {
+        List<UserEntity> userList = userBiz.findAllHbByNormal();
+        for (UserEntity user : userList) {
+            List<LimitGammaConfigEntity> gammaList = limitGammaConfigBiz.findByUserIdAndMarketType(user.getOid(), DictEnum.MARKET_TYPE_HB.getCode());
+            for (LimitGammaConfigEntity gamma : gammaList) {
+                try {
+                    OrderEntity order = orderBiz.findHbBetaOrGammaOrder(user.getOid(), gamma.getSymbol(), gamma.getOid(), DictEnum.ORDER_MODEL_LIMIT_GAMMA.getCode());
+                    BigDecimal amount;
+                    BigDecimal balanceMax;
+                    //不存在gamma订单,创建卖单
+                    if (order == null) {
+                        hbCreateLimitSellOrder(gamma);
+                    } else {
+                        order = orderBiz.updateHbOrderState(order);
+                        //订单已完成
+                        if (order.getState().equals(DictEnum.ORDER_DETAIL_STATE_FILLED.getCode())) {
+                            //卖单完成,创建买单
+                            if (DictEnum.ORDER_TYPE_SELL_LIMIT.getCode().equals(order.getType())) {
+                                log.info("gamma卖单结束,开始创建买单");
+                                CreateOrderDto buyOrderDto = new CreateOrderDto();
+                                buyOrderDto.setSymbol(gamma.getSymbol());
+                                buyOrderDto.setOrderType(DictEnum.ORDER_TYPE_BUY_LIMIT.getCode());
+                                BigDecimal buyPrice = gamma.getRealPrice().multiply(new BigDecimal(1).subtract(gamma.getFluctuate()));
+                                buyOrderDto.setPrice(buyPrice);
+                                buyOrderDto.setUserId(user.getOid());
+
+                                String baseCurrency = marketRuleBiz.getHbBaseCurrency(gamma.getSymbol());
+                                //基对余额
+                                balanceMax = accountBiz.getHuobiQuoteBalance(gamma.getUserId(), baseCurrency);
+                                //欲购买数量
+                                amount = order.getAmount();
+                                //总成交额
+                                BigDecimal totalAmount = amount.multiply(buyPrice);
+                                if (balanceMax.compareTo(totalAmount) < 0) {
+                                    log.info("买单余额不足,totalAmount={},balanceMax={}", totalAmount, balanceMax);
+                                    amount = balanceMax.divide(buyPrice, 2, BigDecimal.ROUND_DOWN);
+                                    mailBiz.balanceToEmailNotify(gamma.getUserId(), baseCurrency, DictEnum.MARKET_TYPE_HB.getCode());
+                                }
+                                buyOrderDto.setAmount(amount);
+                                //创建限价买单
+                                String buyOrderId = tradeBiz.hbCreateOrder(buyOrderDto);
+                                orderBiz.saveHbOrder(buyOrderId, null, null, gamma.getOid(), user.getOid(), DictEnum.ORDER_TYPE_BUY_LIMIT.getCode(), DictEnum.ORDER_MODEL_LIMIT_GAMMA.getCode());
+                                //更新卖单为已挂单购买
+                                order.setState(DictEnum.ORDER_DETAIL_STATE_BUY.getCode());
+                                order.setBuyOrderId(buyOrderId);
+                                orderBiz.saveOrder(order);
+                            } else {
+                                //买单完成,创建卖单
+                                log.info("gamma买单结束");
+                                hbCreateLimitSellOrder(gamma);
+                            }
+                            if (DictEnum.ORDER_DETAIL_STATE_FILLED.getCode().equals(order.getState()) || DictEnum.ORDER_DETAIL_STATE_BUY.getCode().equals(order.getState())) {
+                                log.info("gamma订单已完结,order={}", order);
+                                transToEmailNotify(order);
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    log.error("gamma订单处理失败,beta={},e={}", gamma, e);
+                }
+
+            }
+
+        }
     }
 }

@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 import com.money.game.core.util.StrRedisUtil;
 import com.money.game.robot.constant.ErrorEnum;
 import com.money.game.robot.dto.zb.*;
@@ -135,7 +136,7 @@ public class ZbApi {
     /**
      * 取消下单
      */
-    public ZbResponseVo     cancelOrder(ZbCancelOrderDto dto) {
+    public ZbResponseVo cancelOrder(ZbCancelOrderDto dto) {
         Map<String, String> params = new HashMap<>();
         params.put("method", "cancelOrder");
         params.put("id", dto.getOrderId());
@@ -155,10 +156,15 @@ public class ZbApi {
         String json = this.getJsonPost(params, dto.getAccessKey(), dto.getSecretKey());
         Gson gson = new Gson();
         if (json != null && json.contains("attackIP")) {
-            log.error("json={},dto={}", json,dto);
+            log.error("json={},dto={}", json, dto);
             return null;
         } else {
-            return gson.fromJson(json, ZbOrderDetailVo.class);
+            try {
+                return gson.fromJson(json, ZbOrderDetailVo.class);
+            } catch (JsonSyntaxException e) {
+                log.error("获取订单详情失败,json={},e={}", json, e);
+                throw new BizException("获取订单详情失败");
+            }
         }
     }
 

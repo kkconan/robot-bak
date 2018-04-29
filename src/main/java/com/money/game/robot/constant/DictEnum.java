@@ -133,7 +133,8 @@ public enum DictEnum {
     ORDER_DETAIL_STATE_PARTIAL_CANCELED("partial-canceled", "部分成交撤销"),
     ORDER_DETAIL_STATE_FILLED("filled", "完全成交"),
     ORDER_DETAIL_STATE_CANCELED("canceled", "已撤销"),
-    ORDER_DETAIL_STATE_SELL("sell", "已挂单售卖"),
+    ORDER_DETAIL_STATE_SELL("sell", "买单已挂单售卖"),
+    ORDER_DETAIL_STATE_BUY("buy", "卖单已挂单购买"),
 
     ZB_ORDER_DETAIL_STATE_0("0","待成交"),
     ZB_ORDER_DETAIL_STATE_1("1","取消"),
@@ -148,6 +149,7 @@ public enum DictEnum {
     ORDER_MODEL_REAL("real","实时"),
     ORDER_MODEL_LIMIT("limit","限价"),
     ORDER_MODEL_LIMIT_BETA("limitBeta","限价单beta策略"),
+    ORDER_MODEL_LIMIT_GAMMA("limitGamma","限价单gamma策略"),
     ORDER_MODEL_SHUFFLE("shuffle","搬砖"),
 
     TRADE_CONFIG_THRESHOLD_TYPE_ONE_MIN("oneMin","1分钟"),

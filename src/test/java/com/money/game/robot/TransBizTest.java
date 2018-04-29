@@ -59,5 +59,11 @@ public class TransBizTest {
         transBiz.zbCheckLimitBetaOrder();
     }
 
+    @Test
+    @Rollback(false)
+    public void hbCheckLimitGammaOrderBetaOrderTest() {
+        transBiz.hbCheckLimitGammaOrder();
+    }
+
 
 }

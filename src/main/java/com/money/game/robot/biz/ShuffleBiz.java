@@ -208,15 +208,13 @@ public class ShuffleBiz {
             hbMaxBalance = accountBiz.getHuobiQuoteBalance(userId, baseCurrency);
             if (totalAmount.compareTo(hbMaxBalance) > 0) {
                 log.info("hb " + baseCurrency + " 余额不足,totalAmount={},maxBalance={}", totalAmount, hbMaxBalance);
-                UserEntity userEntity = userBiz.findById(userId);
-                mailBiz.balanceToEmailNotify(userEntity, baseCurrency, DictEnum.MARKET_TYPE_HB.getCode());
+                mailBiz.balanceToEmailNotify(userId, baseCurrency, DictEnum.MARKET_TYPE_HB.getCode());
                 result = false;
             } else {
                 zbMaxBalance = accountBiz.getZbBalance(userId, quoteCurrency);
                 if (amount.compareTo(zbMaxBalance) > 0) {
                     log.info("zb " + quoteCurrency + " 余额不足,amount={},maxBalance={}", amount, hbMaxBalance);
-                    UserEntity userEntity = userBiz.findById(userId);
-                    mailBiz.balanceToEmailNotify(userEntity, baseCurrency, DictEnum.MARKET_TYPE_ZB.getCode());
+                    mailBiz.balanceToEmailNotify(userId, baseCurrency, DictEnum.MARKET_TYPE_ZB.getCode());
                     result = false;
                 }
             }
@@ -224,15 +222,13 @@ public class ShuffleBiz {
             zbMaxBalance = accountBiz.getZbBalance(userId, baseCurrency);
             if (totalAmount.compareTo(zbMaxBalance) > 0) {
                 log.info("zb " + baseCurrency + " 余额不足,totalAmount={},maxBalance={}", totalAmount, zbMaxBalance);
-                UserEntity userEntity = userBiz.findById(userId);
-                mailBiz.balanceToEmailNotify(userEntity, baseCurrency, DictEnum.MARKET_TYPE_ZB.getCode());
+                mailBiz.balanceToEmailNotify(userId, baseCurrency, DictEnum.MARKET_TYPE_ZB.getCode());
                 result = false;
             } else {
                 hbMaxBalance = accountBiz.getHuobiQuoteBalance(userId, quoteCurrency);
                 if (amount.compareTo(hbMaxBalance) > 0) {
                     log.info("hb " + quoteCurrency + " 余额不足,amount={},maxBalance={}", amount, hbMaxBalance);
-                    UserEntity userEntity = userBiz.findById(userId);
-                    mailBiz.balanceToEmailNotify(userEntity, baseCurrency, DictEnum.MARKET_TYPE_HB.getCode());
+                    mailBiz.balanceToEmailNotify(userId, baseCurrency, DictEnum.MARKET_TYPE_HB.getCode());
                     result = false;
                 }
             }

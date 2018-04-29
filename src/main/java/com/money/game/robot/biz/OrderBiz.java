@@ -87,7 +87,6 @@ public class OrderBiz {
      * 保存hb下单记录
      */
     public OrderEntity saveHbOrder(String orderId, String rateChangeId, String buyOrderId, String symbolTradeConfigId, String userId, String orderType, String model) {
-
         HuobiBaseDto dto = new HuobiBaseDto();
         dto.setOrderId(orderId);
         dto.setUserId(userId);
@@ -107,6 +106,7 @@ public class OrderBiz {
         orderEntity.setType(orderType);
         orderEntity.setModel(model);
         orderEntity.setMarketType(DictEnum.MARKET_TYPE_HB.getCode());
+        log.info("saveHbOrder,orderEntity={}", orderEntity);
         return this.saveOrder(orderEntity);
     }
 
@@ -368,7 +368,7 @@ public class OrderBiz {
         dto.setOrderId(entity.getOrderId());
         dto.setUserId(entity.getUserId());
         //暂时只撤销hb订单,zb逻辑待添加
-        if(DictEnum.MARKET_TYPE_HB.getCode().equals(entity.getMarketType())) {
+        if (DictEnum.MARKET_TYPE_HB.getCode().equals(entity.getMarketType())) {
             tradeBiz.hbCancelOrder(dto);
             entity = this.updateHbOrderState(entity);
             //撤销成功
@@ -403,21 +403,24 @@ public class OrderBiz {
 
 
     /**
-     * 获取hb未完成的一条beta限价单
+     * 获取hb未完成的一条beta/gamma限价单
      */
-    public OrderEntity findHbBetaOrder(String userId, String symbol, String symbolTradeConfigId) {
+    public OrderEntity findHbBetaOrGammaOrder(String userId, String symbol, String symbolTradeConfigId, String model) {
         OrderEntity orderEntity = null;
         List<String> states = new ArrayList<>();
         states.add(DictEnum.ORDER_DETAIL_STATE_PRE_SUBMITTED.getCode());
         states.add(DictEnum.ORDER_DETAIL_STATE_SUBMITTING.getCode());
         states.add(DictEnum.ORDER_DETAIL_STATE_SUBMITTED.getCode());
         states.add(DictEnum.ORDER_DETAIL_STATE_PARTIAL_FILLED.getCode());
-        states.add(DictEnum.ORDER_DETAIL_STATE_FILLED.getCode());
-        List<OrderEntity> list = orderService.findByParam(userId, DictEnum.ORDER_MODEL_LIMIT_BETA.getCode(), DictEnum.ORDER_TYPE_BUY_LIMIT.getCode(), symbol, symbolTradeConfigId, DictEnum.MARKET_TYPE_HB.getCode(), states);
+        //beta查询买单时,filled状态还未处理卖单,gamma查询买单时,只要是fulled状态就是已完成
+        if (model.equals(DictEnum.ORDER_MODEL_LIMIT_BETA.getCode())) {
+            states.add(DictEnum.ORDER_DETAIL_STATE_FILLED.getCode());
+        }
+        List<OrderEntity> list = orderService.findByParam(userId, model, DictEnum.ORDER_TYPE_BUY_LIMIT.getCode(), symbol, symbolTradeConfigId, DictEnum.MARKET_TYPE_HB.getCode(), states);
         //买单不存在,查询未完成的卖单
         if (list == null || list.isEmpty()) {
             states.remove(DictEnum.ORDER_DETAIL_STATE_FILLED.getCode());
-            list = orderService.findByParam(userId, DictEnum.ORDER_MODEL_LIMIT_BETA.getCode(), DictEnum.ORDER_TYPE_SELL_LIMIT.getCode(), symbol, symbolTradeConfigId,
+            list = orderService.findByParam(userId, model, DictEnum.ORDER_TYPE_SELL_LIMIT.getCode(), symbol, symbolTradeConfigId,
                     DictEnum.MARKET_TYPE_HB.getCode(), states);
             //卖单存在
             if (list != null && !list.isEmpty()) {
@@ -466,10 +469,15 @@ public class OrderBiz {
      * 查询limit/betaLimit 所有未完成的买单
      */
     public List<OrderEntity> findNoFillLimit() {
+        List<OrderEntity> allList = new ArrayList<>();
         List<String> states = new ArrayList<>();
         states.add(DictEnum.ORDER_DETAIL_STATE_SUBMITTED.getCode());
         states.add(DictEnum.ZB_ORDER_DETAIL_STATE_3.getCode());
-        return orderService.findByTypeAndState(DictEnum.ORDER_TYPE_BUY_LIMIT.getCode(), states);
+        List<OrderEntity> buyOrderList = orderService.findByTypeAndState(DictEnum.ORDER_TYPE_BUY_LIMIT.getCode(), states);
+        List<OrderEntity> saleOrderList = orderService.findByTypeAndState(DictEnum.ORDER_TYPE_SELL_LIMIT.getCode(), states);
+        allList.addAll(buyOrderList);
+        allList.addAll(saleOrderList);
+        return allList;
     }
 
 
@@ -532,6 +540,6 @@ public class OrderBiz {
             log.warn("未找到该主对兑换USDT信息symbol={},price={},amount={},totalToUsdt={}", symbol, price, amount, totalToUsdt);
         }
         log.info("getTotalToUsdt,symbol={},price={},amount={},totalToUsdt={}", symbol, price, amount, totalToUsdt);
-        return totalToUsdt;
+        return totalToUsdt.setScale(8, BigDecimal.ROUND_DOWN);
     }
 }

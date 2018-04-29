@@ -39,6 +39,10 @@ public class MonitorSchedule {
     private boolean isSchedule;
 
 
+    @Value("${is.hb.all.symbol.monitor:true}")
+    private boolean isHbAllSymbolMonitor;
+
+
     @Value("${hb.one.monitor.count:5}")
     private Integer hbOneMonitorCount;
 
@@ -52,7 +56,7 @@ public class MonitorSchedule {
      */
     @Scheduled(cron = "${cron.option[huoBi.symbols]:55 0/3 * * * ?}")
     public void huoBiSymBolsSchedule() {
-        if (isSchedule) {
+        if (isSchedule && isHbAllSymbolMonitor) {
             log.info("huobi all symbol monitor start...");
             this.huoBiAllSymBolsMonitor();
             log.info("huobi all symbol monitor end...");
@@ -102,7 +106,7 @@ public class MonitorSchedule {
             try {
                 Thread.sleep(hbOneMonitorSleep*1000);
                 hbMarketMonitorBiz.asyncDoMonitor(subList);
-            } catch (InterruptedException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         }
@@ -173,6 +177,16 @@ public class MonitorSchedule {
     public void chcekZbLimitBetaOrder() {
         if (isSchedule) {
             transBiz.zbCheckLimitBetaOrder();
+        }
+    }
+
+    /**
+     * 检查hb gamma限价单(切日志方法已check开头)
+     */
+    @Scheduled(cron = "${cron.option[check.hb.limit.gamma.order]:20 0/2 * * * ?}")
+    public void chcekHbLimitGammaOrder() {
+        if (isSchedule) {
+            transBiz.hbCheckLimitGammaOrder();
         }
     }
 

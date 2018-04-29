@@ -24,6 +24,9 @@ public class MailBiz {
     @Autowired
     private RedisTemplate<String, String> redis;
 
+    @Autowired
+    private UserBiz userBiz;
+
     private static final String BLANCE_NOTIFY_KEY = "blance_notify_key_";
 
     /**
@@ -48,7 +51,8 @@ public class MailBiz {
     /**
      * 余额不足提醒
      */
-    public void balanceToEmailNotify(UserEntity userEntity, String baseQuote, String marketType) {
+    public void balanceToEmailNotify(String userId, String baseQuote, String marketType) {
+        UserEntity userEntity = userBiz.findById(userId);
         if (userEntity == null || StringUtil.isEmpty(userEntity.getNotifyEmail())) {
             log.info("email address is empty...");
             return;
