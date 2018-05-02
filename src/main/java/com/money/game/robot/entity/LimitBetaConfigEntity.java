@@ -31,9 +31,14 @@ public class LimitBetaConfigEntity extends UUID{
     private String symbol;
 
     /**
-     * 波动
+     * 波动(上升)
      */
     private BigDecimal fluctuate;
+
+    /**
+     * 波动(下降)
+     */
+    private BigDecimal fluctuateDecrease;
 
 
     /**
@@ -50,6 +55,11 @@ public class LimitBetaConfigEntity extends UUID{
      * zb/hb
      */
     private String marketType;
+
+    /**
+     * 是否启用 yes/no
+     */
+    private String isUse;
 
     /**
      * 启用open/停用stop

@@ -13,7 +13,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -26,15 +25,15 @@ public class LimitBetaConfigBiz {
     @Autowired
     private LimitBetaConfigService limitBetaConfigService;
 
+    public List<LimitBetaConfigEntity> findByUserIdAndMarketTypeInUse(String userId, String marketType) {
+        List<LimitBetaConfigEntity> list = limitBetaConfigService.findByUserIdAndMarketType(userId, marketType);
+        list.removeIf(entity -> DictEnum.STATUS_STOP.getCode().equals(entity.getStatus()) || DictEnum.IS_DELETE_YES.getCode().equals(entity.getIsDelete()) || DictEnum.IS_USER_NO.getCode().equals(entity.getIsUse()));
+        return list;
+    }
+
     public List<LimitBetaConfigEntity> findByUserIdAndMarketType(String userId, String marketType) {
         List<LimitBetaConfigEntity> list = limitBetaConfigService.findByUserIdAndMarketType(userId, marketType);
-        Iterator<LimitBetaConfigEntity> configIt = list.iterator();
-        while (configIt.hasNext()) {
-            LimitBetaConfigEntity entity = configIt.next();
-            if (DictEnum.STATUS_STOP.getCode().equals(entity.getStatus()) || DictEnum.IS_DELETE_YES.getCode().equals(entity.getIsDelete())) {
-                configIt.remove();
-            }
-        }
+        list.removeIf(entity -> DictEnum.STATUS_STOP.getCode().equals(entity.getStatus()) || DictEnum.IS_DELETE_YES.getCode().equals(entity.getIsDelete()));
         return list;
     }
 
@@ -65,6 +64,10 @@ public class LimitBetaConfigBiz {
         return vo;
     }
 
+    public LimitBetaConfigEntity findById(String oid) {
+        return limitBetaConfigService.findById(oid);
+    }
+
     public void save(LimitBetaConfigDto dto, String userId) {
         LimitBetaConfigEntity entity = new LimitBetaConfigEntity();
         entity.setUserId(userId);
@@ -72,6 +75,9 @@ public class LimitBetaConfigBiz {
             entity = limitBetaConfigService.findById(dto.getOid());
         }
         BeanUtils.copyProperties(dto, entity);
+        if (dto.getFluctuateDecrease() == null) {
+            entity.setFluctuateDecrease(dto.getFluctuate());
+        }
         this.save(entity);
     }
 
@@ -94,5 +100,11 @@ public class LimitBetaConfigBiz {
         }
         entity.setStatus(dto.getStatus());
         this.save(entity);
+    }
+
+    public List<LimitBetaConfigEntity> findByUserIdAndSymbolAndMarketType(String userId, String symbol, String marketType) {
+        List<LimitBetaConfigEntity> list = limitBetaConfigService.findByUserIdAndSymbolAndMarketType(userId, symbol, marketType);
+        list.removeIf(entity -> DictEnum.STATUS_STOP.getCode().equals(entity.getStatus()) || DictEnum.IS_DELETE_YES.getCode().equals(entity.getIsDelete()));
+        return list;
     }
 }

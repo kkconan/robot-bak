@@ -15,7 +15,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -28,15 +27,22 @@ public class LimitGammaConfigBiz {
     @Autowired
     private LimitGammaConfigService limitGammaConfigService;
 
+    /**
+     * 所有有效的使用中配置
+     */
+    public List<LimitGammaConfigEntity> findByUserIdAndMarketTypeInUse(String userId, String marketType) {
+        List<LimitGammaConfigEntity> list = limitGammaConfigService.findByUserIdAndMarketType(userId, marketType);
+        list.removeIf(entity -> DictEnum.STATUS_STOP.getCode().equals(entity.getStatus()) || DictEnum.IS_DELETE_YES.getCode().equals(entity.getIsDelete())
+                || DictEnum.IS_USER_NO.getCode().equals(entity.getIsUse()));
+        return list;
+    }
+
+    /**
+     * 所有有效的配置
+     */
     public List<LimitGammaConfigEntity> findByUserIdAndMarketType(String userId, String marketType) {
         List<LimitGammaConfigEntity> list = limitGammaConfigService.findByUserIdAndMarketType(userId, marketType);
-        Iterator<LimitGammaConfigEntity> configIt = list.iterator();
-        while (configIt.hasNext()) {
-            LimitGammaConfigEntity entity = configIt.next();
-            if (DictEnum.STATUS_STOP.getCode().equals(entity.getStatus()) || DictEnum.IS_DELETE_YES.getCode().equals(entity.getIsDelete())) {
-                configIt.remove();
-            }
-        }
+        list.removeIf(entity -> DictEnum.STATUS_STOP.getCode().equals(entity.getStatus()) || DictEnum.IS_DELETE_YES.getCode().equals(entity.getIsDelete()));
         return list;
     }
 
@@ -67,6 +73,10 @@ public class LimitGammaConfigBiz {
         return vo;
     }
 
+    public LimitGammaConfigEntity findById(String oid) {
+        return limitGammaConfigService.findById(oid);
+    }
+
     public void save(LimitGammaConfigDto dto, String userId) {
         LimitGammaConfigEntity entity = new LimitGammaConfigEntity();
         entity.setUserId(userId);
@@ -94,5 +104,12 @@ public class LimitGammaConfigBiz {
         }
         entity.setStatus(dto.getStatus());
         this.save(entity);
+    }
+
+    public List<LimitGammaConfigEntity> findByUserIdAndSymbolAndMarketType(String userId, String symbol, String marketType) {
+
+        List<LimitGammaConfigEntity> list = limitGammaConfigService.findByUserIdAndSymbolAndMarketType(userId, symbol, marketType);
+        list.removeIf(entity -> DictEnum.STATUS_STOP.getCode().equals(entity.getStatus()) || DictEnum.IS_DELETE_YES.getCode().equals(entity.getIsDelete()));
+        return list;
     }
 }

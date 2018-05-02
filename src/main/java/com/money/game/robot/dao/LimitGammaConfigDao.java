@@ -14,5 +14,7 @@ public interface LimitGammaConfigDao extends JpaRepository<LimitGammaConfigEntit
 
     List<LimitGammaConfigEntity> findByUserIdAndMarketType(String userId, String marketType);
 
+    List<LimitGammaConfigEntity> findByUserIdAndSymbolAndMarketType(String userId,String symbol, String marketType);
+
     List<LimitGammaConfigEntity> findByUserId(String userId);
 }

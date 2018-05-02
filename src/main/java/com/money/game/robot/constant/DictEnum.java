@@ -179,6 +179,8 @@ public enum DictEnum {
     STATUS_OPEN("open","启用"),
     STATUS_STOP("stop","停用"),
 
+    IS_USER_YES("yes","使用"),
+    IS_USER_NO("no","不使用"),
 
     ;
 

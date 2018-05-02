@@ -17,9 +17,14 @@ public class LimitBetaConfigDto implements Serializable {
     private String symbol;
 
     /**
-     * 波动
+     * 波动（上升）
      */
     private BigDecimal fluctuate;
+
+    /**
+     * 波动（下降）
+     */
+    private BigDecimal fluctuateDecrease;
 
 
     /**

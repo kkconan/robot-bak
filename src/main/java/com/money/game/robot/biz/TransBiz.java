@@ -16,6 +16,7 @@ import com.money.game.robot.mail.MailQQ;
 import com.money.game.robot.market.HuobiApi;
 import com.money.game.robot.service.RateChangeService;
 import com.money.game.robot.vo.huobi.MarketDetailVo;
+import com.money.game.robot.vo.huobi.MarketInfoVo;
 import com.money.game.robot.vo.huobi.RateChangeVo;
 import com.money.game.robot.zb.api.ZbApi;
 import com.money.game.robot.zb.vo.ZbOrderDepthVo;
@@ -86,6 +87,12 @@ public class TransBiz {
 
     @Value("${time.out.minute:3600}")
     private int timeOutMinute;
+
+    /**
+     * 计算趋势中位线波动值
+     */
+    @Value("${fluctuate:0.03}")
+    private BigDecimal fluctuate;
 
     /**
      * hbToBuy
@@ -906,7 +913,7 @@ public class TransBiz {
     public void hbCheckLimitBetaOrder() {
         List<UserEntity> userList = userBiz.findAllHbByNormal();
         for (UserEntity user : userList) {
-            List<LimitBetaConfigEntity> betaList = limitBetaConfigBiz.findByUserIdAndMarketType(user.getOid(), DictEnum.MARKET_TYPE_HB.getCode());
+            List<LimitBetaConfigEntity> betaList = limitBetaConfigBiz.findByUserIdAndMarketTypeInUse(user.getOid(), DictEnum.MARKET_TYPE_HB.getCode());
             for (LimitBetaConfigEntity beta : betaList) {
                 try {
                     OrderEntity order = orderBiz.findHbBetaOrGammaOrder(user.getOid(), beta.getSymbol(), beta.getOid(), DictEnum.ORDER_MODEL_LIMIT_BETA.getCode());
@@ -944,7 +951,7 @@ public class TransBiz {
                             }
                             //卖单完成,创建买单
                             else {
-                                log.info("beta卖单结束,orderId={}",order);
+                                log.info("beta卖单结束,orderId={}", order);
                                 hbCreateBetaLimitBuyOrder(beta);
                             }
                             if (DictEnum.ORDER_DETAIL_STATE_FILLED.getCode().equals(order.getState()) || DictEnum.ORDER_DETAIL_STATE_SELL.getCode().equals(order.getState())) {
@@ -973,7 +980,7 @@ public class TransBiz {
             log.info("获取行情失败");
             return;
         }
-        BigDecimal buyPrice = (new BigDecimal(1).subtract(beta.getFluctuate())).multiply(marketDetailVo.getClose());
+        BigDecimal buyPrice = (new BigDecimal(1).subtract(beta.getFluctuateDecrease())).multiply(marketDetailVo.getClose());
         buyOrderDto.setPrice(buyPrice);
         buyOrderDto.setOrderType(DictEnum.ORDER_TYPE_BUY_LIMIT.getCode());
         buyOrderDto.setUserId(beta.getUserId());
@@ -1134,7 +1141,7 @@ public class TransBiz {
     public void zbCheckLimitBetaOrder() {
         List<UserEntity> userList = userBiz.findAllZbByNormal();
         for (UserEntity user : userList) {
-            List<LimitBetaConfigEntity> betaList = limitBetaConfigBiz.findByUserIdAndMarketType(user.getOid(), DictEnum.MARKET_TYPE_ZB.getCode());
+            List<LimitBetaConfigEntity> betaList = limitBetaConfigBiz.findByUserIdAndMarketTypeInUse(user.getOid(), DictEnum.MARKET_TYPE_ZB.getCode());
             for (LimitBetaConfigEntity beta : betaList) {
                 try {
                     OrderEntity order = orderBiz.findZbBetaOrder(user.getOid(), beta.getSymbol(), beta.getOid());
@@ -1219,12 +1226,12 @@ public class TransBiz {
 
 
     /**
-     * hb beta 订单检查
+     * hb gamma 订单检查
      */
     public void hbCheckLimitGammaOrder() {
         List<UserEntity> userList = userBiz.findAllHbByNormal();
         for (UserEntity user : userList) {
-            List<LimitGammaConfigEntity> gammaList = limitGammaConfigBiz.findByUserIdAndMarketType(user.getOid(), DictEnum.MARKET_TYPE_HB.getCode());
+            List<LimitGammaConfigEntity> gammaList = limitGammaConfigBiz.findByUserIdAndMarketTypeInUse(user.getOid(), DictEnum.MARKET_TYPE_HB.getCode());
             for (LimitGammaConfigEntity gamma : gammaList) {
                 try {
                     OrderEntity order = orderBiz.findHbBetaOrGammaOrder(user.getOid(), gamma.getSymbol(), gamma.getOid(), DictEnum.ORDER_MODEL_LIMIT_GAMMA.getCode());
@@ -1239,11 +1246,11 @@ public class TransBiz {
                         if (order.getState().equals(DictEnum.ORDER_DETAIL_STATE_FILLED.getCode()) || order.getState().equals(DictEnum.ORDER_DETAIL_STATE_PARTIAL_CANCELED.getCode())) {
                             //卖单完成,创建买单
                             if (DictEnum.ORDER_TYPE_SELL_LIMIT.getCode().equals(order.getType())) {
-                                log.info("gamma卖单结束,开始创建买单,orderId={}",order.getOrderId());
+                                log.info("gamma卖单结束,开始创建买单,orderId={}", order.getOrderId());
                                 CreateOrderDto buyOrderDto = new CreateOrderDto();
                                 buyOrderDto.setSymbol(gamma.getSymbol());
                                 buyOrderDto.setOrderType(DictEnum.ORDER_TYPE_BUY_LIMIT.getCode());
-                                BigDecimal buyPrice = gamma.getRealPrice().multiply(new BigDecimal(1).subtract(gamma.getFluctuate()));
+                                BigDecimal buyPrice = gamma.getRealPrice().multiply(new BigDecimal(1).subtract(gamma.getFluctuateDecrease()));
                                 buyOrderDto.setPrice(buyPrice);
                                 buyOrderDto.setUserId(user.getOid());
 
@@ -1269,7 +1276,7 @@ public class TransBiz {
                                 orderBiz.saveOrder(order);
                             } else {
                                 //买单完成,创建卖单
-                                log.info("gamma买单结束,orderId={}",order.getOrderId());
+                                log.info("gamma买单结束,orderId={}", order.getOrderId());
                                 hbCreateLimitSellOrder(gamma);
                             }
                             if (DictEnum.ORDER_DETAIL_STATE_FILLED.getCode().equals(order.getState()) || DictEnum.ORDER_DETAIL_STATE_BUY.getCode().equals(order.getState())) {
@@ -1282,6 +1289,210 @@ public class TransBiz {
                     log.error("gamma订单处理失败,beta={},e={}", gamma, e);
                 }
 
+            }
+
+        }
+    }
+
+    /**
+     * 检查gamma类型趋势
+     */
+    public void checkGammaTrend() {
+        List<UserEntity> userList = userBiz.findAllHbByNormal();
+        BigDecimal middle;
+        BigDecimal one;
+        BigDecimal two;
+        BigDecimal three;
+        for (UserEntity user : userList) {
+
+            List<LimitGammaConfigEntity> gammaList = limitGammaConfigBiz.findByUserIdAndMarketType(user.getOid(), DictEnum.MARKET_TYPE_HB.getCode());
+            for (LimitGammaConfigEntity gamma : gammaList) {
+                try {
+                    String symbol = gamma.getSymbol();
+                    MarketInfoVo marketInfoVo = huobiApi.getMarketInfo(DictEnum.MARKET_PERIOD_5MIN.getCode(), 3, symbol);
+                    List<MarketDetailVo> detailVoList = marketInfoVo.getData();
+                    if(detailVoList == null){
+                        log.info("获取详情失败");
+                        return;
+                    }
+                    one = detailVoList.get(0).getClose();
+                    two = detailVoList.get(1).getClose();
+                    three = detailVoList.get(2).getClose();
+                    //计算中位数
+                    middle = (one.add(two).add(three)).divide(new BigDecimal(3), 8, BigDecimal.ROUND_HALF_UP).multiply(new BigDecimal(1).subtract(fluctuate));
+                    //趋势下降,启动gamma,停止beta
+                    if (two.compareTo(middle) < 0 && three.compareTo(middle) < 0 && two.multiply(new BigDecimal(1).add(fluctuate)).compareTo(three) < 0) {
+                        log.info("趋势下降,启动gamma,停止beta,one={},two={},three={},middle={}", one, two, three, middle);
+                        if (!DictEnum.IS_USER_YES.getCode().equals(gamma.getIsUse())) {
+                            gamma.setIsUse(DictEnum.IS_USER_YES.getCode());
+                            limitGammaConfigBiz.save(gamma);
+                        }
+                        stopBeta(gamma.getUserId(), gamma.getSymbol(), gamma.getMarketType());
+                    }
+                } catch (Exception e) {
+                    log.info("检查趋势失败,gamma={},e={}",gamma,e);
+                }
+            }
+        }
+    }
+
+    /**
+     * 停止beta策略并还原订单状态
+     */
+    private void stopBeta(String userId, String symbol, String marketType) {
+        log.info("停止beta策略并还原订单状态,symbol={}", symbol);
+        List<LimitBetaConfigEntity> list = limitBetaConfigBiz.findByUserIdAndSymbolAndMarketType(userId, symbol, marketType);
+        for (LimitBetaConfigEntity beta : list) {
+            try {
+                if (!beta.getIsUse().equals(DictEnum.IS_USER_NO.getCode())) {
+                    beta.setIsUse(DictEnum.IS_USER_NO.getCode());
+                    limitBetaConfigBiz.save(beta);
+                    OrderEntity order = orderBiz.findOneByParam(userId, DictEnum.ORDER_MODEL_LIMIT_BETA.getCode(), symbol, beta.getOid());
+                    if (order != null) {
+                        //撤销
+                        HuobiBaseDto dto = new HuobiBaseDto();
+                        dto.setOrderId(order.getOrderId());
+                        dto.setUserId(userId);
+                        tradeBiz.hbCancelOrder(dto);
+                        //卖单未成交,撤销完再卖出
+                        if (DictEnum.ORDER_TYPE_SELL_LIMIT.getCode().equals(order.getType())) {
+                            log.info("beta卖单未成交,撤销后挂单卖出,orderId={}", order.getOrderId());
+                            CreateOrderDto saleOrderDto = new CreateOrderDto();
+                            MarketDetailVo marketDetailVo = huobiApi.getOneMarketDetail(symbol);
+                            if (marketDetailVo == null) {
+                                throw new BizException("获取行情失败");
+                            }
+                            BigDecimal salePrice = marketDetailVo.getClose();
+                            saleOrderDto.setSymbol(symbol);
+                            saleOrderDto.setOrderType(DictEnum.ORDER_TYPE_SELL_LIMIT.getCode());
+                            saleOrderDto.setPrice(salePrice);
+                            saleOrderDto.setUserId(userId);
+                            String quoteCurrency = marketRuleBiz.getHbQuoteCurrency(symbol);
+                            //业务对余额
+                            BigDecimal balanceMax = accountBiz.getHuobiQuoteBalance(userId, quoteCurrency);
+                            BigDecimal amount = order.getAmount();
+                            //验证余额
+                            if (amount.compareTo(balanceMax) > 0) {
+                                log.info("余额不足,售卖数量不足,amount={},balanceMax={}", amount, balanceMax);
+                                mailBiz.balanceToEmailNotify(userId, quoteCurrency, DictEnum.MARKET_TYPE_HB.getCode());
+                                amount = balanceMax;
+                            }
+                            saleOrderDto.setAmount(amount);
+                            String orderId = tradeBiz.hbCreateOrder(saleOrderDto);
+                            orderBiz.saveHbOrder(orderId, null, order.getBuyOrderId(), beta.getOid(), userId, DictEnum.ORDER_TYPE_SELL_LIMIT.getCode(), DictEnum.ORDER_MODEL_LIMIT_BETA.getCode());
+                        }
+                        //更新原始订单状态
+                        orderBiz.updateHbOrderState(order);
+                    }
+                }
+            } catch (BizException e) {
+                log.info("停止beta策略失败,symbol={},e={}",symbol,e);
+            }
+
+        }
+    }
+
+
+    /**
+     * 检查beta类型趋势
+     */
+    public void checkBetaTrend() {
+        List<UserEntity> userList = userBiz.findAllHbByNormal();
+        BigDecimal middle;
+        BigDecimal one;
+        BigDecimal two;
+        BigDecimal three;
+        for (UserEntity user : userList) {
+            List<LimitBetaConfigEntity> betaList = limitBetaConfigBiz.findByUserIdAndMarketType(user.getOid(), DictEnum.MARKET_TYPE_HB.getCode());
+            for (LimitBetaConfigEntity beta : betaList) {
+                try {
+                    String symbol = beta.getSymbol();
+                    MarketInfoVo marketInfoVo = huobiApi.getMarketInfo(DictEnum.MARKET_PERIOD_5MIN.getCode(), 3, symbol);
+                    if(marketInfoVo == null){
+                        log.info("获取详情失败");
+                        return;
+                    }
+                    List<MarketDetailVo> detailVoList = marketInfoVo.getData();
+                    one = detailVoList.get(0).getClose();
+                    two = detailVoList.get(1).getClose();
+                    three = detailVoList.get(2).getClose();
+                    //计算中位数 middle*1.005 略浮高
+                    middle = (one.add(two).add(three)).divide(new BigDecimal(3), 8, BigDecimal.ROUND_HALF_UP).multiply(new BigDecimal(1).add(fluctuate));
+                    //趋势上升,启动beta,停止gamma
+                    if (middle.compareTo(two) < 0 && middle.compareTo(three) < 0 && two.multiply(new BigDecimal(1).add(fluctuate)).compareTo(three) < 0) {
+                        log.info("趋势上升,启动beta,停止gamma,one={},two={},three={},middle={}", one, two, three, middle);
+                        if (!beta.getIsUse().equals(DictEnum.IS_USER_YES.getCode())) {
+                            beta.setIsUse(DictEnum.IS_USER_YES.getCode());
+                            limitBetaConfigBiz.save(beta);
+                        }
+                        stopGamma(beta.getUserId(), beta.getSymbol(), beta.getMarketType());
+                    }
+                } catch (Exception e) {
+                    log.info("检查趋势失败,beta={},e={}",beta,e);
+                }
+            }
+        }
+    }
+
+    /**
+     * 停止gamma策略并还原订单状态
+     */
+    private void stopGamma(String userId, String symbol, String marketType) {
+        log.info("停止gamma策略并还原订单状态,symbol={}", symbol);
+        List<LimitGammaConfigEntity> list = limitGammaConfigBiz.findByUserIdAndSymbolAndMarketType(userId, symbol, marketType);
+        for (LimitGammaConfigEntity gamma : list) {
+            try {
+                if (!DictEnum.IS_USER_NO.getCode().equals(gamma.getIsUse())) {
+                    gamma.setIsUse(DictEnum.IS_USER_NO.getCode());
+                    limitGammaConfigBiz.save(gamma);
+                    OrderEntity order = orderBiz.findOneByParam(userId, DictEnum.ORDER_MODEL_LIMIT_GAMMA.getCode(), symbol, gamma.getOid());
+                    if (order != null) {
+                        //撤销
+                        HuobiBaseDto dto = new HuobiBaseDto();
+                        dto.setOrderId(order.getOrderId());
+                        dto.setUserId(userId);
+                        tradeBiz.hbCancelOrder(dto);
+                        //买单未成交,撤销完再买入
+                        if (DictEnum.ORDER_TYPE_BUY_LIMIT.getCode().equals(order.getType())) {
+                            log.info("gamma买单未成交,撤销后挂单买入,orderId={}", order.getOrderId());
+                            CreateOrderDto buyOrderDto = new CreateOrderDto();
+                            buyOrderDto.setSymbol(gamma.getSymbol());
+                            buyOrderDto.setOrderType(DictEnum.ORDER_TYPE_BUY_LIMIT.getCode());
+                            MarketDetailVo marketDetailVo = huobiApi.getOneMarketDetail(symbol);
+                            if (marketDetailVo == null) {
+                                throw new BizException("获取行情失败");
+                            }
+                            BigDecimal buyPrice = marketDetailVo.getClose();
+                            buyOrderDto.setPrice(buyPrice);
+                            buyOrderDto.setUserId(userId);
+                            String baseCurrency = marketRuleBiz.getHbBaseCurrency(gamma.getSymbol());
+                            //基对余额
+                            BigDecimal balanceMax = accountBiz.getHuobiQuoteBalance(gamma.getUserId(), baseCurrency);
+                            //欲购买数量
+                            BigDecimal amount = order.getAmount();
+                            //总成交额
+                            BigDecimal totalAmount = amount.multiply(buyPrice);
+                            if (balanceMax.compareTo(totalAmount) < 0) {
+                                log.info("买单余额不足,totalAmount={},balanceMax={}", totalAmount, balanceMax);
+                                amount = balanceMax.divide(buyPrice, 2, BigDecimal.ROUND_DOWN);
+                                mailBiz.balanceToEmailNotify(gamma.getUserId(), baseCurrency, DictEnum.MARKET_TYPE_HB.getCode());
+                            }
+                            buyOrderDto.setAmount(amount);
+                            //创建限价买单
+                            String buyOrderId = tradeBiz.hbCreateOrder(buyOrderDto);
+                            orderBiz.saveHbOrder(buyOrderId, null, null, gamma.getOid(), userId, DictEnum.ORDER_TYPE_BUY_LIMIT.getCode(), DictEnum.ORDER_MODEL_LIMIT_GAMMA.getCode());
+                            //更新卖单记录的buyOrderId
+                            OrderEntity saleOrder = orderBiz.findByBuyOrderId(order.getOrderId());
+                            saleOrder.setBuyOrderId(buyOrderId);
+                            log.info("更新卖单,saleOrder={},buyOrderId={}",saleOrder,buyOrderId);
+                            orderBiz.saveOrder(saleOrder);
+                        }
+                        //更新原始订单状态
+                        orderBiz.updateHbOrderState(order);
+                    }
+                }
+            } catch (BizException e) {
+                log.info("停止gamma策略失败,symbol={},e={}",symbol,e);
             }
 
         }

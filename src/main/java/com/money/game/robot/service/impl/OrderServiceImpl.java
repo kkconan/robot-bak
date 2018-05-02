@@ -56,6 +56,11 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    public OrderEntity findOneByParam(String userId, String model, String symbol, String symbolTradeConfigId, String marketType, List<String> states) {
+        return orderDao.findOneByParam(userId, model, symbol, symbolTradeConfigId, marketType, states);
+    }
+
+    @Override
     public List<OrderEntity> findByMarket(String model, String marketType, List<String> states) {
         return orderDao.findByMarket(model, marketType, states);
     }
@@ -102,12 +107,12 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public BigDecimal findLimitBetaBuyTotalAmount(String userId, String model, String hbState, String zbState, Date startTime, Date endTime) {
-        return orderDao.findLimitBetaBuyTotalAmount(userId,model,hbState,zbState,startTime,endTime);
+        return orderDao.findLimitBetaBuyTotalAmount(userId, model, hbState, zbState, startTime, endTime);
     }
 
     @Override
     public BigDecimal findLimitBetaSellTotalAmount(String userId, String model, String hbState, String zbState, Date startTime, Date endTime) {
-        return orderDao.findLimitBetaSellTotalAmount(userId,model,hbState,zbState,startTime,endTime);
+        return orderDao.findLimitBetaSellTotalAmount(userId, model, hbState, zbState, startTime, endTime);
     }
 
     @Override

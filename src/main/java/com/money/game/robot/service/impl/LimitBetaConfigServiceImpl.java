@@ -37,4 +37,9 @@ public class LimitBetaConfigServiceImpl implements LimitBetaConfigService {
     public LimitBetaConfigEntity findById(String oid) {
         return limitBetaConfigDao.findOne(oid);
     }
+
+    @Override
+    public List<LimitBetaConfigEntity> findByUserIdAndSymbolAndMarketType(String userId, String symbol, String marketType) {
+        return limitBetaConfigDao.findByUserIdAndSymbolAndMarketType(userId,symbol,marketType);
+    }
 }

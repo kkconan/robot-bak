@@ -28,6 +28,8 @@ public interface OrderService {
 
     List<OrderEntity> findByParam(String userId, String model, String orderType, String symbol, String symbolTradeConfigId, String marketType, List<String> states);
 
+    OrderEntity findOneByParam(String userId, String model,String symbol, String symbolTradeConfigId, String marketType, List<String> states);
+
     List<OrderEntity> findByMarket(String model, String marketType, List<String> states);
 
     List<OrderEntity> findByTypeAndState(String type, List<String> states);

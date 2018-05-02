@@ -106,7 +106,6 @@ public class OrderBiz {
         orderEntity.setType(orderType);
         orderEntity.setModel(model);
         orderEntity.setMarketType(DictEnum.MARKET_TYPE_HB.getCode());
-        log.info("saveHbOrder,orderEntity={}", orderEntity);
         return this.saveOrder(orderEntity);
     }
 
@@ -260,6 +259,18 @@ public class OrderBiz {
         return orderService.findByParam(userId, model, orderType, symbol, symbolTradeConfigId, DictEnum.MARKET_TYPE_HB.getCode(), states);
 
     }
+
+
+    /**
+     * 根据条件获取单条未完成的订单记录
+     */
+    public OrderEntity findOneByParam(String userId, String model, String symbol, String symbolTradeConfigId) {
+        List<String> states = new ArrayList<>();
+        states.add(DictEnum.ORDER_DETAIL_STATE_SUBMITTED.getCode());
+        return orderService.findOneByParam(userId, model, symbol, symbolTradeConfigId, DictEnum.MARKET_TYPE_HB.getCode(), states);
+
+    }
+
 
     /**
      * 获取未完成的zb买单(未成交,部分成交，完全成交)

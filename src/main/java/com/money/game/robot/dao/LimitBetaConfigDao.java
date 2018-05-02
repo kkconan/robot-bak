@@ -15,4 +15,6 @@ public interface LimitBetaConfigDao extends JpaRepository<LimitBetaConfigEntity,
     List<LimitBetaConfigEntity> findByUserIdAndMarketType(String userId, String marketType);
 
     List<LimitBetaConfigEntity> findByUserId(String userId);
+
+    List<LimitBetaConfigEntity> findByUserIdAndSymbolAndMarketType(String userId,String symbol,String marketType);
 }

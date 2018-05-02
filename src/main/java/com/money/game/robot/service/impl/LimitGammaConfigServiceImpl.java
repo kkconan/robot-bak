@@ -24,6 +24,11 @@ public class LimitGammaConfigServiceImpl implements LimitGammaConfigService {
     }
 
     @Override
+    public List<LimitGammaConfigEntity> findByUserIdAndSymbolAndMarketType(String userId, String symbol, String marketType) {
+        return limitGammaConfigDao.findByUserIdAndSymbolAndMarketType(userId,symbol,marketType);
+    }
+
+    @Override
     public List<LimitGammaConfigEntity> findByUserId(String userId) {
         return limitGammaConfigDao.findByUserId(userId);
     }

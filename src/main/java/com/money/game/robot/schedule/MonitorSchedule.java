@@ -38,6 +38,12 @@ public class MonitorSchedule {
     @Value("${is.schedule:true}")
     private boolean isSchedule;
 
+    /**
+     * 检查趋势
+     */
+    @Value("${is.checkTrend:false}")
+    private boolean checkTrend;
+
 
     @Value("${is.hb.all.symbol.monitor:true}")
     private boolean isHbAllSymbolMonitor;
@@ -199,6 +205,30 @@ public class MonitorSchedule {
             log.info("check time out order start...");
             transBiz.checkTimeOutOrder();
             log.info("check time out order end...");
+        }
+    }
+
+    /**
+     * 检查gamma趋势(切日志方法已check开头)
+     */
+    @Scheduled(cron = "${cron.option[check.gamma.trend]:28 0/7 * * * ?}")
+    public void checkGammaTrend() {
+        if (isSchedule && checkTrend) {
+            log.info("check gamma trend start...");
+            transBiz.checkGammaTrend();
+            log.info("check gamma trend end...");
+        }
+    }
+
+    /**
+     * 检查beta趋势(切日志方法已check开头)
+     */
+    @Scheduled(cron = "${cron.option[check.beta.trend]:50 0/9 * * * ?}")
+    public void checkBetaTrend() {
+        if (isSchedule && checkTrend) {
+            log.info("check beta trend start...");
+            transBiz.checkBetaTrend();
+            log.info("check beta trend end...");
         }
     }
 

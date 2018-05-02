@@ -37,6 +37,13 @@ public class LimitGammaConfigEntity extends UUID{
 
 
     /**
+     * 波动（下降）
+     */
+    private BigDecimal fluctuateDecrease;
+
+
+
+    /**
      * 挂单时实时价格
      */
     private BigDecimal realPrice;
@@ -50,6 +57,11 @@ public class LimitGammaConfigEntity extends UUID{
      * zb/hb
      */
     private String marketType;
+
+    /**
+     * 是否启用 yes/no
+     */
+    private String isUse;
 
     /**
      * 启用open/停用stop

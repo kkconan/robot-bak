@@ -12,6 +12,8 @@ public interface LimitGammaConfigService {
 
     List<LimitGammaConfigEntity> findByUserIdAndMarketType(String userId, String marketType);
 
+    List<LimitGammaConfigEntity> findByUserIdAndSymbolAndMarketType(String userId,String symbol, String marketType);
+
     List<LimitGammaConfigEntity> findByUserId(String userId);
 
     LimitGammaConfigEntity save(LimitGammaConfigEntity entity);
