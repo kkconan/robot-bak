@@ -918,10 +918,10 @@ public class TransBiz {
                     } else {
                         order = orderBiz.updateHbOrderState(order);
                         //订单已完成
-                        if (DictEnum.filledOrderStates.contains(order.getState())) {
+                        if (DictEnum.ORDER_DETAIL_STATE_FILLED.getCode().equals(order.getState()) || DictEnum.ORDER_DETAIL_STATE_PARTIAL_CANCELED.getCode().equals(order.getState())) {
                             //买单完成,创建卖单
                             if (DictEnum.ORDER_TYPE_BUY_LIMIT.getCode().equals(order.getType())) {
-                                log.info("beta买单结束");
+                                log.info("beta买单结束,orderId={}", order.getOrderId());
                                 CreateOrderDto saleOrderDto = new CreateOrderDto();
                                 saleOrderDto.setSymbol(beta.getSymbol());
                                 saleOrderDto.setOrderType(DictEnum.ORDER_TYPE_SELL_LIMIT.getCode());
@@ -944,7 +944,7 @@ public class TransBiz {
                             }
                             //卖单完成,创建买单
                             else {
-                                log.info("beta卖单结束");
+                                log.info("beta卖单结束,orderId={}",order);
                                 hbCreateBetaLimitBuyOrder(beta);
                             }
                             if (DictEnum.ORDER_DETAIL_STATE_FILLED.getCode().equals(order.getState()) || DictEnum.ORDER_DETAIL_STATE_SELL.getCode().equals(order.getState())) {
@@ -1042,6 +1042,12 @@ public class TransBiz {
     private void cancelTimeOutOrder(OrderEntity orderEntity) {
         try {
             if (DateUtils.addMinute(orderEntity.getCreateTime(), timeOutMinute).before(DateUtils.getCurrDateMmss())) {
+                //撤销之前先同步最新状态，逻辑得优化,下面有判断市场
+                if (DictEnum.MARKET_TYPE_HB.getCode().equals(orderEntity.getMarketType())) {
+                    orderBiz.updateHbOrderState(orderEntity);
+                } else {
+                    orderBiz.updateZbOrderState(orderEntity);
+                }
                 //买单超过指定未成交
                 if (orderEntity.getType().equals(DictEnum.ORDER_TYPE_BUY_LIMIT.getCode())) {
                     //beta 单
@@ -1094,7 +1100,7 @@ public class TransBiz {
                             }
                         }
                     }
-                }else {
+                } else {
                     //卖单未成交
                     //gamma 单
                     if (orderEntity.getModel().equals(DictEnum.ORDER_MODEL_LIMIT_GAMMA.getCode())) {
@@ -1117,7 +1123,7 @@ public class TransBiz {
                 }
             }
         } catch (Exception e) {
-            log.error("限价单超时撤销失败,orderEntity={}", orderEntity);
+            log.error("限价单超时撤销失败,orderEntity={},e={}", orderEntity, e);
         }
 
     }
@@ -1230,10 +1236,10 @@ public class TransBiz {
                     } else {
                         order = orderBiz.updateHbOrderState(order);
                         //订单已完成
-                        if (order.getState().equals(DictEnum.ORDER_DETAIL_STATE_FILLED.getCode())) {
+                        if (order.getState().equals(DictEnum.ORDER_DETAIL_STATE_FILLED.getCode()) || order.getState().equals(DictEnum.ORDER_DETAIL_STATE_PARTIAL_CANCELED.getCode())) {
                             //卖单完成,创建买单
                             if (DictEnum.ORDER_TYPE_SELL_LIMIT.getCode().equals(order.getType())) {
-                                log.info("gamma卖单结束,开始创建买单");
+                                log.info("gamma卖单结束,开始创建买单,orderId={}",order.getOrderId());
                                 CreateOrderDto buyOrderDto = new CreateOrderDto();
                                 buyOrderDto.setSymbol(gamma.getSymbol());
                                 buyOrderDto.setOrderType(DictEnum.ORDER_TYPE_BUY_LIMIT.getCode());
@@ -1263,7 +1269,7 @@ public class TransBiz {
                                 orderBiz.saveOrder(order);
                             } else {
                                 //买单完成,创建卖单
-                                log.info("gamma买单结束");
+                                log.info("gamma买单结束,orderId={}",order.getOrderId());
                                 hbCreateLimitSellOrder(gamma);
                             }
                             if (DictEnum.ORDER_DETAIL_STATE_FILLED.getCode().equals(order.getState()) || DictEnum.ORDER_DETAIL_STATE_BUY.getCode().equals(order.getState())) {
