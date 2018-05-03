@@ -12,6 +12,7 @@ public enum DictEnum {
 
     MARKET_PERIOD_1MIN("1min", "一分钟"),
     MARKET_PERIOD_5MIN("5min", "五分钟"),
+    MARKET_PERIOD_15MIN("15min", "十五分钟"),
     MARKET_PERIOD_30MIN("30min", "三十分钟"),
     MARKET_PERIOD_60MIN("60min", "六十分钟"),
     MARKET_PERIOD_1DAY("1day", "一天"),
@@ -150,6 +151,7 @@ public enum DictEnum {
     ORDER_MODEL_LIMIT("limit","限价"),
     ORDER_MODEL_LIMIT_BETA("limitBeta","限价单beta策略"),
     ORDER_MODEL_LIMIT_GAMMA("limitGamma","限价单gamma策略"),
+    ORDER_MODEL_LIMIT_DELTE("limitDelte","限价单delte策略"),
     ORDER_MODEL_SHUFFLE("shuffle","搬砖"),
 
     TRADE_CONFIG_THRESHOLD_TYPE_ONE_MIN("oneMin","1分钟"),
@@ -181,6 +183,10 @@ public enum DictEnum {
 
     IS_USER_YES("yes","使用"),
     IS_USER_NO("no","不使用"),
+
+
+    IS_FINISH_YES("yes","已完成"),
+    IS_FINISH_NO("no","未完成"),
 
     ;
 

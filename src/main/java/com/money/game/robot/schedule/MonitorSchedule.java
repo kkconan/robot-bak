@@ -1,5 +1,6 @@
 package com.money.game.robot.schedule;
 
+import com.money.game.robot.biz.DelteTransBiz;
 import com.money.game.robot.biz.HbMarketMonitorBiz;
 import com.money.game.robot.biz.ShuffleBiz;
 import com.money.game.robot.biz.TransBiz;
@@ -31,6 +32,9 @@ public class MonitorSchedule {
 
     @Autowired
     private TransBiz transBiz;
+
+    @Autowired
+    private DelteTransBiz delteTransBiz;
 
     @Autowired
     private ShuffleBiz shuffleBiz;
@@ -229,6 +233,29 @@ public class MonitorSchedule {
             log.info("check beta trend start...");
             transBiz.checkBetaTrend();
             log.info("check beta trend end...");
+        }
+    }
+
+
+    /**
+     * 检查delte订单状态(切日志方法已check开头)
+     */
+    @Scheduled(cron = "${cron.option[check.delte.order.status]:55 * * * * ?}")
+    public void checkDelteStatus() {
+        if (isSchedule && checkTrend) {
+            delteTransBiz.checkDelteStatus();
+        }
+    }
+
+    /**
+     * 检查delte趋势(切日志方法已check开头)
+     */
+    @Scheduled(cron = "${cron.option[check.delte.ma]:11 0/5 * * * ?}")
+    public void checkByMa() {
+        if (isSchedule && checkTrend) {
+            log.info("check delte ma start...");
+            delteTransBiz.checkByMa();
+            log.info("check delte ma end...");
         }
     }
 

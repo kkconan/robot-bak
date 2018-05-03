@@ -29,19 +29,26 @@ public class MailBiz {
 
     private static final String BLANCE_NOTIFY_KEY = "blance_notify_key_";
 
+    public void transToEmailNotify(OrderEntity orderEntity,String userId){
+        UserEntity userEntity = userBiz.findById(userId);
+        transToEmail(orderEntity,userEntity);
+    }
+
     /**
      * 搬砖单交易成功邮件通知
      */
     public void transToEmailNotify(OrderEntity orderEntity, UserEntity userEntity) {
+        transToEmail(orderEntity,userEntity);
+    }
+
+    private void transToEmail(OrderEntity orderEntity, UserEntity userEntity){
         if (userEntity == null || StringUtil.isEmpty(userEntity.getNotifyEmail())) {
             log.info("email address is empty...");
             return;
         }
-        String subject = orderEntity.getMarketType() + " " + orderEntity.getSymbol() + " " + orderEntity.getType() + " success notify";
-
-        String content = orderEntity.getMarketType() + " " + orderEntity.getModel() + " orderId=" + orderEntity.getOrderId() + " " + orderEntity.getSymbol() + " " +
-                orderEntity.getType() + " success. price is " + orderEntity.getPrice().setScale(8, BigDecimal.ROUND_DOWN) + ",amount is " +
-                orderEntity.getAmount().setScale(8, BigDecimal.ROUND_DOWN) + " and totalToUsdt is " + orderEntity.getTotalToUsdt().setScale(8, BigDecimal.ROUND_DOWN);
+        String subject = orderEntity.getMarketType() + " " + orderEntity.getModel() + " model " + orderEntity.getSymbol() + " " + orderEntity.getType() + " success notify";
+        String content = orderEntity.getSymbol() + " " + orderEntity.getType() + " success. price is " + orderEntity.getPrice().setScale(8, BigDecimal.ROUND_DOWN)
+                + ",amount is " + orderEntity.getAmount().setScale(8, BigDecimal.ROUND_DOWN) + " and totalToUsdt is " + orderEntity.getTotalToUsdt().setScale(8, BigDecimal.ROUND_DOWN) + ".";
         if (orderEntity.getType().equals(DictEnum.ORDER_TYPE_SELL_LIMIT.getCode())) {
             content = content + " and relating buyorderId=" + orderEntity.getBuyOrderId();
         }

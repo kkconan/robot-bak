@@ -69,6 +69,11 @@ public class OrderEntity extends UUID implements Serializable {
     private String state;
 
     /**
+     * 是否已完成
+     */
+    private String isFinish;
+
+    /**
      * 已成交数量
      */
     private BigDecimal fieldAmount;

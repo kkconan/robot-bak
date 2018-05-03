@@ -1,6 +1,8 @@
 package com.money.game.robot;
 
+import com.money.game.robot.biz.DelteTransBiz;
 import com.money.game.robot.biz.TransBiz;
+import com.money.game.robot.constant.DictEnum;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -20,6 +22,9 @@ public class TransBizTest {
 
     @Autowired
     TransBiz transBiz;
+
+    @Autowired
+    DelteTransBiz delteTransBiz;
 
     @Test
     public void transTest() {
@@ -63,6 +68,12 @@ public class TransBizTest {
     @Rollback(false)
     public void hbCheckLimitGammaOrderBetaOrderTest() {
         transBiz.hbCheckLimitGammaOrder();
+    }
+
+    @Test
+    @Rollback(false)
+    public void calcMaTest() {
+        delteTransBiz.calcMa5min("etcusdt", DictEnum.MARKET_PERIOD_15MIN.getCode());
     }
 
 

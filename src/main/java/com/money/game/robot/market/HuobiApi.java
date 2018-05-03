@@ -100,12 +100,12 @@ public class HuobiApi {
      * @param size   获取数量 [1,2000]
      * @param symbol 交易对 btcusdt, bccbtc, rcneth
      */
-    public MarketInfoVo getMarketInfo(String period, Integer size, String symbol) {
+    public synchronized MarketInfoVo getMarketInfo(String period, Integer size, String symbol) {
         String jsonStr = null;
         String url = null;
         try {
             //限制访问频率
-            Thread.sleep(2000);
+//            Thread.sleep(2000);
             CloseableHttpClient httpclient = HttpClientBuilder.create().build();
             //超过2000分钟，默认查询100条
             if (size > 2000) {
@@ -135,6 +135,13 @@ public class HuobiApi {
             }
             return marketInfoVo;
         } catch (Exception e) {
+            if(jsonStr != null && jsonStr.contains("429 Too Many Requests")){
+                try {
+                    Thread.sleep(2000);
+                } catch (InterruptedException e1) {
+                    e1.printStackTrace();
+                }
+            }
             log.error("get market fail,url={},result={},period={},size={},symbol={},e={},", url, jsonStr, period, size, symbol, e.getMessage());
             return null;
         }

@@ -94,6 +94,7 @@ public class OrderBiz {
         OrderEntity orderEntity = orderService.findByOrderId(orderId);
         if (orderEntity == null) {
             orderEntity = new OrderEntity();
+            orderEntity.setCreateTime(DateUtils.getSqlCurrentDate());
         }
         BeanUtils.copyProperties(ordersDetail, orderEntity);
         orderEntity.setRateChangeId(rateChangeId);
@@ -123,6 +124,7 @@ public class OrderBiz {
             BeanUtils.copyProperties(ordersDetail, orderEntity);
             if (DictEnum.ORDER_DETAIL_STATE_FILLED.getCode().equals(orderEntity.getState()) || DictEnum.ORDER_DETAIL_STATE_PARTIAL_CANCELED.getCode().equals(orderEntity.getState())) {
                 BigDecimal totalToUsdt = getTotalToUsdt(orderEntity.getSymbol(), ordersDetail.getPrice(), ordersDetail.getFieldAmount());
+                orderEntity.setAmount(ordersDetail.getFieldAmount());
                 orderEntity.setTotalToUsdt(totalToUsdt);
             }
             orderEntity.setState(ordersDetail.getState());
@@ -414,9 +416,9 @@ public class OrderBiz {
 
 
     /**
-     * 获取hb未完成的一条beta/gamma限价单
+     * 获取hb未完成的一条beta/gamma/detle限价单
      */
-    public OrderEntity findHbBetaOrGammaOrder(String userId, String symbol, String symbolTradeConfigId, String model) {
+    public OrderEntity findHbLimitOrder(String userId, String symbol, String symbolTradeConfigId, String model) {
         OrderEntity orderEntity = null;
         List<String> states = new ArrayList<>();
         states.add(DictEnum.ORDER_DETAIL_STATE_PRE_SUBMITTED.getCode());
@@ -441,6 +443,38 @@ public class OrderBiz {
             orderEntity = list.get(0);
         }
         return orderEntity;
+    }
+
+    /**
+     * 未售出的delte 买单
+     */
+    public OrderEntity findHbDelteBuyOrder(String userId, String symbol, String symbolTradeConfigId, String model) {
+        List<String> states = new ArrayList<>();
+        states.add(DictEnum.ORDER_DETAIL_STATE_FILLED.getCode());
+        List<OrderEntity> list = orderService.findByParam(userId, model, DictEnum.ORDER_TYPE_BUY_LIMIT.getCode(), symbol, symbolTradeConfigId, DictEnum.MARKET_TYPE_HB.getCode(), states);
+        return (list != null && !list.isEmpty()) ? list.get(0) : null;
+    }
+
+    /**
+     * 未买入的delte 卖单
+     */
+    public OrderEntity findHbDelteSellOrder(String userId, String symbol, String symbolTradeConfigId, String model) {
+        List<String> states = new ArrayList<>();
+        states.add(DictEnum.ORDER_DETAIL_STATE_FILLED.getCode());
+        List<OrderEntity> list = orderService.findByParam(userId, model, DictEnum.ORDER_TYPE_SELL_LIMIT.getCode(), symbol, symbolTradeConfigId, DictEnum.MARKET_TYPE_HB.getCode(), states);
+        return (list != null && !list.isEmpty()) ? list.get(0) : null;
+    }
+
+    /**
+     * hb detle 未完成的订单
+     */
+    public List<OrderEntity> hbDetleNotFinishOrder() {
+        List<String> states = new ArrayList<>();
+        states.add(DictEnum.ORDER_DETAIL_STATE_PRE_SUBMITTED.getCode());
+        states.add(DictEnum.ORDER_DETAIL_STATE_SUBMITTING.getCode());
+        states.add(DictEnum.ORDER_DETAIL_STATE_SUBMITTED.getCode());
+        states.add(DictEnum.ORDER_DETAIL_STATE_PARTIAL_FILLED.getCode());
+        return  orderService.findByMarket(DictEnum.ORDER_MODEL_LIMIT_DELTE.getCode(),DictEnum.MARKET_TYPE_HB.getCode(),states);
     }
 
     /**
