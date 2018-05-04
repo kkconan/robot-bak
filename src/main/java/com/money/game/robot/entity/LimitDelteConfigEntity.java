@@ -29,6 +29,16 @@ public class LimitDelteConfigEntity extends UUID{
     private String userId;
 
     private String symbol;
+    /**
+     * 卖出波动(上升)
+     */
+    private BigDecimal fluctuate;
+
+
+    /**
+     * 买入波动（下降）
+     */
+    private BigDecimal fluctuateDecrease;
 
     /**
      * 挂单总金额

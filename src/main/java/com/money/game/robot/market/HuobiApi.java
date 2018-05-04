@@ -105,7 +105,7 @@ public class HuobiApi {
         String url = null;
         try {
             //限制访问频率
-//            Thread.sleep(2000);
+            Thread.sleep(1000);
             CloseableHttpClient httpclient = HttpClientBuilder.create().build();
             //超过2000分钟，默认查询100条
             if (size > 2000) {

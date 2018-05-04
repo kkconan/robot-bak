@@ -120,7 +120,7 @@ public class OrderBiz {
 
         OrdersDetail ordersDetail = tradeBiz.getHbOrderDetail(dto);
         //订单状态或者成交数量有变动
-        if (ordersDetail != null && (!ordersDetail.getState().equals(orderEntity.getState()) || !ordersDetail.getFieldAmount().equals(orderEntity.getFieldAmount()))) {
+        if (ordersDetail != null && (!ordersDetail.getState().equals(orderEntity.getState()) || !ordersDetail.getFieldAmount().stripTrailingZeros().equals(orderEntity.getFieldAmount().stripTrailingZeros()))) {
             BeanUtils.copyProperties(ordersDetail, orderEntity);
             if (DictEnum.ORDER_DETAIL_STATE_FILLED.getCode().equals(orderEntity.getState()) || DictEnum.ORDER_DETAIL_STATE_PARTIAL_CANCELED.getCode().equals(orderEntity.getState())) {
                 BigDecimal totalToUsdt = getTotalToUsdt(orderEntity.getSymbol(), ordersDetail.getPrice(), ordersDetail.getFieldAmount());
@@ -135,7 +135,6 @@ public class OrderBiz {
         }
         return orderEntity;
     }
-
 
     /**
      * zb该交易对是否存在未完成的买单/卖单
@@ -466,7 +465,7 @@ public class OrderBiz {
     }
 
     /**
-     * hb detle 未完成的订单
+     * hb detle 未结束的订单
      */
     public List<OrderEntity> hbDetleNotFinishOrder() {
         List<String> states = new ArrayList<>();
@@ -474,7 +473,20 @@ public class OrderBiz {
         states.add(DictEnum.ORDER_DETAIL_STATE_SUBMITTING.getCode());
         states.add(DictEnum.ORDER_DETAIL_STATE_SUBMITTED.getCode());
         states.add(DictEnum.ORDER_DETAIL_STATE_PARTIAL_FILLED.getCode());
-        return  orderService.findByMarket(DictEnum.ORDER_MODEL_LIMIT_DELTE.getCode(),DictEnum.MARKET_TYPE_HB.getCode(),states);
+        states.add(DictEnum.ORDER_DETAIL_STATE_FILLED.getCode());
+        return  orderService.findNofinishDelteByMarket(DictEnum.ORDER_MODEL_LIMIT_DELTE.getCode(),DictEnum.MARKET_TYPE_HB.getCode(),DictEnum.IS_FINISH_NO.getCode(),states);
+    }
+
+    /**
+     * hb detle 未完成的订单
+     */
+    public List<OrderEntity> hbDetleNotFillOrder() {
+        List<String> states = new ArrayList<>();
+        states.add(DictEnum.ORDER_DETAIL_STATE_PRE_SUBMITTED.getCode());
+        states.add(DictEnum.ORDER_DETAIL_STATE_SUBMITTING.getCode());
+        states.add(DictEnum.ORDER_DETAIL_STATE_SUBMITTED.getCode());
+        states.add(DictEnum.ORDER_DETAIL_STATE_PARTIAL_FILLED.getCode());
+        return  orderService.findNofinishDelteByMarket(DictEnum.ORDER_MODEL_LIMIT_DELTE.getCode(),DictEnum.MARKET_TYPE_HB.getCode(),DictEnum.IS_FINISH_YES.getCode(),states);
     }
 
     /**

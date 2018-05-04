@@ -32,6 +32,8 @@ public interface OrderService {
 
     List<OrderEntity> findByMarket(String model, String marketType, List<String> states);
 
+    List<OrderEntity> findNofinishDelteByMarket(String model, String marketType,String isFinish, List<String> states);
+
     List<OrderEntity> findByTypeAndState(String type, List<String> states);
 
     List<OrderEntity> findByUserIdAndModel(String userId, String model);

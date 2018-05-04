@@ -3,9 +3,11 @@ package com.money.game.robot.biz;
 import com.money.game.robot.constant.DictEnum;
 import com.money.game.robot.dto.huobi.CreateOrderDto;
 import com.money.game.robot.dto.huobi.DepthDto;
+import com.money.game.robot.dto.huobi.MaInfoDto;
 import com.money.game.robot.entity.LimitDelteConfigEntity;
 import com.money.game.robot.entity.OrderEntity;
 import com.money.game.robot.entity.UserEntity;
+import com.money.game.robot.exception.BizException;
 import com.money.game.robot.huobi.response.Depth;
 import com.money.game.robot.market.HuobiApi;
 import com.money.game.robot.vo.huobi.MarketDetailVo;
@@ -53,14 +55,68 @@ public class DelteTransBiz {
     private MarketBiz marketBiz;
 
     /**
-     * 更新delte订单状态
+     * 更新已完成但是状态还未同步的detle订单
      */
     public void checkDelteStatus() {
+        List<OrderEntity> orderEntityList = orderBiz.hbDetleNotFillOrder();
+        for (OrderEntity orderEntity : orderEntityList) {
+            try {
+                orderBiz.updateHbOrderState(orderEntity);
+                if (DictEnum.ORDER_DETAIL_STATE_FILLED.getCode().equals(orderEntity.getState())) {
+                    mailBiz.transToEmailNotify(orderEntity, orderEntity.getUserId());
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    /**
+     * 更新delte订单状态并判断是否可操作原订单
+     */
+    public void checkDelteTodo() {
         List<OrderEntity> orderEntityList = orderBiz.hbDetleNotFinishOrder();
         for (OrderEntity orderEntity : orderEntityList) {
-            orderBiz.updateHbOrderState(orderEntity);
-            if (orderEntity.getState().equals(DictEnum.ORDER_DETAIL_STATE_FILLED.getCode())) {
-                mailBiz.transToEmailNotify(orderEntity, orderEntity.getUserId());
+            try {
+                orderBiz.updateHbOrderState(orderEntity);
+                if (orderEntity.getState().equals(DictEnum.ORDER_DETAIL_STATE_FILLED.getCode())) {
+                    //是否该操作订单
+                    boolean toDo = calcMa5minToWin(orderEntity.getSymbol(), orderEntity.getType());
+                    if (toDo) {
+                        log.info("趋势构成处理delte订单,orderId={}", orderEntity.getOrderId());
+                        //买单检查是否有足够利润去卖出
+                        if (DictEnum.ORDER_TYPE_BUY_LIMIT.getCode().equals(orderEntity.getType())) {
+                            LimitDelteConfigEntity delte = limitDelteConfigBiz.findById(orderEntity.getSymbolTradeConfigId());
+                            BigDecimal buyOnePrice = buyOnePrice(orderEntity.getSymbol(), orderEntity.getUserId());
+                            BigDecimal salePrice = orderEntity.getPrice().multiply(new BigDecimal(1).add(delte.getFluctuate()));
+                            //买一价高于卖价
+                            if (salePrice.compareTo(buyOnePrice) <= 0) {
+                                log.info("利润足够,挂单卖出,salePrice={},buyOnePrice={}", salePrice, buyOnePrice);
+                                salePrice = buyOnePrice;
+                                //创建卖单标记完成并更新buyOrderId
+                                hbCreateLimitSellOrderWithBuyOrder(orderEntity, salePrice);
+                            }
+
+                        } else {
+                            //卖单价是否有足够的利润买入
+                            LimitDelteConfigEntity delte = limitDelteConfigBiz.findById(orderEntity.getSymbolTradeConfigId());
+                            BigDecimal saleOnePrice = saleOnePrice(orderEntity.getSymbol(), orderEntity.getUserId());
+                            BigDecimal buyPrice = orderEntity.getPrice().multiply(new BigDecimal(1).subtract(delte.getFluctuateDecrease()));
+                            //卖一低于买价
+                            if (saleOnePrice.compareTo(buyPrice) <= 0) {
+                                log.info("利润足够,挂单买入,buyPrice={},saleOnePrice={}", buyPrice, saleOnePrice);
+                                buyPrice = saleOnePrice;
+                                //创建买单并标记完成
+                                this.hbCreateDelteLimitBuyOrderWithSaleOrder(orderEntity, buyPrice);
+                            }
+
+                        }
+                    }
+
+                }
+                Thread.sleep(2000);
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
     }
@@ -81,45 +137,31 @@ public class DelteTransBiz {
                         OrderEntity buyOrder = orderBiz.findHbDelteBuyOrder(delte.getUserId(), delte.getSymbol(), delte.getOid(), DictEnum.ORDER_MODEL_LIMIT_DELTE.getCode());
                         //不存在买单
                         if (buyOrder == null) {
+                            OrderEntity saleOrder = orderBiz.findHbDelteSellOrder(delte.getUserId(), delte.getSymbol(), delte.getOid(), DictEnum.ORDER_MODEL_LIMIT_DELTE.getCode());
+                            //存在卖单,先处理原始卖单
+                            if (saleOrder != null) {
+                                hbCreateDelteLimitBuyOrderWithSaleOrder(saleOrder, null);
+                            }
                             //创建买单
                             hbCreateDelteLimitBuyOrderWithDelte(delte);
-                            //处理前一笔卖单
-                            OrderEntity saleOrder = orderBiz.findHbDelteSellOrder(delte.getUserId(), delte.getSymbol(), delte.getOid(), DictEnum.ORDER_MODEL_LIMIT_DELTE.getCode());
-                            if (saleOrder != null) {
-                                OrderEntity oldBuyOrder = hbCreateDelteLimitBuyOrderWithSaleOrder(saleOrder);
-                                //更新买单为已完成
-                                oldBuyOrder.setIsFinish(DictEnum.IS_FINISH_YES.getCode());
-                                orderBiz.saveOrder(oldBuyOrder);
-                                //创建买单并更新原卖单为已卖出
-                                saleOrder.setBuyOrderId(oldBuyOrder.getOrderId());
-                                saleOrder.setState(DictEnum.ORDER_DETAIL_STATE_BUY.getCode());
-                                saleOrder.setIsFinish(DictEnum.IS_FINISH_YES.getCode());
-                                orderBiz.saveOrder(saleOrder);
-                            }
+                        } else {
+                            log.info("已存在买单,orderId={}", buyOrder.getOrderId());
                         }
-
                     }
                     //下降
                     else if (maUp != null) {
                         OrderEntity saleOrder = orderBiz.findHbDelteSellOrder(delte.getUserId(), delte.getSymbol(), delte.getOid(), DictEnum.ORDER_MODEL_LIMIT_DELTE.getCode());
                         //不存在卖单
                         if (saleOrder == null) {
+                            OrderEntity buyOrder = orderBiz.findHbDelteBuyOrder(delte.getUserId(), delte.getSymbol(), delte.getOid(), DictEnum.ORDER_MODEL_LIMIT_DELTE.getCode());
+                            //存在买单,先处理买单
+                            if (buyOrder != null) {
+                                hbCreateLimitSellOrderWithBuyOrder(buyOrder, null);
+                            }
                             //创建卖单
                             hbCreateLimitSellOrderWithDelte(delte);
-                            //处理前一笔买单
-                            OrderEntity buyOrder = orderBiz.findHbDelteBuyOrder(delte.getUserId(), delte.getSymbol(), delte.getOid(), DictEnum.ORDER_MODEL_LIMIT_DELTE.getCode());
-                            if (buyOrder != null) {
-                                //创建历史买单对应的卖单
-                                OrderEntity oldSaleOrder = hbCreateLimitSellOrderWithBuyOrder(buyOrder);
-                                oldSaleOrder.setBuyOrderId(buyOrder.getOrderId());
-                                oldSaleOrder.setIsFinish(DictEnum.IS_FINISH_YES.getCode());
-                                orderBiz.saveOrder(oldSaleOrder);
-                                //更新原买单为已卖出
-                                buyOrder.setState(DictEnum.ORDER_DETAIL_STATE_SELL.getCode());
-                                buyOrder.setIsFinish(DictEnum.IS_FINISH_YES.getCode());
-                                orderBiz.saveOrder(buyOrder);
-
-                            }
+                        } else {
+                            log.info("已存在卖单,orderId={}", saleOrder.getOrderId());
                         }
                     }
                     //hb 行情有访问频率控制
@@ -132,12 +174,86 @@ public class DelteTransBiz {
     }
 
 
+    /**
+     * 计算ma 5min 趋势是否构成买入卖出点
+     */
     public Boolean calcMa5min(String symbol, String period) {
         Boolean maUp = null;
+
+        MaInfoDto ma = getMaInfo(symbol, period);
+        //up
+        if (ma.getOneMiddle().compareTo(ma.getTwoMiddle()) > 0) {
+            //连续增长
+            if (ma.getTwoMiddle().compareTo(ma.getThreeMiddle()) > 0 && ma.getThreeMiddle().compareTo(ma.getFourMiddle()) > 0) {
+                //增长幅度增加
+                if (ma.getOneMiddle().subtract(ma.getTwoMiddle()).compareTo(ma.getTwoMiddle().subtract(ma.getThreeMiddle())) > 0) {
+                    BigDecimal maMin15 = getNewMa15min(symbol);
+                    //向上离15min线越来越近或者穿过
+                    if (ma.getOneMiddle().compareTo(maMin15) > 0) {
+                        log.info("ma5min趋势结果上升,symbol={},ma={},maMin15={}", symbol, ma,maMin15);
+                        maUp = true;
+                    }
+                }
+            }
+        }
+        //down
+        if (ma.getOneMiddle().compareTo(ma.getTwoMiddle()) < 0) {
+            //连续下降
+            if (ma.getTwoMiddle().compareTo(ma.getThreeMiddle()) < 0 && ma.getThreeMiddle().compareTo(ma.getFourMiddle()) < 0) {
+                //下降幅度增加
+                if (ma.getOneMiddle().subtract(ma.getTwoMiddle()).compareTo(ma.getTwoMiddle().subtract(ma.getThreeMiddle())) < 0) {
+
+                    BigDecimal maMin15 = getNewMa15min(symbol);
+                    //向下离15min线越来越近或者穿过
+                    if (ma.getOneMiddle().compareTo(maMin15) < 0) {
+                        log.info("ma5min趋势结果下降,symbol={},ma={},maMin15={}", symbol, ma,maMin15);
+                        maUp = false;
+                    }
+                }
+            }
+        }
+        return maUp;
+    }
+
+
+    /**
+     * 计算当前某种趋势是否趋向于成交订单盈利
+     */
+    public Boolean calcMa5minToWin(String symbol, String orderType) {
+        boolean toDo = false;
+
+        MaInfoDto ma = getMaInfo(symbol, DictEnum.MARKET_PERIOD_5MIN.getCode());
+        //买单,判断上涨趋势减慢
+        if (DictEnum.ORDER_TYPE_BUY_LIMIT.getCode().equals(orderType)) {
+            //down
+            if (ma.getOneMiddle().compareTo(ma.getTwoMiddle()) < 0) {
+                //连续下降
+                if (ma.getTwoMiddle().compareTo(ma.getThreeMiddle()) < 0 && ma.getThreeMiddle().compareTo(ma.getFourMiddle()) < 0) {
+                    toDo = true;
+                }
+            }
+        }
+        if (DictEnum.ORDER_TYPE_SELL_LIMIT.getCode().equals(orderType)) {
+            //up
+            if (ma.getOneMiddle().compareTo(ma.getTwoMiddle()) > 0) {
+                //连续增长
+                if (ma.getTwoMiddle().compareTo(ma.getThreeMiddle()) > 0 && ma.getThreeMiddle().compareTo(ma.getFourMiddle()) > 0) {
+                    toDo = true;
+                }
+            }
+        }
+        return toDo;
+    }
+
+    /**
+     * 获取ma趋势数据
+     */
+    public MaInfoDto getMaInfo(String symbol, String period) {
+        MaInfoDto maInfoDto = new MaInfoDto();
         MarketInfoVo marketInfoVo = huobiApi.getMarketInfo(period, 8, symbol);
         if (marketInfoVo == null) {
-            log.info("获取详情失败");
-            return null;
+            log.info("获取K线失败");
+            return maInfoDto;
         }
         List<MarketDetailVo> detailVoList = marketInfoVo.getData();
         BigDecimal oneTotal = BigDecimal.ZERO;
@@ -166,46 +282,21 @@ public class DelteTransBiz {
         twoMiddle = twoTotal.divide(new BigDecimal(5), 8, BigDecimal.ROUND_HALF_UP);
         threeMiddle = threeTotal.divide(new BigDecimal(5), 8, BigDecimal.ROUND_HALF_UP);
         fourMiddle = fourTotal.divide(new BigDecimal(5), 8, BigDecimal.ROUND_HALF_UP);
-        log.info("oneMiddle={},twoMiddle={},threeMiddle={},fourMiddle={}", oneMiddle, twoMiddle, threeMiddle, fourMiddle);
-        //up
-        if (oneMiddle.compareTo(twoMiddle) > 0) {
-            //连续增长
-            if (twoMiddle.compareTo(threeMiddle) > 0 && threeMiddle.compareTo(fourMiddle) > 0) {
-                //增长幅度增加
-                if (oneMiddle.subtract(twoMiddle).compareTo(twoMiddle.subtract(threeMiddle)) > 0) {
-                    BigDecimal maMin15 = getNewMa15min(symbol);
-                    //向上离15min线越来越近或者穿过
-                    if(oneMiddle.subtract(maMin15).compareTo(twoMiddle.subtract(maMin15)) > 0 || oneMiddle.compareTo(maMin15) > 0){
-                        maUp = true;
-                    }
-                }
-            }
-        }
-        //down
-        if (oneMiddle.compareTo(twoMiddle) < 0) {
-            //连续下降
-            if (twoMiddle.compareTo(threeMiddle) < 0 && threeMiddle.compareTo(fourMiddle) < 0) {
-                //下降幅度增加
-                if (oneMiddle.subtract(twoMiddle).compareTo(twoMiddle.subtract(threeMiddle)) < 0) {
-
-                    BigDecimal maMin15 = getNewMa15min(symbol);
-                    //向下离15min线越来越近或者穿过
-                    if(oneMiddle.subtract(maMin15).compareTo(twoMiddle.subtract(maMin15)) < 0 || oneMiddle.compareTo(maMin15) < 0){
-                        maUp = false;
-                    }
-                }
-            }
-        }
-        log.info("计算ma趋势结果,maUp={},symbol={}", maUp, symbol);
-        return maUp;
+        maInfoDto.setOneMiddle(oneMiddle);
+        maInfoDto.setTwoMiddle(twoMiddle);
+        maInfoDto.setThreeMiddle(threeMiddle);
+        maInfoDto.setFourMiddle(fourMiddle);
+        return maInfoDto;
     }
 
 
-    public BigDecimal getNewMa15min(String symbol) {
+    /**
+     * 获取最新的ma 15min中位数
+     */
+    private BigDecimal getNewMa15min(String symbol) {
         MarketInfoVo marketInfoVo = huobiApi.getMarketInfo(DictEnum.MARKET_PERIOD_15MIN.getCode(), 5, symbol);
         if (marketInfoVo == null) {
-            log.info("获取详情失败");
-            return null;
+            throw new BizException("获取k线失败");
         }
         List<MarketDetailVo> detailVoList = marketInfoVo.getData();
         BigDecimal oneTotal = BigDecimal.ZERO;
@@ -235,14 +326,14 @@ public class DelteTransBiz {
         //购买数量
         BigDecimal amount = totalAmount.divide(buyPrice, 4, BigDecimal.ROUND_DOWN);
         //创建限价买单
-        return hbCreateDelteLimitBuyOrder(delte.getSymbol(), delte.getUserId(), amount, delte.getOid());
+        return hbCreateDelteLimitBuyOrder(delte.getSymbol(), delte.getUserId(), amount, buyPrice, delte.getOid());
     }
 
     /**
      * 单笔策略delte限价买单,被动买入时使用(对应卖单买入)
      */
-    private OrderEntity hbCreateDelteLimitBuyOrderWithSaleOrder(OrderEntity saleOrder) {
-        log.info("创建detle买单,saleOrderId={}", saleOrder.getOrderId());
+    private OrderEntity hbCreateDelteLimitBuyOrderWithSaleOrder(OrderEntity saleOrder, BigDecimal buyPrice) {
+        log.info("创建delte买单,saleOrderId={}", saleOrder.getOrderId());
         //购买数量
         BigDecimal amount = saleOrder.getAmount();
 
@@ -252,21 +343,31 @@ public class DelteTransBiz {
         if (balanceMax.compareTo(saleOrder.getTotalToUsdt()) < 0) {
             amount = balanceMax.divide(saleOrder.getPrice(), 4, BigDecimal.ROUND_DOWN);
         }
+        if (buyPrice == null) {
+            BigDecimal saleOnePrice = saleOnePrice(saleOrder.getSymbol(), saleOrder.getUserId());
+            //略高买
+            buyPrice = (new BigDecimal(1.0005)).multiply(saleOnePrice);
+        }
         //创建限价买单
-        return hbCreateDelteLimitBuyOrder(saleOrder.getSymbol(), saleOrder.getUserId(), amount, saleOrder.getOid());
+        OrderEntity buyOrder = hbCreateDelteLimitBuyOrder(saleOrder.getSymbol(), saleOrder.getUserId(), amount, buyPrice, saleOrder.getOid());
+        buyOrder.setIsFinish(DictEnum.IS_FINISH_YES.getCode());
+        orderBiz.saveOrder(buyOrder);
+        saleOrder.setBuyOrderId(buyOrder.getOrderId());
+        saleOrder.setIsFinish(DictEnum.IS_FINISH_YES.getCode());
+        saleOrder.setState(DictEnum.ORDER_DETAIL_STATE_BUY.getCode());
+        orderBiz.saveOrder(saleOrder);
+        mailBiz.transToEmailNotify(saleOrder, saleOrder.getUserId());
+        return buyOrder;
     }
 
 
     /**
      * 单笔策略delte限价买单
      */
-    private OrderEntity hbCreateDelteLimitBuyOrder(String symbol, String userId, BigDecimal amount, String configId) {
-        log.info("创建detle买单,symbol={},amount={}", symbol, amount);
+    private OrderEntity hbCreateDelteLimitBuyOrder(String symbol, String userId, BigDecimal amount, BigDecimal buyPrice, String configId) {
+        log.info("创建delte买单,symbol={},amount={},buyPrice={}", symbol, amount, buyPrice);
         CreateOrderDto buyOrderDto = new CreateOrderDto();
         buyOrderDto.setSymbol(symbol);
-        BigDecimal saleOnePrice = saleOnePrice(symbol, userId);
-        //略高买
-        BigDecimal buyPrice = (new BigDecimal(1.0005)).multiply(saleOnePrice);
         buyOrderDto.setPrice(buyPrice);
         buyOrderDto.setOrderType(DictEnum.ORDER_TYPE_BUY_LIMIT.getCode());
         buyOrderDto.setUserId(userId);
@@ -297,14 +398,14 @@ public class DelteTransBiz {
             mailBiz.balanceToEmailNotify(delte.getUserId(), quoteCurrency, DictEnum.MARKET_TYPE_HB.getCode());
             amount = balanceMax;
         }
-        return hbCreateLimitSellOrder(delte.getSymbol(), delte.getUserId(), amount, delte.getOid());
+        return hbCreateLimitSellOrder(delte.getSymbol(), delte.getUserId(), amount, salePrice, delte.getOid());
     }
 
 
     /**
      * 单笔策略限价卖单,对应买单使用
      */
-    private OrderEntity hbCreateLimitSellOrderWithBuyOrder(OrderEntity orderEntity) {
+    private OrderEntity hbCreateLimitSellOrderWithBuyOrder(OrderEntity orderEntity, BigDecimal salePrice) {
         log.info("创建delte卖单,buyOrderId={}", orderEntity.getOrderId());
         //卖出数量
         BigDecimal amount = orderEntity.getAmount();
@@ -312,19 +413,30 @@ public class DelteTransBiz {
         //业务对余额
         BigDecimal balanceMax = accountBiz.getHuobiQuoteBalance(orderEntity.getUserId(), quoteCurrency);
         amount = balanceMax.compareTo(amount) < 0 ? balanceMax : amount;
-        return hbCreateLimitSellOrder(orderEntity.getSymbol(), orderEntity.getUserId(), amount, orderEntity.getSymbolTradeConfigId());
+        if (salePrice == null) {
+            //买一价
+            BigDecimal buyOnePrice = buyOnePrice(orderEntity.getSymbol(), orderEntity.getUserId());
+            salePrice = (new BigDecimal(0.9995)).multiply(buyOnePrice);
+        }
+        //更新卖单完成标记
+        OrderEntity saleOrder = hbCreateLimitSellOrder(orderEntity.getSymbol(), orderEntity.getUserId(), amount, salePrice, orderEntity.getSymbolTradeConfigId());
+        saleOrder.setIsFinish(DictEnum.IS_FINISH_YES.getCode());
+        saleOrder.setBuyOrderId(orderEntity.getOrderId());
+        orderBiz.saveOrder(saleOrder);
+        //更新买单状态并标记处理完成
+        orderEntity.setIsFinish(DictEnum.IS_FINISH_YES.getCode());
+        orderEntity.setState(DictEnum.ORDER_DETAIL_STATE_SELL.getCode());
+        orderBiz.saveOrder(orderEntity);
+        mailBiz.transToEmailNotify(orderEntity, orderEntity.getUserId());
+        return saleOrder;
     }
-
 
     /**
      * 单笔策略限价卖单
      */
-    private OrderEntity hbCreateLimitSellOrder(String symbol, String userId, BigDecimal amount, String configId) {
-        log.info("创建delte卖单,symbol={},amount={}", symbol, amount);
+    private OrderEntity hbCreateLimitSellOrder(String symbol, String userId, BigDecimal amount, BigDecimal salePrice, String configId) {
+        log.info("创建delte卖单,symbol={},amount={},salePrice={}", symbol, amount, salePrice);
         CreateOrderDto saleOrderDto = new CreateOrderDto();
-        //买一价
-        BigDecimal buyOnePrice = buyOnePrice(symbol, userId);
-        BigDecimal salePrice = (new BigDecimal(0.9995)).multiply(buyOnePrice);
         saleOrderDto.setSymbol(symbol);
         saleOrderDto.setOrderType(DictEnum.ORDER_TYPE_SELL_LIMIT.getCode());
         saleOrderDto.setPrice(salePrice);

@@ -114,7 +114,7 @@ public class MonitorSchedule {
         List<List<SymBolsDetailVo>> allList = averageAssign(list, hbOneMonitorCount);
         for (List<SymBolsDetailVo> subList : allList) {
             try {
-                Thread.sleep(hbOneMonitorSleep*1000);
+                Thread.sleep(hbOneMonitorSleep * 1000);
                 hbMarketMonitorBiz.asyncDoMonitor(subList);
             } catch (Exception e) {
                 e.printStackTrace();
@@ -240,10 +240,20 @@ public class MonitorSchedule {
     /**
      * 检查delte订单状态(切日志方法已check开头)
      */
-    @Scheduled(cron = "${cron.option[check.delte.order.status]:55 * * * * ?}")
+    @Scheduled(cron = "${cron.option[check.delte.order.to.do]:05 0/4 * * * ?}")
     public void checkDelteStatus() {
-        if (isSchedule && checkTrend) {
+        if (isSchedule) {
             delteTransBiz.checkDelteStatus();
+        }
+    }
+
+    /**
+     * 检查delte订单是否需要操作(切日志方法已check开头)
+     */
+    @Scheduled(cron = "${cron.option[check.delte.order.to.do]:55 0/3 * * * ?}")
+    public void checkDelteTodo() {
+        if (isSchedule) {
+            delteTransBiz.checkDelteTodo();
         }
     }
 

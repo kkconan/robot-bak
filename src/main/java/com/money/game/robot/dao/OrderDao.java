@@ -36,6 +36,11 @@ public interface OrderDao extends JpaRepository<OrderEntity, String>, JpaSpecifi
     @Query(value = "select * from T_ORDER  where  model = ?1 and marketType=?2 and state in (?3)", nativeQuery = true)
     List<OrderEntity> findByMarket(String model, String marketType, List<String> states);
 
+    @Query(value = "select * from T_ORDER  where  model = ?1 and marketType=?2 and isFinish = ?3 and state in (?4)", nativeQuery = true)
+    List<OrderEntity> findNofinishDelteByMarket(String model, String marketType,String isFinish, List<String> states);
+
+
+
     @Query(value = "select * from T_ORDER  where  type = ?1 and state in (?2) and (model = 'limit' or model='limitBeta' or model='limitGamma') ", nativeQuery = true)
     List<OrderEntity> findByTypeAndState(String type, List<String> states);
 

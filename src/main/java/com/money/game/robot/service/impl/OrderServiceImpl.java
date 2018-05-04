@@ -66,6 +66,11 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    public List<OrderEntity> findNofinishDelteByMarket(String model, String marketType,String isFinish, List<String> states) {
+        return orderDao.findNofinishDelteByMarket(model,marketType,isFinish,states);
+    }
+
+    @Override
     public List<OrderEntity> findByTypeAndState(String type, List<String> states) {
         return orderDao.findByTypeAndState(type, states);
     }
