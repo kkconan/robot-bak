@@ -260,7 +260,7 @@ public class MonitorSchedule {
     /**
      * 检查delte趋势(切日志方法已check开头)
      */
-    @Scheduled(cron = "${cron.option[check.delte.ma]:11 0/5 * * * ?}")
+    @Scheduled(cron = "${cron.option[check.delte.ma]:11 0/01 * * * ?}")
     public void checkByMa() {
         if (isSchedule && checkTrend) {
             log.info("check delte ma start...");

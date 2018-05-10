@@ -1,8 +1,11 @@
 package com.money.game.robot;
 
 import com.money.game.robot.biz.DelteTransBiz;
+import com.money.game.robot.biz.OrderBiz;
 import com.money.game.robot.biz.TransBiz;
 import com.money.game.robot.constant.DictEnum;
+import com.money.game.robot.dto.huobi.MaInfoDto;
+import com.money.game.robot.entity.OrderEntity;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -25,6 +28,9 @@ public class TransBizTest {
 
     @Autowired
     DelteTransBiz delteTransBiz;
+
+    @Autowired
+    OrderBiz orderBiz;
 
     @Test
     public void transTest() {
@@ -73,8 +79,25 @@ public class TransBizTest {
     @Test
     @Rollback(false)
     public void calcMaTest() {
-        delteTransBiz.calcMa5min("etcusdt", DictEnum.MARKET_PERIOD_15MIN.getCode());
+        delteTransBiz.calcMaInfo("eosusdt", DictEnum.MARKET_PERIOD_60MIN.getCode());
     }
 
+    @Test
+    public void updateHbOrderStateTest() {
+        OrderEntity orderEntity = orderBiz.findByBuyOrderId("4041693610");
+        orderBiz.updateHbOrderState(orderEntity);
+    }
+
+    @Test
+    public void getMaInfoTest() {
+        MaInfoDto ma = transBiz.getMaInfo("eosusdt",DictEnum.MARKET_PERIOD_60MIN.getCode());
+        System.err.println("ma="+ma);
+    }
+
+    @Test
+    public void getDelteMaInfoTest() {
+        MaInfoDto ma = delteTransBiz.getMaInfo("htusdt",DictEnum.MARKET_PERIOD_60MIN.getCode());
+        System.err.println("ma="+ma);
+    }
 
 }

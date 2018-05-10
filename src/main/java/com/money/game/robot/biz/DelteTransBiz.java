@@ -1,5 +1,6 @@
 package com.money.game.robot.biz;
 
+import com.money.game.robot.bian.OkexApi;
 import com.money.game.robot.constant.DictEnum;
 import com.money.game.robot.dto.huobi.CreateOrderDto;
 import com.money.game.robot.dto.huobi.DepthDto;
@@ -14,6 +15,7 @@ import com.money.game.robot.vo.huobi.MarketDetailVo;
 import com.money.game.robot.vo.huobi.MarketInfoVo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -54,6 +56,12 @@ public class DelteTransBiz {
     @Autowired
     private MarketBiz marketBiz;
 
+    @Autowired
+    private OkexApi okexApi;
+
+    @Value("${delte.rate:0.005}")
+    private Double delteRate;
+
     /**
      * 更新已完成但是状态还未同步的detle订单
      */
@@ -81,7 +89,7 @@ public class DelteTransBiz {
                 orderBiz.updateHbOrderState(orderEntity);
                 if (orderEntity.getState().equals(DictEnum.ORDER_DETAIL_STATE_FILLED.getCode())) {
                     //是否该操作订单
-                    boolean toDo = calcMa5minToWin(orderEntity.getSymbol(), orderEntity.getType());
+                    boolean toDo = calcMa30minToWin(orderEntity.getSymbol(), orderEntity.getType());
                     if (toDo) {
                         log.info("趋势构成处理delte订单,orderId={}", orderEntity.getOrderId());
                         //买单检查是否有足够利润去卖出
@@ -112,7 +120,6 @@ public class DelteTransBiz {
 
                         }
                     }
-
                 }
                 Thread.sleep(2000);
             } catch (Exception e) {
@@ -131,7 +138,7 @@ public class DelteTransBiz {
             List<LimitDelteConfigEntity> delteList = limitDelteConfigBiz.findByUserIdAndMarketType(user.getOid(), DictEnum.MARKET_TYPE_HB.getCode());
             for (LimitDelteConfigEntity delte : delteList) {
                 try {
-                    Boolean maUp = calcMa5min(delte.getSymbol(), DictEnum.MARKET_PERIOD_5MIN.getCode());
+                    Boolean maUp = calcMaInfo(delte.getSymbol(), DictEnum.MARKET_PERIOD_60MIN.getCode());
                     //上升
                     if (maUp != null && maUp) {
                         OrderEntity buyOrder = orderBiz.findHbDelteBuyOrder(delte.getUserId(), delte.getSymbol(), delte.getOid(), DictEnum.ORDER_MODEL_LIMIT_DELTE.getCode());
@@ -164,8 +171,7 @@ public class DelteTransBiz {
                             log.info("已存在卖单,orderId={}", saleOrder.getOrderId());
                         }
                     }
-                    //hb 行情有访问频率控制
-                    Thread.sleep(1000);
+                    Thread.sleep(2000);
                 } catch (Exception e) {
                     log.error("处理delte订单失败,delte={},e={}", delte, e);
                 }
@@ -177,40 +183,19 @@ public class DelteTransBiz {
     /**
      * 计算ma 5min 趋势是否构成买入卖出点
      */
-    public Boolean calcMa5min(String symbol, String period) {
+    public Boolean calcMaInfo(String symbol, String period) {
         Boolean maUp = null;
 
         MaInfoDto ma = getMaInfo(symbol, period);
         //up
-        if (ma.getOneMiddle().compareTo(ma.getTwoMiddle()) > 0) {
-            //连续增长
-            if (ma.getTwoMiddle().compareTo(ma.getThreeMiddle()) > 0 && ma.getThreeMiddle().compareTo(ma.getFourMiddle()) > 0) {
-                //增长幅度增加
-                if (ma.getOneMiddle().subtract(ma.getTwoMiddle()).compareTo(ma.getTwoMiddle().subtract(ma.getThreeMiddle())) > 0) {
-                    BigDecimal maMin15 = getNewMa15min(symbol);
-                    //向上离15min线越来越近或者穿过
-                    if (ma.getOneMiddle().compareTo(maMin15) > 0) {
-                        log.info("ma5min趋势结果上升,symbol={},ma={},maMin15={}", symbol, ma,maMin15);
-                        maUp = true;
-                    }
-                }
-            }
+        if (ma.getMa7Middle().compareTo(ma.getMa30Middle()) > 0 && ma.getRate().compareTo(delteRate) <= 0) {
+            log.info("delte{}趋势结果上升,symbol={},ma={}",period, symbol, ma);
+            maUp = true;
         }
         //down
-        if (ma.getOneMiddle().compareTo(ma.getTwoMiddle()) < 0) {
-            //连续下降
-            if (ma.getTwoMiddle().compareTo(ma.getThreeMiddle()) < 0 && ma.getThreeMiddle().compareTo(ma.getFourMiddle()) < 0) {
-                //下降幅度增加
-                if (ma.getOneMiddle().subtract(ma.getTwoMiddle()).compareTo(ma.getTwoMiddle().subtract(ma.getThreeMiddle())) < 0) {
-
-                    BigDecimal maMin15 = getNewMa15min(symbol);
-                    //向下离15min线越来越近或者穿过
-                    if (ma.getOneMiddle().compareTo(maMin15) < 0) {
-                        log.info("ma5min趋势结果下降,symbol={},ma={},maMin15={}", symbol, ma,maMin15);
-                        maUp = false;
-                    }
-                }
-            }
+        if (ma.getMa7Middle().compareTo(ma.getMa30Middle()) < 0 && ma.getRate().compareTo(delteRate) <= 0) {
+            log.info("delte{}趋势结果下降,symbol={},ma={}",period, symbol, ma);
+            maUp = false;
         }
         return maUp;
     }
@@ -219,27 +204,25 @@ public class DelteTransBiz {
     /**
      * 计算当前某种趋势是否趋向于成交订单盈利
      */
-    public Boolean calcMa5minToWin(String symbol, String orderType) {
+    public Boolean calcMa30minToWin(String symbol, String orderType) {
         boolean toDo = false;
 
-        MaInfoDto ma = getMaInfo(symbol, DictEnum.MARKET_PERIOD_5MIN.getCode());
+        MaInfoDto ma = getMaInfo(symbol, DictEnum.MARKET_PERIOD_15MIN.getCode());
         //买单,判断上涨趋势减慢
         if (DictEnum.ORDER_TYPE_BUY_LIMIT.getCode().equals(orderType)) {
             //down
-            if (ma.getOneMiddle().compareTo(ma.getTwoMiddle()) < 0) {
-                //连续下降
-                if (ma.getTwoMiddle().compareTo(ma.getThreeMiddle()) < 0 && ma.getThreeMiddle().compareTo(ma.getFourMiddle()) < 0) {
-                    toDo = true;
-                }
+            if (ma.getMa7Middle().compareTo(ma.getMa30Middle()) < 0) {
+                log.info("下跌跌穿,symbol={},ma={}",symbol,ma);
+                //ma 跌穿
+                toDo = true;
             }
         }
         if (DictEnum.ORDER_TYPE_SELL_LIMIT.getCode().equals(orderType)) {
             //up
-            if (ma.getOneMiddle().compareTo(ma.getTwoMiddle()) > 0) {
-                //连续增长
-                if (ma.getTwoMiddle().compareTo(ma.getThreeMiddle()) > 0 && ma.getThreeMiddle().compareTo(ma.getFourMiddle()) > 0) {
-                    toDo = true;
-                }
+            if (ma.getMa7Middle().compareTo(ma.getMa30Middle()) > 0) {
+                log.info("上涨涨穿,symbol={},ma={}",symbol,ma);
+                //ma 涨穿
+                toDo = true;
             }
         }
         return toDo;
@@ -250,50 +233,42 @@ public class DelteTransBiz {
      */
     public MaInfoDto getMaInfo(String symbol, String period) {
         MaInfoDto maInfoDto = new MaInfoDto();
-        MarketInfoVo marketInfoVo = huobiApi.getMarketInfo(period, 8, symbol);
-        if (marketInfoVo == null) {
+        MarketInfoVo marketInfoVo = huobiApi.getMarketInfo(period, 30, symbol);
+        if (marketInfoVo == null || marketInfoVo.getData() == null) {
             log.info("获取K线失败");
             return maInfoDto;
         }
         List<MarketDetailVo> detailVoList = marketInfoVo.getData();
         BigDecimal oneTotal = BigDecimal.ZERO;
         BigDecimal twoTotal = BigDecimal.ZERO;
-        BigDecimal threeTotal = BigDecimal.ZERO;
-        BigDecimal fourTotal = BigDecimal.ZERO;
         BigDecimal oneMiddle;
         BigDecimal twoMiddle;
-        BigDecimal threeMiddle;
-        BigDecimal fourMiddle;
         for (int i = 0; i < detailVoList.size(); i++) {
-            if (i >= 0 && i < 5) {
+            if (i >= 0 && i < 7) {
                 oneTotal = oneTotal.add(detailVoList.get(i).getClose());
             }
-            if (i >= 1 && i < 6) {
+            if (i >= 0 && i < 30) {
                 twoTotal = twoTotal.add(detailVoList.get(i).getClose());
             }
-            if (i >= 2 && i < 7) {
-                threeTotal = threeTotal.add(detailVoList.get(i).getClose());
-            }
-            if (i >= 3 && i < 8) {
-                fourTotal = fourTotal.add(detailVoList.get(i).getClose());
-            }
         }
-        oneMiddle = oneTotal.divide(new BigDecimal(5), 8, BigDecimal.ROUND_HALF_UP);
-        twoMiddle = twoTotal.divide(new BigDecimal(5), 8, BigDecimal.ROUND_HALF_UP);
-        threeMiddle = threeTotal.divide(new BigDecimal(5), 8, BigDecimal.ROUND_HALF_UP);
-        fourMiddle = fourTotal.divide(new BigDecimal(5), 8, BigDecimal.ROUND_HALF_UP);
-        maInfoDto.setOneMiddle(oneMiddle);
-        maInfoDto.setTwoMiddle(twoMiddle);
-        maInfoDto.setThreeMiddle(threeMiddle);
-        maInfoDto.setFourMiddle(fourMiddle);
+        //MA7
+        oneMiddle = oneTotal.divide(new BigDecimal(7), 8, BigDecimal.ROUND_HALF_UP);
+        //MA30
+        twoMiddle = twoTotal.divide(new BigDecimal(30), 8, BigDecimal.ROUND_HALF_UP);
+        maInfoDto.setMa7Middle(oneMiddle);
+        maInfoDto.setMa30Middle(twoMiddle);
+        maInfoDto.setPeriod(period);
+        //差异比率
+        maInfoDto.setRate(Math.abs(oneMiddle.divide(twoMiddle, 8, BigDecimal.ROUND_HALF_UP).subtract(new BigDecimal(1)).doubleValue()));
         return maInfoDto;
     }
 
 
+
     /**
-     * 获取最新的ma 15min中位数
+     * 获取最新的ma 60min中位数
      */
-    private BigDecimal getNewMa15min(String symbol) {
+    private BigDecimal getNewMa60min(String symbol) {
         MarketInfoVo marketInfoVo = huobiApi.getMarketInfo(DictEnum.MARKET_PERIOD_15MIN.getCode(), 5, symbol);
         if (marketInfoVo == null) {
             throw new BizException("获取k线失败");
@@ -305,7 +280,7 @@ public class DelteTransBiz {
             oneTotal = oneTotal.add(detailVo.getClose());
         }
         oneMiddle = oneTotal.divide(new BigDecimal(5), 8, BigDecimal.ROUND_HALF_UP);
-        log.info("min15Middle={}", oneMiddle);
+        log.info("min60Middle={}", oneMiddle);
         return oneMiddle;
     }
 

@@ -93,6 +93,11 @@ public class TransBiz {
     private int timeOutMinute;
 
 
+    @Value("${beta.and.game.rate:0.03}")
+    private Double betaAndGameRate;
+
+
+
     /**
      * hbToBuy
      */
@@ -1304,7 +1309,7 @@ public class TransBiz {
             List<LimitGammaConfigEntity> gammaList = limitGammaConfigBiz.findByUserIdAndMarketType(user.getOid(), DictEnum.MARKET_TYPE_HB.getCode());
             for (LimitGammaConfigEntity gamma : gammaList) {
                 try {
-                    Boolean trendUp = calcMin60Trend(gamma.getSymbol());
+                    Boolean trendUp = calcTrend(gamma.getSymbol());
                     //趋势下降,启动gamma,停止beta
                     if (trendUp != null && !trendUp) {
                         if (!DictEnum.IS_USER_YES.getCode().equals(gamma.getIsUse())) {
@@ -1386,7 +1391,7 @@ public class TransBiz {
             List<LimitBetaConfigEntity> betaList = limitBetaConfigBiz.findByUserIdAndMarketType(user.getOid(), DictEnum.MARKET_TYPE_HB.getCode());
             for (LimitBetaConfigEntity beta : betaList) {
                 try {
-                    Boolean trendUp = calcMin60Trend(beta.getSymbol());
+                    Boolean trendUp = calcTrend(beta.getSymbol());
                     //趋势上升,启动beta,停止gamma
                     if (trendUp != null && trendUp) {
                         if (!beta.getIsUse().equals(DictEnum.IS_USER_YES.getCode())) {
@@ -1467,87 +1472,57 @@ public class TransBiz {
         }
     }
 
-    private Boolean calcMin60Trend(String symbol) {
-        MaInfoDto ma = delteTransBiz.getMaInfo(symbol, DictEnum.MARKET_PERIOD_60MIN.getCode());
+    private Boolean calcTrend(String symbol) {
+        MaInfoDto ma = this.getMaInfo(symbol, DictEnum.MARKET_PERIOD_60MIN.getCode());
         Boolean maUp = null;
         //up
-        if (ma.getOneMiddle().compareTo(ma.getTwoMiddle()) > 0) {
-            //连续增长
-            if (ma.getTwoMiddle().compareTo(ma.getThreeMiddle()) > 0 && ma.getThreeMiddle().compareTo(ma.getFourMiddle()) > 0) {
-                //增长幅度增加
-                if (ma.getOneMiddle().subtract(ma.getTwoMiddle()).compareTo(ma.getTwoMiddle().subtract(ma.getThreeMiddle())) > 0) {
-                    log.info("ma60min趋势结果上升,symbol={},ma={}", symbol, ma);
-                    maUp = true;
-                }
-            }
+        if (ma.getMa7Middle().compareTo(ma.getMa30Middle()) > 0  && ma.getRate().compareTo(betaAndGameRate) <= 0) {
+            log.info("ma4H趋势结果上升,symbol={},ma={}", symbol, ma);
+            maUp = true;
         }
         //down
-        if (ma.getOneMiddle().compareTo(ma.getTwoMiddle()) < 0) {
-            //连续下降
-            if (ma.getTwoMiddle().compareTo(ma.getThreeMiddle()) < 0 && ma.getThreeMiddle().compareTo(ma.getFourMiddle()) < 0) {
-                //下降幅度增加
-                if (ma.getOneMiddle().subtract(ma.getTwoMiddle()).compareTo(ma.getTwoMiddle().subtract(ma.getThreeMiddle())) < 0) {
-                    log.info("ma60min趋势结果下降,symbol={},ma={}", symbol, ma);
-                    maUp = false;
-                }
-            }
+        if (ma.getMa7Middle().compareTo(ma.getMa30Middle()) < 0 && ma.getRate().compareTo(betaAndGameRate) <= 0) {
+            log.info("ma4H趋势结果下降,symbol={},ma={}", symbol, ma);
+            maUp = false;
         }
         return maUp;
-
     }
 
     /**
-     * 检查趋势
+     * 获取ma趋势数据，hb
      */
-    private Boolean getTrend(String symbol) {
-        Boolean isTrendUp = null;
-        Integer increaseTrend = 0;
-        MarketInfoVo marketInfoVo = huobiApi.getMarketInfo(DictEnum.MARKET_PERIOD_60MIN.getCode(), 7, symbol);
-        if (marketInfoVo == null) {
-            log.info("获取详情失败");
-            return null;
+    public MaInfoDto getMaInfo(String symbol, String period) {
+        MaInfoDto maInfoDto = new MaInfoDto();
+        MarketInfoVo marketInfoVo = huobiApi.getMarketInfo(period, 120, symbol);
+        if (marketInfoVo == null || marketInfoVo.getData() == null) {
+            log.info("获取K线失败");
+            return maInfoDto;
         }
         List<MarketDetailVo> detailVoList = marketInfoVo.getData();
-        if (detailVoList.get(0).getClose().subtract(detailVoList.get(0).getOpen()).compareTo(BigDecimal.ZERO) > 0) {
-            ++increaseTrend;
-        } else if (detailVoList.get(0).getClose().subtract(detailVoList.get(0).getOpen()).compareTo(BigDecimal.ZERO) < 0) {
-            --increaseTrend;
+        BigDecimal oneTotal = BigDecimal.ZERO;
+        BigDecimal twoTotal = BigDecimal.ZERO;
+        BigDecimal oneMiddle;
+        BigDecimal twoMiddle;
+        for (int i = 0; i < detailVoList.size(); i++) {
+            if (i >= 0 && i < 28 && i%4==0) {
+                oneTotal = oneTotal.add(detailVoList.get(i).getClose());
+            }
+            if (i >= 0 && i < 120 && i%4==0) {
+                twoTotal = twoTotal.add(detailVoList.get(i).getClose());
+            }
         }
-        if (detailVoList.get(1).getClose().subtract(detailVoList.get(1).getOpen()).compareTo(BigDecimal.ZERO) > 0) {
-            ++increaseTrend;
-        } else if ((detailVoList.get(1).getClose().subtract(detailVoList.get(1).getOpen()).compareTo(BigDecimal.ZERO) < 0)) {
-            --increaseTrend;
-        }
-        if (detailVoList.get(2).getClose().subtract(detailVoList.get(2).getOpen()).compareTo(BigDecimal.ZERO) > 0) {
-            ++increaseTrend;
-        } else if (detailVoList.get(2).getClose().subtract(detailVoList.get(2).getOpen()).compareTo(BigDecimal.ZERO) < 0) {
-            --increaseTrend;
-        }
-        if (detailVoList.get(3).getClose().subtract(detailVoList.get(3).getOpen()).compareTo(BigDecimal.ZERO) > 0) {
-            ++increaseTrend;
-        } else if (detailVoList.get(3).getClose().subtract(detailVoList.get(3).getOpen()).compareTo(BigDecimal.ZERO) < 0) {
-            --increaseTrend;
-        }
-        if (detailVoList.get(4).getClose().subtract(detailVoList.get(4).getOpen()).compareTo(BigDecimal.ZERO) > 0) {
-            ++increaseTrend;
-        } else if (detailVoList.get(4).getClose().subtract(detailVoList.get(4).getOpen()).compareTo(BigDecimal.ZERO) < 0) {
-            --increaseTrend;
-        }
-        if (detailVoList.get(5).getClose().subtract(detailVoList.get(5).getOpen()).compareTo(BigDecimal.ZERO) > 0) {
-            ++increaseTrend;
-        } else if (detailVoList.get(6).getClose().subtract(detailVoList.get(6).getOpen()).compareTo(BigDecimal.ZERO) < 0) {
-            --increaseTrend;
-        }
-        //超过5次收盘高于开盘
-        if (increaseTrend >= 5) {
-            log.info("趋势上升,symbol={}", symbol);
-            isTrendUp = true;
-        } else if (increaseTrend <= -5) {
-            log.info("趋势下降,symbol={}", symbol);
-            isTrendUp = false;
-        }
-        return isTrendUp;
+        //MA7
+        oneMiddle = oneTotal.divide(new BigDecimal(7), 8, BigDecimal.ROUND_HALF_UP);
+        //MA30
+        twoMiddle = twoTotal.divide(new BigDecimal(30), 8, BigDecimal.ROUND_HALF_UP);
+        maInfoDto.setMa7Middle(oneMiddle);
+        maInfoDto.setMa30Middle(twoMiddle);
+        maInfoDto.setPeriod(period);
+        //差异比率
+        maInfoDto.setRate(Math.abs(oneMiddle.divide(twoMiddle, 8, BigDecimal.ROUND_HALF_UP).subtract(new BigDecimal(1)).doubleValue()));
+        return maInfoDto;
     }
+
 
     /**
      * 买一价

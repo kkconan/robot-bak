@@ -14,13 +14,26 @@ import java.math.BigDecimal;
 public class MaInfoDto {
 
     /**
-     * 最新时间的ma平均数
+     * 查询类型
      */
-    BigDecimal oneMiddle = BigDecimal.ZERO;
+    private String period;
+    /**
+     * 最新时间的ma7平均数
+     */
+    BigDecimal ma7Middle = BigDecimal.ZERO;
 
-    BigDecimal twoMiddle = BigDecimal.ZERO;
+    /**
+     * 最新时间的ma30平均数
+     */
+    BigDecimal ma30Middle = BigDecimal.ZERO;
 
-    BigDecimal threeMiddle = BigDecimal.ZERO;
 
-    BigDecimal fourMiddle = BigDecimal.ZERO;
+    /**
+     * 平均数差异比率
+     */
+    private Double rate;
+
+//    BigDecimal threeMiddle = BigDecimal.ZERO;
+//
+//    BigDecimal fourMiddle = BigDecimal.ZERO;
 }

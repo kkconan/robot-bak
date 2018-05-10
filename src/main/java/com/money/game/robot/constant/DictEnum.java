@@ -188,6 +188,20 @@ public enum DictEnum {
     IS_FINISH_YES("yes","已完成"),
     IS_FINISH_NO("no","未完成"),
 
+
+    OKEX_MARKET_PERIOD_1MIN("1min", "一分钟"),
+    OKEX_MARKET_PERIOD_3MIN("3min", "三分钟"),
+    OKEX_MARKET_PERIOD_5MIN("5min", "五分钟"),
+    OKEX_MARKET_PERIOD_15MIN("15min", "十五分钟"),
+    OKEX_MARKET_PERIOD_30MIN("30min", "三十分钟"),
+    OKEX_MARKET_PERIOD_1H("1hour", "一小时"),
+    OKEX_MARKET_PERIOD_2H("2hour", "两小时"),
+    OKEX_MARKET_PERIOD_4H("4hour", "四小时"),
+    OKEX_MARKET_PERIOD_6H("6hour", "六小时"),
+    OKEX_MARKET_PERIOD_12H("12hour", "十二小时"),
+    OKEX_MARKET_PERIOD_1D("1day", "一天"),
+    OKEX_MARKET_PERIOD_3D("3day", "三天"),
+    OKEX_MARKET_PERIOD_1W("1week", "一周"),
     ;
 
     public static List<String> filledOrderStates = new ArrayList<>();
