@@ -8,7 +8,6 @@ import com.money.game.robot.dto.huobi.MaInfoDto;
 import com.money.game.robot.entity.LimitDelteConfigEntity;
 import com.money.game.robot.entity.OrderEntity;
 import com.money.game.robot.entity.UserEntity;
-import com.money.game.robot.exception.BizException;
 import com.money.game.robot.huobi.response.Depth;
 import com.money.game.robot.market.HuobiApi;
 import com.money.game.robot.vo.huobi.MarketDetailVo;
@@ -62,6 +61,9 @@ public class DelteTransBiz {
     @Value("${delte.rate:0.005}")
     private Double delteRate;
 
+    @Value("${retry.time:3}")
+    private Integer retryTime;
+
     /**
      * 更新已完成但是状态还未同步的detle订单
      */
@@ -89,7 +91,7 @@ public class DelteTransBiz {
                 orderBiz.updateHbOrderState(orderEntity);
                 if (orderEntity.getState().equals(DictEnum.ORDER_DETAIL_STATE_FILLED.getCode())) {
                     //是否该操作订单
-                    boolean toDo = calcMa30minToWin(orderEntity.getSymbol(), orderEntity.getType());
+                    boolean toDo = calcMaToWin(orderEntity.getSymbol(), orderEntity.getType());
                     if (toDo) {
                         log.info("趋势构成处理delte订单,orderId={}", orderEntity.getOrderId());
                         //买单检查是否有足够利润去卖出
@@ -186,15 +188,15 @@ public class DelteTransBiz {
     public Boolean calcMaInfo(String symbol, String period) {
         Boolean maUp = null;
 
-        MaInfoDto ma = getMaInfo(symbol, period);
+        MaInfoDto ma = reTryGetMaInfo(symbol, period,retryTime);
         //up
         if (ma.getMa7Middle().compareTo(ma.getMa30Middle()) > 0 && ma.getRate().compareTo(delteRate) <= 0) {
-            log.info("delte{}趋势结果上升,symbol={},ma={}",period, symbol, ma);
+            log.info("delte{}趋势结果上升,symbol={},ma={}", period, symbol, ma);
             maUp = true;
         }
         //down
         if (ma.getMa7Middle().compareTo(ma.getMa30Middle()) < 0 && ma.getRate().compareTo(delteRate) <= 0) {
-            log.info("delte{}趋势结果下降,symbol={},ma={}",period, symbol, ma);
+            log.info("delte{}趋势结果下降,symbol={},ma={}", period, symbol, ma);
             maUp = false;
         }
         return maUp;
@@ -204,15 +206,15 @@ public class DelteTransBiz {
     /**
      * 计算当前某种趋势是否趋向于成交订单盈利
      */
-    public Boolean calcMa30minToWin(String symbol, String orderType) {
+    public Boolean calcMaToWin(String symbol, String orderType) {
         boolean toDo = false;
 
-        MaInfoDto ma = getMaInfo(symbol, DictEnum.MARKET_PERIOD_15MIN.getCode());
+        MaInfoDto ma = reTryGetMaInfo(symbol, DictEnum.MARKET_PERIOD_15MIN.getCode(),retryTime);
         //买单,判断上涨趋势减慢
         if (DictEnum.ORDER_TYPE_BUY_LIMIT.getCode().equals(orderType)) {
             //down
             if (ma.getMa7Middle().compareTo(ma.getMa30Middle()) < 0) {
-                log.info("下跌跌穿,symbol={},ma={}",symbol,ma);
+                log.info("下跌跌穿,symbol={},ma={}", symbol, ma);
                 //ma 跌穿
                 toDo = true;
             }
@@ -220,12 +222,32 @@ public class DelteTransBiz {
         if (DictEnum.ORDER_TYPE_SELL_LIMIT.getCode().equals(orderType)) {
             //up
             if (ma.getMa7Middle().compareTo(ma.getMa30Middle()) > 0) {
-                log.info("上涨涨穿,symbol={},ma={}",symbol,ma);
+                log.info("上涨涨穿,symbol={},ma={}", symbol, ma);
                 //ma 涨穿
                 toDo = true;
             }
         }
         return toDo;
+    }
+
+    /**
+     * 获取行情失败重试
+     */
+    public MaInfoDto reTryGetMaInfo(String symbol, String period, Integer retryTime) {
+        MaInfoDto maInfoDto = getMaInfo(symbol, period);
+        try {
+            if (maInfoDto == null && retryTime > 0) {
+                log.info("retry to getMaInfo,symbol={},retryTime={}", symbol, retryTime);
+                Thread.sleep(1000);
+                --retryTime;
+                maInfoDto = reTryGetMaInfo(symbol, period, retryTime);
+            } else if(maInfoDto == null && retryTime <= 0){
+                maInfoDto = new MaInfoDto();
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        return maInfoDto;
     }
 
     /**
@@ -236,7 +258,7 @@ public class DelteTransBiz {
         MarketInfoVo marketInfoVo = huobiApi.getMarketInfo(period, 30, symbol);
         if (marketInfoVo == null || marketInfoVo.getData() == null) {
             log.info("获取K线失败");
-            return maInfoDto;
+            return null;
         }
         List<MarketDetailVo> detailVoList = marketInfoVo.getData();
         BigDecimal oneTotal = BigDecimal.ZERO;
@@ -261,27 +283,6 @@ public class DelteTransBiz {
         //差异比率
         maInfoDto.setRate(Math.abs(oneMiddle.divide(twoMiddle, 8, BigDecimal.ROUND_HALF_UP).subtract(new BigDecimal(1)).doubleValue()));
         return maInfoDto;
-    }
-
-
-
-    /**
-     * 获取最新的ma 60min中位数
-     */
-    private BigDecimal getNewMa60min(String symbol) {
-        MarketInfoVo marketInfoVo = huobiApi.getMarketInfo(DictEnum.MARKET_PERIOD_15MIN.getCode(), 5, symbol);
-        if (marketInfoVo == null) {
-            throw new BizException("获取k线失败");
-        }
-        List<MarketDetailVo> detailVoList = marketInfoVo.getData();
-        BigDecimal oneTotal = BigDecimal.ZERO;
-        BigDecimal oneMiddle;
-        for (MarketDetailVo detailVo : detailVoList) {
-            oneTotal = oneTotal.add(detailVo.getClose());
-        }
-        oneMiddle = oneTotal.divide(new BigDecimal(5), 8, BigDecimal.ROUND_HALF_UP);
-        log.info("min60Middle={}", oneMiddle);
-        return oneMiddle;
     }
 
 
